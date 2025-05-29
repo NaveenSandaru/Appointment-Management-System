@@ -1,10 +1,10 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/Components/ui/input"
-import { Label } from "@/Components/ui/label"
-import { Checkbox } from "@/Components/ui/checkbox"
-import { Card, CardContent, CardHeader } from "@/Components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -61,7 +61,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-gray-600">
             {"Don't have an account? "}
-            <Link href="#" className="text-[#12D598] hover:text-green-700">
+            <Link href="/auth/account-selection" className="text-[#12D598] hover:text-green-700">
               Sign up
             </Link>
           </p>
