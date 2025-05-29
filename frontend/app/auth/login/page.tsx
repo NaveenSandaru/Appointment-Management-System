@@ -1,11 +1,15 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Input } from "@/Components/ui/input"
+import { Label } from "@/Components/ui/label"
+import { Checkbox } from "@/Components/ui/checkbox"
+import { Card, CardContent, CardHeader } from "@/Components/ui/card"
 import Link from "next/link"
 
 export default function LoginPage() {
+
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
