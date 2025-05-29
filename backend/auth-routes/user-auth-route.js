@@ -7,14 +7,18 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// POST /auth/login
 router.post('/login', async (req, res) => {
     try {
+        const user = null;
         const { email, password, checked } = req.body;
-        const user = await prisma.user.findUnique({ where: { email } });
+        user = await prisma.clients.findUnique({ where: { email } });
 
         if (!user) {
-            return res.json({ successful: false, message: 'User not found' });
+            user = await prisma.service_providers.findUnique({ where: { email } });
+            if (!user) {
+                return res.json({ successful: false, message: 'User not found' });
+            }
+
         }
 
         const validPassword = await bcrypt.compare(password, user.password);
@@ -29,8 +33,8 @@ router.post('/login', async (req, res) => {
 
         // If a verification record exists, the email is not verified yet
         if (verificationRecord) {
-            return res.json({ 
-                successful: false, 
+            return res.json({
+                successful: false,
                 message: 'Please verify your email before logging in',
                 needsVerification: true,
                 email: user.email
@@ -46,8 +50,8 @@ router.post('/login', async (req, res) => {
             ...(checked && { maxAge: 14 * 24 * 60 * 60 * 1000 }), // 14 days if remembered
         });
 
-        return res.json({ 
-            successful: true, 
+        return res.json({
+            successful: true,
             message: 'Login successful',
             accessToken: tokens.accessToken,
             user: {
@@ -61,7 +65,67 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// GET /auth/refresh_token
+router.post('/google_login', async (req, res) => {
+    try {
+        const { email, name, ...rest } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required' });
+        }
+
+        // Check if user exists
+        let user = await prisma.clients.findUnique({ where: { email } });
+
+        if (!user) {
+            // Create new user
+            user = await prisma.clients.create({
+                data: {
+                    email,
+                    name,
+                    ...rest
+                }
+            });
+        } else {
+            // Update existing user info
+            user = await prisma.clients.update({
+                where: { email },
+                data: {
+                    name,
+                    ...rest
+                }
+            });
+        }
+
+        // Generate tokens
+        const tokens = jwTokens(user.email, user.name);
+
+        // Set refresh token in cookie (session cookie)
+        res.cookie('refreshToken', tokens.refreshToken, {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true
+        });
+
+        return res.json({
+            successful: true,
+            message: 'Login successful',
+            accessToken: tokens.accessToken,
+            user: {
+                email: user.email,
+                name: user.name
+            }
+        });
+
+    } catch (error) {
+        console.error('Google login error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
+
+
+
 router.get('/refresh_token', (req, res) => {
     try {
         const refreshToken = req.cookies.refreshToken;
@@ -92,24 +156,6 @@ router.delete('/delete_token', (req, res) => {
         return res.status(200).json({ message: 'Refresh token deleted' });
     } catch (error) {
         res.status(401).json({ error: error.message });
-    }
-});
-
-// GET /user - list all users
-router.get('/user', async (req, res) => {
-    try {
-        const users = await prisma.user.findMany({
-            select: {
-                name: true,
-                email: true,
-                phoneNumber: true,
-            },
-        });
-
-        res.json(users);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: err.message });
     }
 });
 
