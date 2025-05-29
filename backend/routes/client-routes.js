@@ -29,8 +29,7 @@ router.get('/client', /*authenticateToken*/ async (req, res) => {
 
 // Create a new client
 router.post('/', /*authenticateToken*/ async (req, res) => {
-  const { email, name, phone_number, profile_picture, age, gender, address, password } = req.body;
-
+  const { email, name, phone_number, profile_picture, age, gender, address, password } = req.body.datatosendtoclient;
   if (!email || !name || !phone_number || !password) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -50,6 +49,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
     });
     res.status(201).json(newClient);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 });

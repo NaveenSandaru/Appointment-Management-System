@@ -17,6 +17,7 @@ import securityQuestionsRouter from './routes/security-questions-routes.js';
 import serviceProviderEmailVerificationRouter from './routes/service-provider-email-verification-routes.js';
 import serviceProviderQuestionsRouter from './routes/service-provider-questions-routes.js';
 import serviceProviderRouter from './routes/service-provider-routes.js'; 
+import photoRouter from './routes/photos-routes.js';
 
 dotenv.config();
 
@@ -41,5 +42,6 @@ app.use('/reviews', reviewsRouter);
 app.use('/security-questions', securityQuestionsRouter);
 app.use('/client-user-questions', clientUserQuestionsRouter);
 app.use('/service-provider-questions', serviceProviderQuestionsRouter);
+app.use('/photos',photoRouter);
 
 app.listen(PORT, ()=>console.log(`Server listening on ${PORT}`));

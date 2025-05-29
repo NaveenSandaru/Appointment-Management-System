@@ -29,26 +29,35 @@ router.get('/:email', /*authenticateToken*/ async (req, res) => {
 });
 
 // Create or update a specific answer
-router.post('/', /*authenticateToken*/ async (req, res) => {
-  const { email, question_id, answer } = req.body;
+router.post('/', async (req, res) => {
+  const { email, answers } = req.body;
 
-  if (!email || !question_id || !answer) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!email || !Array.isArray(answers)) {
+    return res.status(400).json({ error: 'Email and answers array are required' });
   }
 
   try {
-    const upserted = await prisma.client_user_questions.upsert({
-      where: {
-        email_question_id: { email, question_id }
-      },
-      update: { answer },
-      create: { email, question_id, answer }
-    });
-    res.status(201).json(upserted);
+    const results = await Promise.all(
+      answers.map(({ question_id, answer }) => {
+        if (!question_id || !answer) {
+          throw new Error("Missing question_id or answer in one of the items");
+        }
+        return prisma.client_user_questions.upsert({
+          where: {
+            email_question_id: { email, question_id },
+          },
+          update: { answer },
+          create: { email, question_id, answer },
+        });
+      })
+    );
+
+    res.status(201).json({ success: true, data: results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Delete a specific answer
 router.delete('/:email/:question_id', /*authenticateToken*/ async (req, res) => {

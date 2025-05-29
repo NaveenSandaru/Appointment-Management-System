@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // or "mysql" depending on your DB
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,7 +20,7 @@ model clients {
   appointments            appointments[]
   appointment_history     appointment_history[]
   client_user_questions   client_user_questions[]
-  email_verifications     email_verifications?
+  email_verification     email_verification?
   ratings                 ratings[]
   reviews                 reviews[]
 }
@@ -50,7 +50,7 @@ model service_providers {
   reviews                     reviews[]
 }
 
-model email_verifications {
+model email_verification {
   email String @id
   code  String?
 

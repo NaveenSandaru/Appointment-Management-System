@@ -34,6 +34,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
     await sendVerificationCode(email, code);
     res.status(201).json({ message: 'Code sent', data: upsert });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -50,6 +51,7 @@ router.post('/verify', /*authenticateToken*/ async (req, res) => {
     await prisma.email_verification.delete({ where: { email } });
     res.json({ message: 'Email verified successfully' });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 });
