@@ -10,15 +10,17 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
     try {
         const user = null;
+        const role = null;
         const { email, password, checked } = req.body;
         user = await prisma.clients.findUnique({ where: { email } });
-
+        role = "client";
         if (!user) {
             user = await prisma.service_providers.findUnique({ where: { email } });
             if (!user) {
+                role = null;
                 return res.json({ successful: false, message: 'User not found' });
             }
-
+            role = "sp";
         }
 
         const validPassword = await bcrypt.compare(password, user.password);
@@ -41,7 +43,7 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        const tokens = jwTokens(user.email, user.name);
+        const tokens = jwTokens(user.email, user.name, role);
 
         res.cookie('refreshToken', tokens.refreshToken, {
             httpOnly: true,
@@ -56,7 +58,8 @@ router.post('/login', async (req, res) => {
             accessToken: tokens.accessToken,
             user: {
                 email: user.email,
-                name: user.name
+                name: user.name,
+                role: role
             }
         });
     } catch (err) {
@@ -123,9 +126,6 @@ router.post('/google_login', async (req, res) => {
 });
 
 
-
-
-
 router.get('/refresh_token', (req, res) => {
     try {
         const refreshToken = req.cookies.refreshToken;
@@ -136,12 +136,12 @@ router.get('/refresh_token', (req, res) => {
         jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY, (error, user) => {
             if (error) return res.status(403).json({ error: error.message });
 
-            const { email, name } = user;
-            const accessToken = jwt.sign({ email, name }, process.env.ACCESS_TOKEN_KEY, {
+            const { email, name, role } = user;
+            const accessToken = jwt.sign({ email, name, role }, process.env.ACCESS_TOKEN_KEY, {
                 expiresIn: '15m',
             });
 
-            res.json({ accessToken, email });
+            res.json({ accessToken, email, role });
         });
     } catch (err) {
         console.error(err.message);

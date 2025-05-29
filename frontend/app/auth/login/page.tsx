@@ -1,14 +1,29 @@
 "use client"
 
+import { useRouter } from 'next/navigation';
+import React, { useContext, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
-import { Input } from "@/Components/ui/input"
-import { Label } from "@/Components/ui/label"
-import { Checkbox } from "@/Components/ui/checkbox"
-import { Card, CardContent, CardHeader } from "@/Components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import Link from "next/link"
+import { AuthContext } from '@/context/auth-context';
 
 export default function LoginPage() {
+  
+  const router = useRouter();
 
+  const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
+  console .log(isLoggedIn, user);
+
+  const handleLogin = async () => {
+    const user = {"Name":"Naveen Sandaru", "Email":"naveensandaru2@gmail.com"};
+    const accessToken = "sefgl;ksagka;slrgkhaskhefghAEFIHGB";
+    setUser(user);
+    setAccessToken(accessToken);
+    router.push('/');
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -44,7 +59,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <Button className="w-full bg-[#059669] hover:bg-[#0eb882] text-white">Login</Button>
+          <Button className="w-full bg-[#059669] hover:bg-[#0eb882] text-white" onClick={handleLogin}>Login</Button>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

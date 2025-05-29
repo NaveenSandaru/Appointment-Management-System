@@ -1,7 +1,15 @@
+"use client"
+
+import React, { useContext, useEffect } from 'react';
 import Footer from "@/components/footer"
 import { Navbar } from "@/components/navbar"
+import { AuthContext } from '@/context/auth-context';
 
 export default function Home() {
+
+  const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
+  console.log(isLoggedIn, user);
+
   return (
     <main>
       <Navbar />
