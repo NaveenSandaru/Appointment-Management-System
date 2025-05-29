@@ -518,31 +518,45 @@ export default function ProviderRegistration() {
     }
   }
 
-  const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-8 overflow-x-auto">
-      {steps.map((step, index) => (
-        <div key={step.number} className="flex items-center">
-          <div
-            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-              currentStep >= step.number
-                ? "bg-emerald-600 border-emerald-600 text-white"
-                : "border-gray-300 text-gray-400"
-            }`}
-          >
-            {currentStep > step.number ? <CheckCircle className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
-          </div>
-          <span
-            className={`ml-2 text-sm ${currentStep >= step.number ? "text-emerald-600 font-medium" : "text-gray-400"}`}
-          >
-            {step.title}
-          </span>
-          {index < steps.length - 1 && (
-            <div className={`w-16 h-0.5 mx-4 ${currentStep > step.number ? "bg-emerald-600" : "bg-gray-300"}`} />
+const renderStepIndicator = () => (
+  <div className="flex items-center justify-center mb-8 overflow-x-auto">
+    {steps.map((step, index) => (
+      <div key={step.number} className="flex items-center">
+        <div
+          className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+            currentStep >= step.number
+              ? "bg-emerald-600 border-emerald-600 text-white"
+              : "border-gray-300 text-gray-400"
+          }`}
+        >
+          {currentStep > step.number ? (
+            <CheckCircle className="w-5 h-5" />
+          ) : (
+            <step.icon className="w-5 h-5" />
           )}
         </div>
-      ))}
-    </div>
-  )
+
+        {/* Hide on mobile, show on md+ */}
+        <span
+          className={`ml-2 text-sm hidden md:inline ${
+            currentStep >= step.number ? "text-emerald-600 font-medium" : "text-gray-400"
+          }`}
+        >
+          {step.title}
+        </span>
+
+        {/* Connecting line */}
+        {index < steps.length - 1 && (
+          <div
+            className={`h-0.5 mx-2 md:mx-4 ${currentStep > step.number ? "bg-emerald-600" : "bg-gray-300"}`}
+            style={{ width: '2rem' }} // fallback width
+          />
+        )}
+      </div>
+    ))}
+  </div>
+);
+
 
   const ErrorMessage = ({ message }: { message?: string }) => {
     if (!message) return null
