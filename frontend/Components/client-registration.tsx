@@ -78,7 +78,7 @@ export default function ClientRegistration() {
   }
 
   useEffect(()=>{
-    getAllQuestions();
+    //getAllQuestions();
   }),[]
 
   const [currentStep, setCurrentStep] = useState<Step>(1)
