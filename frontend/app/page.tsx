@@ -1,4 +1,5 @@
-import { Navbar } from "@/Components/navbar"
+import Footer from "@/components/footer"
+import { Navbar } from "@/components/navbar"
 
 export default function Home() {
   return (
@@ -8,6 +9,7 @@ export default function Home() {
         <h1 className="text-2xl font-bold">Welcome to the Homepage</h1>
         <p className="mt-2">This is a demo page showing the responsive navbar component.</p>
       </div>
+      <Footer/>
     </main>
   )
 }
