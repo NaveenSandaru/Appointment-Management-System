@@ -3,9 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Menu } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/Components/ui/avatar"
-import { Button } from "@/Components/ui/button"
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/Components/ui/sheet"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
