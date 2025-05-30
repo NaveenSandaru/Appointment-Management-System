@@ -81,9 +81,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-[#2563EB]/10 to-[#0891B2]/20 px-6 py-8 max-w-6xl mx-auto rounded-3xl">
-        <div className="max-w-6xl mx-auto ">
+      {/* Gap between navbar and hero section */}
+      <div className="h-6 bg-gray-50"></div>
+      
+      {/* Header/Hero Section */}
+      <div className="bg-gradient-to-r from-[#2563EB]/10 to-[#0891B2]/20 px-6 py-8 mx-6 rounded-3xl mb-8 md:max-w-7xl md:mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Welcome back, &lt;Username&gt;!
           </h1>
@@ -105,14 +108,15 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 pb-8">
         {/* Featured Services */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Featured Services</h2>
             <button className="text-[#6B7280] hover:text-[#6B7280]/80 text-sm">View all</button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.slice(0, 3).map((service) => (
               <div key={service.serviceId} className="flex">
                 <ServiceCard 

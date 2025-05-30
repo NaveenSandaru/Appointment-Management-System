@@ -88,7 +88,7 @@ export function BookingCard({
   return (
     <div className="flex items-center justify-between p-4 border-b last:border-b-0">
       <div className="flex items-center gap-3">
-        <Avatar>
+        <Avatar className='hidden sm:flex'>
           {providerAvatar ? (
             <AvatarImage src={providerAvatar} alt={displayProviderName} />
           ) : null}
