@@ -69,6 +69,14 @@ const securityQuestions = [
   "What is the name of your best friend?",
 ]
 
+// Add Service interface
+interface Service {
+  service_id: string
+  service: string
+  picture?: string
+  description?: string
+}
+
 export default function ProviderRegistration() {
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [formData, setFormData] = useState<ProviderFormData>({
@@ -108,6 +116,8 @@ export default function ProviderRegistration() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong" | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoadingServices, setIsLoadingServices] = useState(false)
+  const [services, setServices] = useState<Service[]>([])
 
   const router = useRouter()
 
@@ -518,6 +528,29 @@ export default function ProviderRegistration() {
     }
   }
 
+  // Add useEffect to fetch services
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setIsLoadingServices(true)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/services`)
+        const data = await response.json()
+        if (data.successful) {
+          setServices(data.data)
+        } else {
+          toast.error("Failed to load services")
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error)
+        toast.error('Failed to load services')
+      } finally {
+        setIsLoadingServices(false)
+      }
+    }
+
+    fetchServices()
+  }, [])
+
 const renderStepIndicator = () => (
   <div className="flex items-center justify-center mb-8 overflow-x-auto">
     {steps.map((step, index) => (
@@ -824,22 +857,31 @@ const renderStepIndicator = () => (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label htmlFor="serviceType">Service Type</Label>
-          <Select
-            value={formData.serviceType}
-            onValueChange={(value) => setFormData({ ...formData, serviceType: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select service type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="healthcare">Healthcare</SelectItem>
-              <SelectItem value="beauty">Beauty & Wellness</SelectItem>
-              <SelectItem value="fitness">Fitness</SelectItem>
-              <SelectItem value="education">Education</SelectItem>
-              <SelectItem value="consulting">Consulting</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+          {isLoadingServices ? (
+            <div className="flex items-center space-x-2 h-10 px-3 border rounded-md">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
+              <span className="text-sm text-gray-500">Loading services...</span>
+            </div>
+          ) : (
+            <Select
+              value={formData.serviceType}
+              onValueChange={(value) => setFormData({ ...formData, serviceType: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select service type" />
+              </SelectTrigger>
+              <SelectContent>
+                {services.map((service) => (
+                  <SelectItem key={service.service_id} value={service.service}>
+                    {service.service}
+                    {service.description && (
+                      <span className="ml-2 text-sm text-gray-500">({service.description})</span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="space-y-1">
           <Label htmlFor="serviceSpecialty">Service Specialty</Label>
