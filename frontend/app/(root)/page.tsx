@@ -82,8 +82,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-100 to-blue-200 px-6 py-8">
-        <div className="max-w-6xl mx-auto">
+      <div className="bg-gradient-to-r from-[#2563EB]/10 to-[#0891B2]/20 px-6 py-8 max-w-6xl mx-auto rounded-3xl">
+        <div className="max-w-6xl mx-auto ">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Welcome back, &lt;Username&gt;!
           </h1>
