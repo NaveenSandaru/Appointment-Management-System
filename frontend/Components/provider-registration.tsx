@@ -13,6 +13,8 @@ import { toast } from "sonner"
 import { Upload, Building, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import axios from "axios"
+import { toNamespacedPath } from "path/win32"
 
 
 type Step = 1 | 2 | 3 | 4
@@ -78,6 +80,8 @@ interface Service {
 }
 
 export default function ProviderRegistration() {
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true)
+  const [securityQuestions, setSecurityQuestions] = useState<any[]>([])
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [formData, setFormData] = useState<ProviderFormData>({
     image: null,
@@ -110,7 +114,6 @@ export default function ProviderRegistration() {
   const [isEmailVerified, setIsEmailVerified] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
-  const [generatedOtp, setGeneratedOtp] = useState("")
   const [otpTimer, setOtpTimer] = useState(0)
   const [canResendOtp, setCanResendOtp] = useState(true)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -376,11 +379,7 @@ export default function ProviderRegistration() {
     })
   }
 
-  const generateOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString()
-  }
-
-  const sendOtpToEmail = () => {
+  const sendOtpToEmail = async () => {
     if (!formData.email) {
       toast.error("Email Required", {
         description: "Please enter your email address first.",
@@ -395,21 +394,36 @@ export default function ProviderRegistration() {
       return
     }
 
-    const newOtp = generateOtp()
-    setGeneratedOtp(newOtp)
-    setOtpSent(true)
-    setCanResendOtp(false)
-    setOtpTimer(60)
-
-    toast.success("OTP Sent", {
-      description: `A 6-digit verification code has been sent to ${formData.email}`,
-    })
-
-    console.log("Demo OTP:", newOtp)
-
-    setTimeout(() => {
-      otpRefs.current[0]?.focus()
-    }, 100)
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification`,
+        {
+          email: formData.email
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-type": "application/json"
+          }
+        }
+      );
+      if (response.status == 201) {
+        toast.success("OTP Sent", {
+          description: `A 6-digit verification code has been sent to ${formData.email}`,
+        });
+        setOtpSent(true);
+      }
+      else {
+        const error = new Error("Server Error") as Error & { details?: string }
+        error.details = "Verification code not sent, please retry";
+        throw error;
+      }
+    }
+    catch (error: any) {
+      toast.error(error.message, {
+        description: error.details
+      });
+    }
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -431,20 +445,39 @@ export default function ProviderRegistration() {
     }
   }
 
-  const verifyOtp = () => {
-    const enteredOtp = otp.join("")
+  const verifyOtp = async () => {
+    const enteredOtp = otp.join("");
 
-    if (enteredOtp === generatedOtp) {
-      setIsEmailVerified(true)
-      toast.success("Email Verified", {
-        description: "Your email has been successfully verified!",
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification/verify`,
+        {
+          email: formData.email,
+          code: enteredOtp
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-type": "application/json"
+          }
+        }
+      );
+      if (response.data.message == "Email verified successfully") {
+        setIsEmailVerified(true);
+        toast.success("Success", {
+          description: "Email verified successfully, Please continue.",
+        });
+      }
+      else {
+        const error = new Error("Verification Failed") as Error & { details?: string }
+        error.details = "Verification code is not verified. Please retry";
+        throw error;
+      }
+    }
+    catch (error: any) {
+      toast.error(error.message, {
+        description: error.details,
       })
-    } else {
-      toast.error("Invalid OTP", {
-        description: "The verification code you entered is incorrect. Please try again.",
-      })
-      setOtp(["", "", "", "", "", ""])
-      otpRefs.current[0]?.focus()
     }
   }
 
@@ -456,77 +489,102 @@ export default function ProviderRegistration() {
   }
 
   const handleRegistrationComplete = async () => {
-    if (!validateStep()) return
-
-    setIsSubmitting(true)
-
+    if (!validateStep()) return;
+  
+    setIsSubmitting(true);
+  
     try {
-      // Prepare provider registration data
-      const providerData = {
-        accountType: "provider",
-        personalInfo: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          preferredLanguages: formData.preferredLanguages,
-          profileImage: formData.image,
-        },
-        companyInfo: {
-          companyName: formData.companyName,
-          companyAddress: formData.companyAddress,
-          companyNumber: formData.companyNumber,
-          serviceType: formData.serviceType,
-          serviceSpecialty: formData.serviceSpecialty,
-          appointmentFee: Number.parseFloat(formData.appointmentFee) || 0,
-          workHours: {
-            from: formData.workHoursFrom,
-            to: formData.workHoursTo,
-          },
-          workDays: {
-            from: formData.weekDaysFrom,
-            to: formData.weekDaysTo,
-          },
-        },
-        credentials: {
-          password: formData.password,
-        },
-        security: {
-          question1: formData.securityQuestion1,
-          answer1: formData.securityAnswer1,
-          question2: formData.securityQuestion2,
-          answer2: formData.securityAnswer2,
-          question3: formData.securityQuestion3,
-          answer3: formData.securityAnswer3,
-        },
-        verification: {
-          emailVerified: isEmailVerified,
-          recaptchaVerified: isRecaptchaVerified,
-        },
+      // Create form data for image upload if image exists
+      const imageFormData = new FormData();
+      if (formData.image) {
+        imageFormData.append("image", formData.image);
       }
-
-      // Here you would make the API call to register the provider
-      console.log("Provider Registration Data:", providerData)
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      toast.success("Registration Successful!", {
-        description: "Your service provider account has been created successfully. Redirecting to login...",
-      })
-
-      setTimeout(() => {
-        console.log("Redirecting to login page...")
-        router.push("/auth/login")
-
-        setIsSubmitting(false)
-      }, 2000)
-    } catch (error) {
-      toast.error("Registration Failed", {
-        description: "Something went wrong. Please try again.",
-      })
-      setIsSubmitting(false)
+  
+      // Build registration data with temporary empty profile picture
+      const dataToSend = {
+        name: formData.firstName + " " + formData.lastName,
+        email: formData.email,
+        company_phone_number: formData.companyNumber,
+        profile_picture: "", // will update later if image uploaded
+        company_address: formData.companyAddress,
+        password: formData.password,
+        language: formData.preferredLanguages,
+        service_type: "1",
+        specialization: formData.serviceSpecialty,
+        work_days_from: formData.weekDaysFrom,
+        work_days_to: formData.weekDaysTo,
+        work_hours_from: formData.workHoursFrom,
+        work_hours_to: formData.workHoursTo,
+        appointment_duration: "30 minutes",
+        company_name: formData.companyName
+      };
+  
+      // Step 1: Register the service provider
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers`,
+        { dataToSend },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
+  
+      if (response.status === 201) {
+        // Step 2: Submit security questions
+        const answeredQuestions = [
+          { question: formData.securityQuestion1, answer: formData.securityAnswer1 },
+          { question: formData.securityQuestion2, answer: formData.securityAnswer2 },
+          { question: formData.securityQuestion3, answer: formData.securityAnswer3 }
+        ].filter(q => q.question && q.answer.trim());
+  
+        await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/provider-user-questions`, {
+          email: formData.email,
+          answers: answeredQuestions.map(q => ({
+            question_id: q.question,
+            answer: q.answer.trim()
+          }))
+        });
+  
+        // Step 3: Upload profile picture if available
+        if (formData.image) {
+          const uploadResponse = await axios.post(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/photos`,
+            imageFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data"
+              }
+            }
+          );
+  
+          if (uploadResponse.data.url) {
+            await axios.put(`${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers`, {
+              email: formData.email,
+              profile_picture: uploadResponse.data.url
+            });
+          }
+        }
+  
+        toast.success("Registration Successful!", {
+          description: "Your service provider account has been created successfully. Redirecting to login..."
+        });
+        router.push("/auth/login");
+      } else {
+        const error = new Error("Registration Failed") as Error & { details?: string };
+        error.details = response.data.error?.message || "Unexpected error";
+        throw error;
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Registration Failed", {
+        description: error.details || "Something went wrong. Please try again."
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-  }
+  };
+  
 
   // Add useEffect to fetch services
   useEffect(() => {
@@ -551,44 +609,42 @@ export default function ProviderRegistration() {
     fetchServices()
   }, [])
 
-const renderStepIndicator = () => (
-  <div className="flex items-center justify-center mb-8 overflow-x-auto">
-    {steps.map((step, index) => (
-      <div key={step.number} className="flex items-center">
-        <div
-          className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-            currentStep >= step.number
-              ? "bg-emerald-600 border-emerald-600 text-white"
-              : "border-gray-300 text-gray-400"
-          }`}
-        >
-          {currentStep > step.number ? (
-            <CheckCircle className="w-5 h-5" />
-          ) : (
-            <step.icon className="w-5 h-5" />
+  const renderStepIndicator = () => (
+    <div className="flex items-center justify-center mb-8 overflow-x-auto">
+      {steps.map((step, index) => (
+        <div key={step.number} className="flex items-center">
+          <div
+            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${currentStep >= step.number
+                ? "bg-emerald-600 border-emerald-600 text-white"
+                : "border-gray-300 text-gray-400"
+              }`}
+          >
+            {currentStep > step.number ? (
+              <CheckCircle className="w-5 h-5" />
+            ) : (
+              <step.icon className="w-5 h-5" />
+            )}
+          </div>
+
+          {/* Hide on mobile, show on md+ */}
+          <span
+            className={`ml-2 text-sm hidden md:inline ${currentStep >= step.number ? "text-emerald-600 font-medium" : "text-gray-400"
+              }`}
+          >
+            {step.title}
+          </span>
+
+          {/* Connecting line */}
+          {index < steps.length - 1 && (
+            <div
+              className={`h-0.5 mx-2 md:mx-4 ${currentStep > step.number ? "bg-emerald-600" : "bg-gray-300"}`}
+              style={{ width: '2rem' }} // fallback width
+            />
           )}
         </div>
-
-        {/* Hide on mobile, show on md+ */}
-        <span
-          className={`ml-2 text-sm hidden md:inline ${
-            currentStep >= step.number ? "text-emerald-600 font-medium" : "text-gray-400"
-          }`}
-        >
-          {step.title}
-        </span>
-
-        {/* Connecting line */}
-        {index < steps.length - 1 && (
-          <div
-            className={`h-0.5 mx-2 md:mx-4 ${currentStep > step.number ? "bg-emerald-600" : "bg-gray-300"}`}
-            style={{ width: '2rem' }} // fallback width
-          />
-        )}
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  );
 
 
   const ErrorMessage = ({ message }: { message?: string }) => {
@@ -1200,6 +1256,32 @@ const renderStepIndicator = () => (
         return renderPersonalInfo()
     }
   }
+
+  const getAllQuestions = async () => {
+    try {
+      setIsLoadingQuestions(true)
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/security-questions/`)
+
+      if (response.data && Array.isArray(response.data)) {
+        setSecurityQuestions(response.data)
+        console.log("Security questions loaded:", response.data)
+      } else {
+        throw new Error("Invalid response format")
+      }
+    } catch (err: any) {
+      console.error("Error fetching security questions:", err)
+      toast.error("Error loading security questions", {
+        description: "Please try again or contact support if the issue persists.",
+      })
+      // Don't set fallback questions here - we'll keep using the empty array
+    } finally {
+      setIsLoadingQuestions(false)
+    }
+  }
+
+  useEffect(() => {
+    getAllQuestions()
+  }, [])
 
   const canProceed = () => {
     switch (currentStep) {

@@ -47,7 +47,7 @@ export default function LoginPage() {
       if (response.data.successful && response.data.user.role == "sp") {
         setUser(response.data.user);
         setAccessToken(response.data.accessToken);
-        window.alert("Logged in as a client");
+        window.alert("Logged in as a service provider");
         router.push("/sp");
       }
       else {

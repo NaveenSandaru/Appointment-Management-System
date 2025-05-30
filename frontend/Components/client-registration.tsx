@@ -401,11 +401,7 @@ export default function ClientRegistration() {
       description: "You can now proceed to email verification.",
     })
   }
-
-  const generateOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString()
-  }
-
+  
   const sendOtpToEmail = async () => {
     try {
       if (!formData.email) {
