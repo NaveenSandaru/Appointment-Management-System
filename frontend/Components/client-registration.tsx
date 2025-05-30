@@ -556,7 +556,7 @@ export default function ClientRegistration() {
 
         // Upload image if exists
         if (formData.image) {
-          const uploadResponse = await axios.post(`http://localhost:5000/photos/upload/${formData.email}`, imageFormData, {
+          const uploadResponse = await axios.post(`http://localhost:5000/photos`, imageFormData, {
             headers: {
               "Content-Type": "multipart/form-data",
             },

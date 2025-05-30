@@ -51,9 +51,12 @@ model service_providers {
 }
 
 model service {
-  service_id String @id @default(uuid())
-  service    String
+  service_id  String @id @default(uuid())
+  service     String
+  picture     String?  // Optional: use '?' if picture is not always provided
+  description String?  // Optional: use '?' if description is not always provided
 }
+
 
 
 model email_verification {

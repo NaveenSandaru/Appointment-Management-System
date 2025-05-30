@@ -12,12 +12,17 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.post('/', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+  
+    const fileUrl = `/uploads/photos/${req.file.filename}`;
+    res.status(201).json({ url: fileUrl });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({error});
   }
-
-  const fileUrl = `/uploads/photos/${req.file.filename}`;
-  res.status(201).json({ url: fileUrl });
 });
 
 export default router;

@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 import {authenticateToken} from './../middleware/authentication.js'
 import fs from 'fs';
 import path from 'path';
@@ -35,7 +36,8 @@ router.get('/client', /*authenticateToken*/ async (req, res) => {
 
 // Create a new client
 router.post('/', /*authenticateToken*/ async (req, res) => {
-  const { email, name, phone_number, profile_picture, age, gender, address, password } = req.body.datatosendtoclient;
+  let { email, name, phone_number, profile_picture, age, gender, address, password } = req.body.datatosendtoclient;
+  password = await bcrypt.hash(password,10);
   if (!email || !name || !phone_number || !password) {
     return res.status(400).json({ error: 'Missing required fields' });
   }

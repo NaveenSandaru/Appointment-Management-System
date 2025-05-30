@@ -6,12 +6,14 @@ const router = express.Router();
 
 // CREATE a new service
 router.post('/', async (req, res) => {
-  const { service_id, service } = req.body;
+  const { service_id, service, picture, description } = req.body;
   try {
     const created = await prisma.service.create({
       data: {
         service_id,
-        service
+        service,
+        picture,
+        description
       }
     });
     res.status(201).json({ successful: true, data: created });
@@ -49,11 +51,15 @@ router.get('/:id', async (req, res) => {
 
 // UPDATE a service
 router.put('/:id', async (req, res) => {
-  const { service } = req.body;
+  const { service, picture, description } = req.body;
   try {
     const updated = await prisma.service.update({
       where: { service_id: req.params.id },
-      data: { service }
+      data: {
+        service,
+        picture,
+        description
+      }
     });
     res.json({ successful: true, data: updated });
   } catch (error) {

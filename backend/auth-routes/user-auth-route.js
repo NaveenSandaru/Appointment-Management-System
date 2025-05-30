@@ -12,6 +12,8 @@ router.post('/login', async (req, res) => {
         let user = null;
         let role = '';
         const { email, password, checked } = req.body;
+        console.log(req.body);
+        console.log(email, password, checked);
         user = await prisma.clients.findUnique({ where: { email } });
         role = "client";
         if (!user) {
@@ -29,7 +31,7 @@ router.post('/login', async (req, res) => {
         }
 
         // Check if email is verified by checking if a verification record exists
-        const verificationRecord = await prisma.email_verifications.findUnique({
+        const verificationRecord = await prisma.email_verification.findUnique({
             where: { email: user.email }
         });
 
@@ -49,8 +51,9 @@ router.post('/login', async (req, res) => {
             httpOnly: true,
             sameSite: 'None',
             secure: true,
-            ...(checked && { maxAge: 14 * 24 * 60 * 60 * 1000 }), // 14 days if remembered
-        });
+            maxAge: checked ? 14 * 24 * 60 * 60 * 1000 : undefined, // 14 days or -1
+          });
+          
         console.log("Log in successfull as a" + role); 
         return res.json({
             successful: true,

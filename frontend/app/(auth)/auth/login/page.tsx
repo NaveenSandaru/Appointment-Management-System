@@ -14,14 +14,13 @@ import axios from 'axios';
 export default function LoginPage() {
 
   const router = useRouter();
-  const [isLaoding, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [remember, setRemember] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
 
   const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
-  console.log(isLoggedIn, user);
 
   const handleLogin = async () => {
     try {
@@ -33,29 +32,35 @@ export default function LoginPage() {
           checked: remember
         },
         {
+          withCredentials:true,
           headers: {
             "Content-type": "application/json"
           }
         }
       );
-      if (response.data.successfull && response.data.user.role == "client") {
+      if (response.data.successful && response.data.user.role == "client") {
         setUser(response.data.user);
         setAccessToken(response.data.accessToken);
         window.alert("Logged in as a client");
         router.push("/");
       }
-      if (response.data.successfull && response.data.user.role == "sp") {
+      if (response.data.successful && response.data.user.role == "sp") {
         setUser(response.data.user);
         setAccessToken(response.data.accessToken);
         window.alert("Logged in as a client");
         router.push("/sp");
       }
       else {
+        console.log(response.data.error)
         throw new Error("Invalid Credentials");
       }
     }
     catch (error: any) {
+      console.log(error);
       window.Error(error.message);
+    }
+    finally{
+      setIsLoading(false);
     }
   }
 
