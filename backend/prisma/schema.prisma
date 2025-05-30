@@ -50,7 +50,7 @@ model service_providers {
   reviews                     reviews[]
 }
 
-model service {
+model services {
   service_id  String @id @default(uuid())
   service     String
   picture     String?  // Optional: use '?' if picture is not always provided

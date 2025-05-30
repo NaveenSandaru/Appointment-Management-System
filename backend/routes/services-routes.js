@@ -8,7 +8,7 @@ const router = express.Router();
 router.post('/', async (req, res) => {
   const { service_id, service, picture, description } = req.body;
   try {
-    const created = await prisma.service.create({
+    const created = await prisma.services.create({
       data: {
         service_id,
         service,
@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
 // READ all services
 router.get('/', async (_req, res) => {
   try {
-    const services = await prisma.service.findMany();
+    const services = await prisma.services.findMany();
     res.json({ successful: true, data: services });
   } catch (error) {
     res.status(500).json({ successful: false, message: error.message });
@@ -35,7 +35,7 @@ router.get('/', async (_req, res) => {
 // READ one service by ID
 router.get('/:id', async (req, res) => {
   try {
-    const service = await prisma.service.findUnique({
+    const service = await prisma.services.findUnique({
       where: { service_id: req.params.id }
     });
 
@@ -53,7 +53,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const { service, picture, description } = req.body;
   try {
-    const updated = await prisma.service.update({
+    const updated = await prisma.services.update({
       where: { service_id: req.params.id },
       data: {
         service,
@@ -70,7 +70,7 @@ router.put('/:id', async (req, res) => {
 // DELETE a service
 router.delete('/:id', async (req, res) => {
   try {
-    await prisma.service.delete({
+    await prisma.services.delete({
       where: { service_id: req.params.id }
     });
     res.json({ successful: true, message: 'Service deleted successfully' });
