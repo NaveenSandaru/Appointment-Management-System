@@ -219,7 +219,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
             >
               <div className="flex items-center p-4">
                 {/* Profile Image */}
-                <div className="flex-shrink-0 mr-4 hidden sm:">
+                <div className="flex-shrink-0 mr-4 hidden sm:flex">
                   <img
                     src={provider.profile_picture}
                     alt={provider.name}
