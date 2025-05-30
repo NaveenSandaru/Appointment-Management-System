@@ -50,6 +50,12 @@ model service_providers {
   reviews                     reviews[]
 }
 
+model service {
+  service_id String @id @default(uuid())
+  service    String
+}
+
+
 model email_verification {
   email String @id
   code  String?

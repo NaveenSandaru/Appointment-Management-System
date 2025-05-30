@@ -227,7 +227,7 @@ export default function ClientRegistration() {
           email: "This email is already registered"
         }));
       }
-    } catch (error) {
+    } catch (error:any) {
       // If we get a 404, it means the email doesn't exist (which is what we want)
       if (error.response?.status !== 404) {
         console.error("Error checking email:", error);
@@ -574,7 +574,7 @@ export default function ClientRegistration() {
         toast.success("Registration successful! redirecting to login page...")
         router.push("/auth/login")
       }
-    } catch (error) {
+    } catch (error:any) {
       console.error("Registration error:", error)
       if (error.response?.data?.error?.includes("duplicate key")) {
         toast.error("This email is already registered")

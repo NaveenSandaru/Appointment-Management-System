@@ -9,8 +9,8 @@ const router = express.Router();
 
 router.post('/login', async (req, res) => {
     try {
-        const user = null;
-        const role = null;
+        let user = null;
+        let role = '';
         const { email, password, checked } = req.body;
         user = await prisma.clients.findUnique({ where: { email } });
         role = "client";
@@ -51,7 +51,7 @@ router.post('/login', async (req, res) => {
             secure: true,
             ...(checked && { maxAge: 14 * 24 * 60 * 60 * 1000 }), // 14 days if remembered
         });
-
+        console.log("Log in successfull as a" + role); 
         return res.json({
             successful: true,
             message: 'Login successful',

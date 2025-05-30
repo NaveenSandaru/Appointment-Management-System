@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from 'next/navigation';
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,20 +9,54 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import Link from "next/link"
 import { AuthContext } from '@/context/auth-context';
+import axios from 'axios';
 
 export default function LoginPage() {
-  
+
   const router = useRouter();
+  const [isLaoding, setIsLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
 
   const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
-  console .log(isLoggedIn, user);
+  console.log(isLoggedIn, user);
 
   const handleLogin = async () => {
-    const user = {"Name":"Naveen Sandaru", "Email":"naveensandaru2@gmail.com"};
-    const accessToken = "sefgl;ksagka;slrgkhaskhefghAEFIHGB";
-    setUser(user);
-    setAccessToken(accessToken);
-    router.push('/');
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
+        {
+          email: email,
+          password: password,
+          checked: remember
+        },
+        {
+          headers: {
+            "Content-type": "application/json"
+          }
+        }
+      );
+      if (response.data.successfull && response.data.user.role == "client") {
+        setUser(response.data.user);
+        setAccessToken(response.data.accessToken);
+        window.alert("Logged in as a client");
+        router.push("/");
+      }
+      if (response.data.successfull && response.data.user.role == "sp") {
+        setUser(response.data.user);
+        setAccessToken(response.data.accessToken);
+        window.alert("Logged in as a client");
+        router.push("/sp");
+      }
+      else {
+        throw new Error("Invalid Credentials");
+      }
+    }
+    catch (error: any) {
+      window.Error(error.message);
+    }
   }
 
   return (
@@ -37,19 +71,23 @@ export default function LoginPage() {
             <Label htmlFor="email" className="text-sm font-medium text-gray-700">
               Email
             </Label>
-            <Input id="email" type="email" placeholder="Enter your email" className="w-full" />
+            <Input id="email" type="email" placeholder="Enter your email" className="w-full" value={email} onChange={(e) => { setEmail(e.target.value) }} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium text-gray-700">
               Password
             </Label>
-            <Input id="password" type="password" placeholder="Enter your password" className="w-full" />
+            <Input id="password" type="password" placeholder="Enter your password" className="w-full" value={password} onChange={(e) => { setPassword(e.target.value) }} />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Checkbox id="remember" />
+              <Checkbox
+                id="remember"
+                checked={remember}
+                onCheckedChange={(checked) => setRemember(checked === true)}
+              />
               <Label htmlFor="remember" className="text-sm text-[#0eb882] ">
                 Remember me
               </Label>
