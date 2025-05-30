@@ -1,6 +1,6 @@
 "use client"
 
-import axios from "axios";
+import axios from "axios"
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ interface ClientFormData {
   lastName: string
   email: string
   contactNumber: string
+  age: string
   gender: string
   address: string
   password: string
@@ -43,44 +44,15 @@ interface FormErrors {
   email?: string
   password?: string
   confirmPassword?: string
+  age?: string
   securityAnswer1?: string
   securityAnswer2?: string
   securityAnswer3?: string
 }
 
-const securityQuestions = [
-  "What was the name of your first pet?",
-  "What is your mother's maiden name?",
-  "What was the name of your first school?",
-  "What is your favorite movie?",
-  "What city were you born in?",
-  "What is your favorite food?",
-  "What was your childhood nickname?",
-  "What is the name of your best friend?",
-]
-
 export default function ClientRegistration() {
-
-  const getAllQuestions = async () => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/security-questions/`);
-      if (response.data) {
-        throw new Error("Error getting questions");
-      }
-
-      console.log(response.data);
-    }
-    catch(err:any){
-      toast.error("Error", {
-        description: err.message,
-      })
-    }
-  }
-
-  useEffect(()=>{
-    //getAllQuestions();
-  }),[]
-
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true)
+  const [securityQuestions, setSecurityQuestions] = useState<any[]>([])
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [formData, setFormData] = useState<ClientFormData>({
     image: null,
@@ -88,6 +60,7 @@ export default function ClientRegistration() {
     lastName: "",
     email: "",
     contactNumber: "",
+    age: "",
     gender: "",
     address: "",
     password: "",
@@ -110,6 +83,7 @@ export default function ClientRegistration() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong" | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isStepValid, setIsStepValid] = useState(false)
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -212,6 +186,13 @@ export default function ClientRegistration() {
           fieldErrors.confirmPassword = undefined
         }
         break
+      case "age":
+        if (!value.trim()) {
+          fieldErrors.age = "Age is required"
+        } else if (isNaN(Number(value)) || Number(value) < 1 || Number(value) > 120) {
+          fieldErrors.age = "Please enter a valid age between 1 and 120"
+        }
+        break
       case "securityAnswer1":
         if (!value.trim()) {
           fieldErrors.securityAnswer1 = "Please provide an answer"
@@ -232,6 +213,28 @@ export default function ClientRegistration() {
     return fieldErrors
   }
 
+  // Add this new function to check if email exists with debounce
+  const checkEmailExists = async (email: string) => {
+    if (!email || !isValidEmail(email)) return;
+    
+    try {
+      const response = await axios.get(`http://localhost:5000/clients/client`, {
+        data: { email }
+      });
+      if (response.data) {
+        setErrors(prev => ({
+          ...prev,
+          email: "This email is already registered"
+        }));
+      }
+    } catch (error) {
+      // If we get a 404, it means the email doesn't exist (which is what we want)
+      if (error.response?.status !== 404) {
+        console.error("Error checking email:", error);
+      }
+    }
+  };
+
   const handleFieldChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
 
@@ -247,76 +250,119 @@ export default function ClientRegistration() {
     setTouched((prev) => ({ ...prev, [name]: true }))
     const fieldErrors = validateField(name, formData[name as keyof ClientFormData] as string)
     setErrors((prev) => ({ ...prev, ...fieldErrors }))
+
+    // Check email existence only on blur and if it's a valid email
+    if (name === 'email' && formData.email && isValidEmail(formData.email)) {
+      checkEmailExists(formData.email);
+    }
   }
 
-  const validateStep = () => {
-    const stepErrors: FormErrors = {}
-    let isValid = true
+  // Add useEffect to validate step when relevant data changes
+  useEffect(() => {
+    const validateCurrentStep = () => {
+      const stepErrors: FormErrors = {}
+      let isValid = true;
 
-    switch (currentStep) {
-      case 1:
-        if (!formData.firstName.trim()) {
-          stepErrors.firstName = "First name is required"
-          isValid = false
-        }
-        if (!formData.lastName.trim()) {
-          stepErrors.lastName = "Last name is required"
-          isValid = false
-        }
-        if (!formData.email.trim()) {
-          stepErrors.email = "Email is required"
-          isValid = false
-        } else if (!isValidEmail(formData.email)) {
-          stepErrors.email = "Please enter a valid email address"
-          isValid = false
-        }
-        if (!formData.password) {
-          stepErrors.password = "Password is required"
-          isValid = false
-        } else if (formData.password.length < 8) {
-          stepErrors.password = "Password must be at least 8 characters long"
-          isValid = false
-        }
-        if (!formData.confirmPassword) {
-          stepErrors.confirmPassword = "Please confirm your password"
-          isValid = false
-        } else if (formData.password !== formData.confirmPassword) {
-          stepErrors.confirmPassword = "Passwords do not match"
-          isValid = false
-        }
-        break
-      case 2:
-        if (!isRecaptchaVerified) {
-          toast.error("Please complete the reCAPTCHA verification")
-          isValid = false
-        }
-        if (!isEmailVerified) {
-          toast.error("Please verify your email address")
-          isValid = false
-        }
-        break
-      case 3:
-        if (!formData.securityQuestion1 || !formData.securityAnswer1.trim()) {
-          stepErrors.securityAnswer1 = "Please select a question and provide an answer"
-          isValid = false
-        }
-        if (!formData.securityQuestion2 || !formData.securityAnswer2.trim()) {
-          stepErrors.securityAnswer2 = "Please select a question and provide an answer"
-          isValid = false
-        }
-        if (!formData.securityQuestion3 || !formData.securityAnswer3.trim()) {
-          stepErrors.securityAnswer3 = "Please select a question and provide an answer"
-          isValid = false
-        }
-        break
+      switch (currentStep) {
+        case 1:
+          if (!formData.firstName.trim()) {
+            stepErrors.firstName = "First name is required"
+            isValid = false
+          }
+          if (!formData.lastName.trim()) {
+            stepErrors.lastName = "Last name is required"
+            isValid = false
+          }
+          if (!formData.email.trim()) {
+            stepErrors.email = "Email is required"
+            isValid = false
+          } else if (!isValidEmail(formData.email)) {
+            stepErrors.email = "Please enter a valid email address"
+            isValid = false
+          }
+          if (!formData.password) {
+            stepErrors.password = "Password is required"
+            isValid = false
+          } else if (formData.password.length < 8) {
+            stepErrors.password = "Password must be at least 8 characters long"
+            isValid = false
+          }
+          if (!formData.confirmPassword) {
+            stepErrors.confirmPassword = "Please confirm your password"
+            isValid = false
+          } else if (formData.confirmPassword !== formData.password) {
+            stepErrors.confirmPassword = "Passwords do not match"
+            isValid = false
+          }
+          if (!formData.age.trim()) {
+            stepErrors.age = "Age is required"
+            isValid = false
+          } else if (isNaN(Number(formData.age)) || Number(formData.age) < 1 || Number(formData.age) > 120) {
+            stepErrors.age = "Please enter a valid age between 1 and 120"
+            isValid = false
+          }
+          break
+        case 2:
+          if (!isRecaptchaVerified) {
+            isValid = false
+          }
+          if (!isEmailVerified) {
+            isValid = false
+          }
+          break
+        case 3:
+          // Require at least one security question to be answered
+          const hasAnsweredQuestion = [
+            formData.securityQuestion1 && formData.securityAnswer1.trim(),
+            formData.securityQuestion2 && formData.securityAnswer2.trim(),
+            formData.securityQuestion3 && formData.securityAnswer3.trim()
+          ].some(Boolean)
+
+          if (!hasAnsweredQuestion) {
+            isValid = false
+          }
+
+          // For selected questions, validate their answers
+          if (formData.securityQuestion1 && !formData.securityAnswer1.trim()) {
+            stepErrors.securityAnswer1 = "Please provide an answer"
+            isValid = false
+          }
+          if (formData.securityQuestion2 && !formData.securityAnswer2.trim()) {
+            stepErrors.securityAnswer2 = "Please provide an answer"
+            isValid = false
+          }
+          if (formData.securityQuestion3 && !formData.securityAnswer3.trim()) {
+            stepErrors.securityAnswer3 = "Please provide an answer"
+            isValid = false
+          }
+          break
+      }
+
+      setErrors(stepErrors)
+      setIsStepValid(isValid)
     }
 
-    setErrors((prev) => ({ ...prev, ...stepErrors }))
-    return isValid
-  }
+    validateCurrentStep()
+  }, [
+    currentStep,
+    formData.firstName,
+    formData.lastName,
+    formData.email,
+    formData.password,
+    formData.confirmPassword,
+    formData.age,
+    formData.securityQuestion1,
+    formData.securityAnswer1,
+    formData.securityQuestion2,
+    formData.securityAnswer2,
+    formData.securityQuestion3,
+    formData.securityAnswer3,
+    isRecaptchaVerified,
+    isEmailVerified
+  ])
 
   const handleNext = () => {
-    if (validateStep() && currentStep < 3) {
+    if (isStepValid && currentStep < 3) {
       setCurrentStep((prev) => (prev + 1) as Step)
       setTouched({})
     }
@@ -361,50 +407,47 @@ export default function ClientRegistration() {
   }
 
   const sendOtpToEmail = async () => {
-
     try {
-
       if (!formData.email) {
-        const error = new Error("Email Required") as Error & { details?: string };
-        error.details = "Please enter your email address first";
-        throw error;
+        const error = new Error("Email Required") as Error & { details?: string }
+        error.details = "Please enter your email address first"
+        throw error
       }
 
       if (!isValidEmail(formData.email)) {
-        const error = new Error("Invalid Email") as Error & { details?: string };
-        error.details = "Please enter a valid email address.";
-        throw error;
+        const error = new Error("Invalid Email") as Error & { details?: string }
+        error.details = "Please enter a valid email address."
+        throw error
       }
 
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification/`,
         {
-          email: formData.email
+          email: formData.email,
         },
         {
           headers: {
-            "Content-type": "application/json"
-          }
-        }
+            "Content-type": "application/json",
+          },
+        },
       )
 
       if (response.status != 201) {
-        const error = new Error("Server Error") as Error & { details?: string };
-        error.details = "Error sending verification code. Please retry";
-        throw error;
+        const error = new Error("Server Error") as Error & { details?: string }
+        error.details = "Error sending verification code. Please retry"
+        throw error
       }
-    }
-    catch (error: any) {
+    } catch (error: any) {
       toast.error(error.message, {
         description: error.details,
       })
-      return;
+      return
     }
 
     toast.success("OTP Sent", {
       description: `A 6-digit verification code has been sent to ${formData.email}`,
     })
-    setOtpSent(true);
+    setOtpSent(true)
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -439,25 +482,23 @@ export default function ClientRegistration() {
           headers: {
             "Content-Type": "application/json",
           },
-        }
-      );
+        },
+      )
       if (response.data.message == "Email verified successfully") {
         setIsEmailVerified(true)
         toast.success("Email Verified", {
           description: "Your email has been successfully verified!",
         })
-      }
-      else {
+      } else {
         toast.error("Invalid OTP", {
           description: "The verification code you entered is incorrect. Please try again.",
         })
         setOtp(["", "", "", "", "", ""])
         otpRefs.current[0]?.focus()
       }
-    }
-    catch (err: any) {
+    } catch (err: any) {
       toast.error("Error verifying", {
-        description: err.message
+        description: err.message,
       })
     }
   }
@@ -470,69 +511,77 @@ export default function ClientRegistration() {
   }
 
   const handleRegistrationComplete = async () => {
-    if (!validateStep()) return
-
-    setIsSubmitting(true)
-
-    let uploadedImageUrl = null;
-
-    // Step 1: Upload image if exists
-    if (formData.image) {
-      const imageFormData = new FormData();
-      imageFormData.append("image", formData.image);
-
-      const uploadResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/photos`,
-        imageFormData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      uploadedImageUrl = uploadResponse.data.url; // assuming backend returns { url: "..." }
+    if (!isStepValid) {
+      return
     }
 
+    setIsSubmitting(true)
     try {
-      // Prepare client registration data
-      const datatosendtoclient = {
-        name: formData.firstName + " " + formData.lastName,
-        email: formData.email,
-        phone_number: formData.contactNumber,
-        profile_picture: uploadedImageUrl,
-        age: 25,
-        gender: formData.gender.charAt(0).toUpperCase(),
-        address: formData.address,
-        password: formData.password
+      // Get answered security questions
+      const answeredQuestions = [
+        { question: formData.securityQuestion1, answer: formData.securityAnswer1 },
+        { question: formData.securityQuestion2, answer: formData.securityAnswer2 },
+        { question: formData.securityQuestion3, answer: formData.securityAnswer3 }
+      ].filter(q => q.question && q.answer.trim());
+
+      // Create form data for image upload
+      const imageFormData = new FormData()
+      if (formData.image) {
+        imageFormData.append("image", formData.image)
       }
 
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/`,
-        {
-          datatosendtoclient
-        },
-        {
-          headers: {
-            "Content-type": "application/json"
+      // Register the client first
+      const registrationResponse = await axios.post("http://localhost:5000/clients", {
+        datatosendtoclient: {
+          email: formData.email,
+          name: `${formData.firstName} ${formData.lastName}`,
+          phone_number: formData.contactNumber || "",
+          age: parseInt(formData.age),
+          gender: formData.gender.charAt(0).toUpperCase(),
+          address: formData.address || "",
+          password: formData.password,
+          profile_picture: null // Will be updated after upload
+        }
+      })
+
+      if (registrationResponse.status === 201) {
+        // If registration successful, submit security questions
+        const securityQuestionsResponse = await axios.post("http://localhost:5000/client-user-questions", {
+          email: formData.email,
+          answers: answeredQuestions.map(q => ({
+            question_id: q.question,
+            answer: q.answer.trim()
+          }))
+        })
+
+        // Upload image if exists
+        if (formData.image) {
+          const uploadResponse = await axios.post(`http://localhost:5000/photos/upload/${formData.email}`, imageFormData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          })
+
+          // Update client with profile picture URL
+          if (uploadResponse.data.url) {
+            await axios.put("http://localhost:5000/clients", {
+              email: formData.email,
+              profile_picture: uploadResponse.data.url
+            })
           }
         }
-      );
 
-      if (response.status == 201) {
-        toast.success("Registration Successful!", {
-          description: "Your client account has been created successfully. Redirecting to login...",
-        });
+        toast.success("Registration successful! redirecting to login page...")
         router.push("/auth/login")
       }
-      else {
-        throw new Error(response.data.error);
-      }
-
     } catch (error) {
-      toast.error("Registration Failed", {
-        description: "Something went wrong. Please try again.",
-      })
+      console.error("Registration error:", error)
+      if (error.response?.data?.error?.includes("duplicate key")) {
+        toast.error("This email is already registered")
+      } else {
+        toast.error(error.response?.data?.error || "Registration failed. Please try again.")
+      }
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -542,10 +591,11 @@ export default function ClientRegistration() {
       {steps.map((step, index) => (
         <div key={step.number} className="flex items-center">
           <div
-            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${currentStep >= step.number
-              ? "bg-emerald-600 border-emerald-600 text-white"
-              : "border-gray-300 text-gray-400"
-              }`}
+            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+              currentStep >= step.number
+                ? "bg-emerald-600 border-emerald-600 text-white"
+                : "border-gray-300 text-gray-400"
+            }`}
           >
             {currentStep > step.number ? <CheckCircle className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
           </div>
@@ -735,14 +785,34 @@ export default function ClientRegistration() {
         <ErrorMessage message={touched.email ? errors.email : undefined} />
       </div>
 
-      <div className="space-y-1">
-        <Label htmlFor="contactNumber">Contact Number</Label>
-        <Input
-          id="contactNumber"
-          value={formData.contactNumber}
-          onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
-          placeholder="Enter your contact number"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label htmlFor="contactNumber">Contact Number</Label>
+          <Input
+            id="contactNumber"
+            value={formData.contactNumber}
+            onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
+            placeholder="Enter your contact number"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="age" className="flex items-center">
+            Age <span className="text-red-500 ml-1">*</span>
+          </Label>
+          <Input
+            id="age"
+            type="number"
+            min="1"
+            max="120"
+            value={formData.age}
+            onChange={(e) => handleFieldChange("age", e.target.value)}
+            onBlur={() => handleFieldBlur("age")}
+            placeholder="Enter your age"
+            className={errors.age && touched.age ? "border-red-500" : ""}
+            required
+          />
+          <ErrorMessage message={touched.age ? errors.age : undefined} />
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -929,95 +999,114 @@ export default function ClientRegistration() {
       <h2 className="text-2xl font-semibold text-center text-gray-900">Security Questions</h2>
       <p className="text-center text-gray-600">Please select and answer 3 security questions for account recovery.</p>
 
-      <div className="space-y-6">
-        {/* Security Question 1 */}
-        <div className="space-y-1">
-          <Label className="flex items-center">
-            Security Question 1 <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <select
-            value={formData.securityQuestion1}
-            onChange={(e) => setFormData({ ...formData, securityQuestion1: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Select a security question</option>
-            {securityQuestions.map((question, index) => (
-              <option key={index} value={question}>
-                {question}
-              </option>
-            ))}
-          </select>
-          <Input
-            placeholder="Your answer"
-            value={formData.securityAnswer1}
-            onChange={(e) => handleFieldChange("securityAnswer1", e.target.value)}
-            onBlur={() => handleFieldBlur("securityAnswer1")}
-            className={errors.securityAnswer1 && touched.securityAnswer1 ? "border-red-500" : ""}
-            required
-          />
-          <ErrorMessage message={touched.securityAnswer1 ? errors.securityAnswer1 : undefined} />
+      {isLoadingQuestions && (
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+          <p className="mt-2 text-gray-600">Loading security questions...</p>
         </div>
+      )}
 
-        {/* Security Question 2 */}
-        <div className="space-y-1">
-          <Label className="flex items-center">
-            Security Question 2 <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <select
-            value={formData.securityQuestion2}
-            onChange={(e) => setFormData({ ...formData, securityQuestion2: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Select a security question</option>
-            {securityQuestions
-              .filter((q) => q !== formData.securityQuestion1)
-              .map((question, index) => (
-                <option key={index} value={question}>
-                  {question}
+      {!isLoadingQuestions && securityQuestions.length === 0 && (
+        <div className="text-center py-4 text-amber-600">
+          <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+          <p>Unable to load security questions. Please refresh the page or try again later.</p>
+          <Button onClick={getAllQuestions} variant="outline" className="mt-2">
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {!isLoadingQuestions && securityQuestions.length > 0 && (
+        <div className="space-y-6">
+          {/* Security Question 1 */}
+          <div className="space-y-1">
+            <Label className="flex items-center">
+              Security Question 1 <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <select
+              value={formData.securityQuestion1}
+              onChange={(e) => setFormData({ ...formData, securityQuestion1: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Select a security question</option>
+              {securityQuestions.map((question) => (
+                <option key={question.question_id} value={question.question_id}>
+                  {question.question}
                 </option>
               ))}
-          </select>
-          <Input
-            placeholder="Your answer"
-            value={formData.securityAnswer2}
-            onChange={(e) => handleFieldChange("securityAnswer2", e.target.value)}
-            onBlur={() => handleFieldBlur("securityAnswer2")}
-            className={errors.securityAnswer2 && touched.securityAnswer2 ? "border-red-500" : ""}
-            required
-          />
-          <ErrorMessage message={touched.securityAnswer2 ? errors.securityAnswer2 : undefined} />
-        </div>
+            </select>
+            <Input
+              placeholder="Your answer"
+              value={formData.securityAnswer1}
+              onChange={(e) => handleFieldChange("securityAnswer1", e.target.value)}
+              onBlur={() => handleFieldBlur("securityAnswer1")}
+              className={errors.securityAnswer1 && touched.securityAnswer1 ? "border-red-500" : ""}
+              required
+            />
+            <ErrorMessage message={touched.securityAnswer1 ? errors.securityAnswer1 : undefined} />
+          </div>
 
-        {/* Security Question 3 */}
-        <div className="space-y-1">
-          <Label className="flex items-center">
-            Security Question 3 <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <select
-            value={formData.securityQuestion3}
-            onChange={(e) => setFormData({ ...formData, securityQuestion3: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Select a security question</option>
-            {securityQuestions
-              .filter((q) => q !== formData.securityQuestion1 && q !== formData.securityQuestion2)
-              .map((question, index) => (
-                <option key={index} value={question}>
-                  {question}
-                </option>
-              ))}
-          </select>
-          <Input
-            placeholder="Your answer"
-            value={formData.securityAnswer3}
-            onChange={(e) => handleFieldChange("securityAnswer3", e.target.value)}
-            onBlur={() => handleFieldBlur("securityAnswer3")}
-            className={errors.securityAnswer3 && touched.securityAnswer3 ? "border-red-500" : ""}
-            required
-          />
-          <ErrorMessage message={touched.securityAnswer3 ? errors.securityAnswer3 : undefined} />
+          {/* Security Question 2 */}
+          <div className="space-y-1">
+            <Label className="flex items-center">
+              Security Question 2 <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <select
+              value={formData.securityQuestion2}
+              onChange={(e) => setFormData({ ...formData, securityQuestion2: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Select a security question</option>
+              {securityQuestions
+                .filter((q) => q.question_id !== formData.securityQuestion1)
+                .map((question) => (
+                  <option key={question.question_id} value={question.question_id}>
+                    {question.question}
+                  </option>
+                ))}
+            </select>
+            <Input
+              placeholder="Your answer"
+              value={formData.securityAnswer2}
+              onChange={(e) => handleFieldChange("securityAnswer2", e.target.value)}
+              onBlur={() => handleFieldBlur("securityAnswer2")}
+              className={errors.securityAnswer2 && touched.securityAnswer2 ? "border-red-500" : ""}
+              required
+            />
+            <ErrorMessage message={touched.securityAnswer2 ? errors.securityAnswer2 : undefined} />
+          </div>
+
+          {/* Security Question 3 */}
+          <div className="space-y-1">
+            <Label className="flex items-center">
+              Security Question 3 <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <select
+              value={formData.securityQuestion3}
+              onChange={(e) => setFormData({ ...formData, securityQuestion3: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Select a security question</option>
+              {securityQuestions
+                .filter((q) => q.question_id !== formData.securityQuestion1 && q.question_id !== formData.securityQuestion2)
+                .map((question) => (
+                  <option key={question.question_id} value={question.question_id}>
+                    {question.question}
+                  </option>
+                ))}
+            </select>
+            <Input
+              placeholder="Your answer"
+              value={formData.securityAnswer3}
+              onChange={(e) => handleFieldChange("securityAnswer3", e.target.value)}
+              onBlur={() => handleFieldBlur("securityAnswer3")}
+              className={errors.securityAnswer3 && touched.securityAnswer3 ? "border-red-500" : ""}
+              required
+            />
+            <ErrorMessage message={touched.securityAnswer3 ? errors.securityAnswer3 : undefined} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 
@@ -1034,34 +1123,31 @@ export default function ClientRegistration() {
     }
   }
 
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          formData.firstName.trim() &&
-          formData.lastName.trim() &&
-          formData.email.trim() &&
-          isValidEmail(formData.email) &&
-          formData.password.trim() &&
-          formData.confirmPassword.trim() &&
-          formData.password === formData.confirmPassword &&
-          formData.password.length >= 8
-        )
-      case 2:
-        return isRecaptchaVerified && isEmailVerified
-      case 3:
-        return (
-          formData.securityQuestion1 &&
-          formData.securityAnswer1.trim() &&
-          formData.securityQuestion2 &&
-          formData.securityAnswer2.trim() &&
-          formData.securityQuestion3 &&
-          formData.securityAnswer3.trim()
-        )
-      default:
-        return false
+  const getAllQuestions = async () => {
+    try {
+      setIsLoadingQuestions(true)
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/security-questions/`)
+
+      if (response.data && Array.isArray(response.data)) {
+        setSecurityQuestions(response.data)
+        console.log("Security questions loaded:", response.data)
+      } else {
+        throw new Error("Invalid response format")
+      }
+    } catch (err: any) {
+      console.error("Error fetching security questions:", err)
+      toast.error("Error loading security questions", {
+        description: "Please try again or contact support if the issue persists.",
+      })
+      // Don't set fallback questions here - we'll keep using the empty array
+    } finally {
+      setIsLoadingQuestions(false)
     }
   }
+
+  useEffect(() => {
+    getAllQuestions()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -1088,13 +1174,13 @@ export default function ClientRegistration() {
             )}
             <div className="ml-auto">
               {currentStep < 3 ? (
-                <Button onClick={handleNext} disabled={!canProceed()} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={handleNext} disabled={!isStepValid} className="bg-emerald-600 hover:bg-emerald-700">
                   Continue
                 </Button>
               ) : (
                 <Button
                   onClick={handleRegistrationComplete}
-                  disabled={!canProceed() || isSubmitting}
+                  disabled={!isStepValid || isSubmitting}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   {isSubmitting ? (
