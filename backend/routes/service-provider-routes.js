@@ -42,7 +42,7 @@ router.get('/sprovider', /*authenticateToken*/ async (req, res) => {
 });
 
 // Create a new service provider
-router.post('/', /*authenticateToken*/ async (req, res) => {
+router.post('/', async (req, res) => {
   let {
     email, name, company_phone_number, profile_picture,
     company_address, password, language, service_type,
@@ -50,14 +50,29 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
     work_hours_from, work_hours_to, appointment_duration, company_name
   } = req.body.dataToSend;
 
-  password = await bcrypt.hash(password, 10);
-
-  if (!email || !name || !company_phone_number || !password || !language || !service_type ||
-      !work_days_from || !work_days_to || !work_hours_from || !work_hours_to || !appointment_duration || !company_name) {
+  if (
+    !email || !name || !company_phone_number || !password || !language || !service_type ||
+    !work_days_from || !work_days_to || !work_hours_from || !work_hours_to ||
+    !appointment_duration || !company_name
+  ) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
+    // Check if email already exists in clients
+    const existingClient = await prisma.clients.findUnique({ where: { email } });
+
+    // Check if email already exists in service_providers
+    const existingProvider = await prisma.service_providers.findUnique({ where: { email } });
+
+    if (existingClient || existingProvider) {
+      return res.status(409).json({ error: 'Email already in use by another account' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new service provider
     const newProvider = await prisma.service_providers.create({
       data: {
         email,
@@ -65,7 +80,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
         company_phone_number,
         profile_picture,
         company_address,
-        password,
+        password: hashedPassword,
         language,
         service_type,
         specialization,
@@ -77,10 +92,11 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
         company_name
       }
     });
+
     res.status(201).json(newProvider);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

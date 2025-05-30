@@ -35,14 +35,32 @@ router.get('/client', /*authenticateToken*/ async (req, res) => {
 });
 
 // Create a new client
-router.post('/', /*authenticateToken*/ async (req, res) => {
+router.post('/', async (req, res) => {
   let { email, name, phone_number, profile_picture, age, gender, address, password } = req.body.datatosendtoclient;
-  password = await bcrypt.hash(password,10);
+
   if (!email || !name || !phone_number || !password) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
+    // Check if user exists in clients
+    const existingClient = await prisma.clients.findUnique({
+      where: { email }
+    });
+
+    // Check if user exists in service_providers
+    const existingProvider = await prisma.service_providers.findUnique({
+      where: { email }
+    });
+
+    if (existingClient || existingProvider) {
+      return res.status(409).json({ error: 'Email already in use by another account' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new client
     const newClient = await prisma.clients.create({
       data: {
         email,
@@ -52,13 +70,14 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
         age,
         gender,
         address,
-        password
+        password: hashedPassword
       }
     });
-    res.status(201).json(newClient);
+
+    return res.status(201).json(newClient);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
