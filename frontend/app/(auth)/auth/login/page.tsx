@@ -1,68 +1,65 @@
-"use client"
+"use client";
 
 import { useRouter } from 'next/navigation';
-import React, { useContext, useEffect, useState } from 'react';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import Link from "next/link"
+import React, { useContext, useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import Link from "next/link";
 import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
+import { toast } from "sonner"; // 
 
 export default function LoginPage() {
-
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [remember, setRemember] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-
-  const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
+  const { setUser, setAccessToken } = useContext(AuthContext);
 
   const handleLogin = async () => {
+    setIsLoading(true);
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
         {
-          email: email,
-          password: password,
+          email,
+          password,
           checked: remember
         },
         {
-          withCredentials:true,
+          withCredentials: true,
           headers: {
             "Content-type": "application/json"
           }
         }
       );
-      if (response.data.successful && response.data.user.role == "client") {
-        setUser(response.data.user);
-        setAccessToken(response.data.accessToken);
-        window.alert("Logged in as a client");
+
+      const { successful, user, accessToken } = response.data;
+
+      if (successful && user.role === "client") {
+        setUser(user);
+        setAccessToken(accessToken);
+        toast.success("Logged in as a client"); // ✅ Success toast
         router.push("/");
-      }
-      if (response.data.successful && response.data.user.role == "sp") {
-        setUser(response.data.user);
-        setAccessToken(response.data.accessToken);
-        window.alert("Logged in as a client");
+      } else if (successful && user.role === "sp") {
+        setUser(user);
+        setAccessToken(accessToken);
+        toast.success("Logged in as a service provider"); // ✅ Success toast
         router.push("/sp");
+      } else {
+        throw new Error("Invalid credentials");
       }
-      else {
-        console.log(response.data.error)
-        throw new Error("Invalid Credentials");
-      }
-    }
-    catch (error: any) {
-      console.log(error);
-      window.Error(error.message);
-    }
-    finally{
+    } catch (error: any) {
+      toast.error(error?.message || "Login failed"); // ✅ Error toast
+    } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -76,14 +73,28 @@ export default function LoginPage() {
             <Label htmlFor="email" className="text-sm font-medium text-gray-700">
               Email
             </Label>
-            <Input id="email" type="email" placeholder="Enter your email" className="w-full" value={email} onChange={(e) => { setEmail(e.target.value) }} />
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              className="w-full"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium text-gray-700">
               Password
             </Label>
-            <Input id="password" type="password" placeholder="Enter your password" className="w-full" value={password} onChange={(e) => { setPassword(e.target.value) }} />
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              className="w-full"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
           <div className="flex items-center justify-between">
@@ -93,7 +104,7 @@ export default function LoginPage() {
                 checked={remember}
                 onCheckedChange={(checked) => setRemember(checked === true)}
               />
-              <Label htmlFor="remember" className="text-sm text-[#0eb882] ">
+              <Label htmlFor="remember" className="text-sm text-[#0eb882]">
                 Remember me
               </Label>
             </div>
@@ -102,7 +113,13 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <Button className="w-full bg-[#059669] hover:bg-[#0eb882] text-white" onClick={handleLogin}>Login</Button>
+          <Button
+            className="w-full bg-[#059669] hover:bg-[#0eb882] text-white"
+            onClick={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Login"}
+          </Button>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -126,5 +143,5 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
