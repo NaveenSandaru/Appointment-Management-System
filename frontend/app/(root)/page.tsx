@@ -7,6 +7,7 @@ import { ServiceCard } from '@/Components/serviceCard'
 import { BookingCard } from '@/Components/BookingCard'
 import { AuthContext } from '@/context/auth-context';
 import { useContext, useEffect } from 'react';
+import Link from 'next/link'
 
 export default function Home() {
     const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
@@ -114,7 +115,7 @@ export default function Home() {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Featured Services</h2>
-            <button className="text-[#6B7280] hover:text-[#6B7280]/80 text-sm">View all</button>
+            <Link href="/services"><button className="text-[#6B7280] hover:text-[#6B7280]/80 text-sm">View all</button></Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.slice(0, 3).map((service) => (

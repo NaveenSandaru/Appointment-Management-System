@@ -21,21 +21,22 @@ export function ServiceCard({
 }: ServiceCardProps) {
   // Default images based on service type
   const getDefaultImage = (serviceName: string) => {
-    const name = serviceName.toLowerCase()
-    if (name.includes('dentist') || name.includes('dental')) {
-      return "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=300&fit=crop"
-    } else if (name.includes('lawyer') || name.includes('legal')) {
-      return "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&h=300&fit=crop"
-    } else if (name.includes('beauty') || name.includes('salon') || name.includes('spa')) {
-      return "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop"
-    } else if (name.includes('doctor') || name.includes('medical')) {
-      return "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=300&fit=crop"
-    } else if (name.includes('fitness') || name.includes('gym') || name.includes('trainer')) {
-      return "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop"
-    } else {
-      return "https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=400&h=300&fit=crop"
-    }
+  const name = serviceName.toLowerCase()
+  if (name.includes('dentist') || name.includes('dental')) {
+    return "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=300&fit=crop&auto=format"
+  } else if (name.includes('lawyer') || name.includes('legal')) {
+    return "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&h=300&fit=crop&auto=format"
+  } else if (name.includes('beauty') || name.includes('salon') || name.includes('spa')) {
+    return "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop&auto=format"
+  } else if (name.includes('doctor') || name.includes('medical')) {
+    return "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=400&h=300&fit=crop&auto=format"
+  } else if (name.includes('fitness') || name.includes('gym') || name.includes('trainer')) {
+    return "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&auto=format"
+  } else {
+    return "https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=400&h=300&fit=crop&auto=format"
   }
+}
+
 
   const getDefaultDescription = (serviceName: string) => {
     const name = serviceName.toLowerCase()
