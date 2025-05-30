@@ -68,9 +68,9 @@ async function fetchServiceProviders(serviceType: string) {
     {
       email: "jane3@dental.com",
       name: "Jane Doe",
-      company_name: "Maharagama Dental Clinic",
-      service_type: "Dental Care",
-      specialty: "Oral Surgery",
+      company_name: "Maharagama law firm",
+      service_type: "Legal Consultation",
+      specialty: "Divoce cases",
       company_address: "No 35, Colombo Rd, Maharagama",
       profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
       appointment_price: "$30",
@@ -82,9 +82,9 @@ async function fetchServiceProviders(serviceType: string) {
     {
       email: "emma2@dental.com",
       name: "Emma Wilson",
-      company_name: "Malabe Dental Clinic",
-      service_type: "Dental Care",
-      specialty: "Endodontics",
+      company_name: "Malabe law firm",
+      service_type: "Legal Consultation",
+      specialty: "Civil cases",
       company_address: "No 205, Malabe Rd, Malabe",
       profile_picture: "https://randomuser.me/api/portraits/women/65.jpg",
       appointment_price: "$30",
@@ -96,9 +96,9 @@ async function fetchServiceProviders(serviceType: string) {
     {
       email: "jane4@dental.com",
       name: "Jane Doe",
-      company_name: "Maharagama Dental Clinic",
-      service_type: "Dental Care",
-      specialty: "Periodontics",
+      company_name: "Maharagama law firm",
+      service_type: "Legal Consultation",
+      specialty: "Criminal cases",
       company_address: "No 35, Colombo Rd, Maharagama",
       profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
       appointment_price: "$30",
@@ -107,6 +107,8 @@ async function fetchServiceProviders(serviceType: string) {
       work_hours_from: "8:00 a.m",
       work_hours_to: "7:00 p.m",
     },
+
+    
   ];
 
   return mockProviders.filter((p) => p.service_type === serviceType);
@@ -173,16 +175,9 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Page Title - Mobile */}
-        <div className="block sm:hidden mb-4">
-          <h1 className="text-lg font-semibold text-gray-900 capitalize">
-            {decodeURIComponent(unwrappedParams.service_type)} Providers
-          </h1>
-        </div>
-
+      <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Search Bar */}
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -190,19 +185,18 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
               placeholder="Search by name, clinic, specialty, or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
             />
           </div>
         </div>
 
         {/* Top Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
-          <select className="border border-gray-300 p-2 rounded text-sm text-gray-600 bg-white flex-1 sm:flex-none sm:min-w-[200px]">
+        <div className="flex items-center justify-between mb-6">
+          <select className="border border-gray-300 p-2 rounded text-sm text-gray-600 bg-white">
             <option>Select Speciality</option>
           </select>
-          <div className="flex items-center justify-center gap-2 border border-gray-300 p-2 rounded text-sm text-gray-600 bg-white cursor-pointer">
-            <span className="hidden sm:inline">Filtering options</span>
-            <span className="sm:hidden">Filters</span>
+          <div className="flex items-center gap-2 border border-gray-300 p-2 rounded text-sm text-gray-600 bg-white cursor-pointer">
+            <span>Filtering options</span>
             <Filter className="w-4 h-4" />
           </div>
         </div>
@@ -217,7 +211,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
         )}
 
         {/* Provider Cards */}
-        <div className="space-y-2 sm:space-y-3">
+        <div className="space-y-3">
           {filteredProviders.map((provider, index) => (
             <Card
               key={`${provider.email}-${index}`}
@@ -225,7 +219,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
             >
               <div className="flex items-center p-4">
                 {/* Profile Image */}
-                <div className="flex-shrink-0 mr-4">
+                <div className="flex-shrink-0 mr-4 hidden sm:">
                   <img
                     src={provider.profile_picture}
                     alt={provider.name}
