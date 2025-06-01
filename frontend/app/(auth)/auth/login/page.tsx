@@ -3,10 +3,12 @@
 import { useRouter } from 'next/navigation';
 import React, { useContext, useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button"
+import { LoadingButton } from "@/components/ui/loading-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Loading } from "@/components/ui/loading"
 import Link from "next/link"
 import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
@@ -14,18 +16,26 @@ import { Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 
 export default function LoginPage() {
-
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [remember, setRemember] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-
   const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
 
+  useEffect(() => {
+    // Simulate page loading
+    const timer = setTimeout(() => {
+      setIsPageLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleLogin = async () => {
+    setIsLoading(true);
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
@@ -73,6 +83,14 @@ export default function LoginPage() {
     }
   }
 
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loading size="lg" text="Loading..." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
@@ -85,7 +103,15 @@ export default function LoginPage() {
             <Label htmlFor="email" className="text-sm font-medium text-gray-700">
               Email
             </Label>
-            <Input id="email" type="email" placeholder="Enter your email" className="w-full" value={email} onChange={(e) => { setEmail(e.target.value) }} />
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="Enter your email" 
+              className="w-full" 
+              value={email} 
+              onChange={(e) => { setEmail(e.target.value) }}
+              disabled={isLoading}
+            />
           </div>
 
           <div className="space-y-2">
@@ -99,13 +125,15 @@ export default function LoginPage() {
                 placeholder="Enter your password" 
                 className="w-full pr-10" 
                 value={password} 
-                onChange={(e) => { setPassword(e.target.value) }} 
+                onChange={(e) => { setPassword(e.target.value) }}
+                disabled={isLoading}
               />
               {password && (
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -119,6 +147,7 @@ export default function LoginPage() {
                 id="remember"
                 checked={remember}
                 onCheckedChange={(checked) => setRemember(checked === true)}
+                disabled={isLoading}
               />
               <Label htmlFor="remember" className="text-sm text-[#0eb882] ">
                 Remember me
@@ -129,7 +158,14 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <Button className="w-full bg-[#059669] hover:bg-[#0eb882] text-white" onClick={handleLogin}>Login</Button>
+          <LoadingButton 
+            className="w-full bg-[#059669] hover:bg-[#0eb882] text-white" 
+            onClick={handleLogin}
+            isLoading={isLoading}
+            loadingText="Logging in..."
+          >
+            Login
+          </LoadingButton>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -140,7 +176,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" disabled={isLoading}>
             Google
           </Button>
 

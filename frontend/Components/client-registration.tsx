@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { Upload, User, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { LoadingButton } from "@/components/ui/loading-button"
 
 type Step = 1 | 2 | 3
 
@@ -87,6 +88,8 @@ export default function ClientRegistration() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [emailExists, setEmailExists] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -419,47 +422,53 @@ export default function ClientRegistration() {
   }
   
   const sendOtpToEmail = async () => {
-    try {
-      if (!formData.email) {
-        const error = new Error("Email Required") as Error & { details?: string }
-        error.details = "Please enter your email address first"
-        throw error
-      }
-
-      if (!isValidEmail(formData.email)) {
-        const error = new Error("Invalid Email") as Error & { details?: string }
-        error.details = "Please enter a valid email address."
-        throw error
-      }
-
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification/`,
-        {
-          email: formData.email,
-        },
-        {
-          headers: {
-            "Content-type": "application/json",
-          },
-        },
-      )
-
-      if (response.status != 201) {
-        const error = new Error("Server Error") as Error & { details?: string }
-        error.details = "Error sending verification code. Please retry"
-        throw error
-      }
-    } catch (error: any) {
-      toast.error(error.message, {
-        description: error.details,
+    if (!formData.email) {
+      toast.error("Email Required", {
+        description: "Please enter your email address first.",
       })
-      return
+      return;
     }
 
-    toast.success("OTP Sent", {
-      description: `A 6-digit verification code has been sent to ${formData.email}`,
-    })
-    setOtpSent(true)
+    if (!isValidEmail(formData.email)) {
+      toast.error("Invalid Email", {
+        description: "Please enter a valid email address.",
+      })
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification`,
+        {
+          email: formData.email
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-type": "application/json"
+          }
+        }
+      );
+      if (response.status == 201) {
+        toast.success("OTP Sent", {
+          description: `A 6-digit verification code has been sent to ${formData.email}`,
+        });
+        setOtpSent(true);
+      }
+      else {
+        const error = new Error("Server Error") as Error & { details?: string }
+        error.details = "Verification code not sent, please retry";
+        throw error;
+      }
+    }
+    catch (error: any) {
+      toast.error(error.message, {
+        description: error.details
+      });
+    } finally {
+      setIsSendingOtp(false);
+    }
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -482,36 +491,41 @@ export default function ClientRegistration() {
   }
 
   const verifyOtp = async () => {
-    const enteredOtp = otp.join("")
+    const enteredOtp = otp.join("");
+    setIsVerifyingOtp(true);
+
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification/verify`,
         {
           email: formData.email,
-          code: enteredOtp,
+          code: enteredOtp
         },
         {
+          withCredentials: true,
           headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      )
+            "Content-type": "application/json"
+          }
+        }
+      );
       if (response.data.message == "Email verified successfully") {
-        setIsEmailVerified(true)
-        toast.success("Email Verified", {
-          description: "Your email has been successfully verified!",
-        })
-      } else {
-        toast.error("Invalid OTP", {
-          description: "The verification code you entered is incorrect. Please try again.",
-        })
-        setOtp(["", "", "", "", "", ""])
-        otpRefs.current[0]?.focus()
+        setIsEmailVerified(true);
+        toast.success("Success", {
+          description: "Email verified successfully, Please continue.",
+        });
       }
-    } catch (err: any) {
-      toast.error("Error verifying", {
-        description: err.message,
+      else {
+        const error = new Error("Verification Failed") as Error & { details?: string }
+        error.details = "Verification code is not verified. Please retry";
+        throw error;
+      }
+    }
+    catch (error: any) {
+      toast.error(error.message, {
+        description: error.details,
       })
+    } finally {
+      setIsVerifyingOtp(false);
     }
   }
 
@@ -953,7 +967,7 @@ export default function ClientRegistration() {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Email Verification</h3>
         <div
-          className={`space-y-4 border rounded-lg p-4 ${isEmailVerified ? "border-emerald-300 bg-emerald-50" : !otpSent ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50"}`}
+          className={`space-y-4 border rounded-lg p-4 ${isEmailVerified ? "border-emerald-300 bg-emerald-50" : !otpSent ? "border-amber-300 bg-amber-50" : "border-blue-300 bg-blue-50"}`}
         >
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <Mail className="w-4 h-4" />
@@ -965,9 +979,15 @@ export default function ClientRegistration() {
 
           {!otpSent ? (
             <>
-              <Button onClick={sendOtpToEmail} disabled={!isRecaptchaVerified || !formData.email} className="w-full">
+              <LoadingButton 
+                onClick={sendOtpToEmail} 
+                disabled={!isRecaptchaVerified || !formData.email} 
+                className="w-full"
+                isLoading={isSendingOtp}
+                loadingText="Sending verification code..."
+              >
                 Send Verification Code
-              </Button>
+              </LoadingButton>
               {!isRecaptchaVerified && (
                 <div className="flex items-center text-amber-600 text-sm">
                   <Info className="w-4 h-4 mr-1" />
@@ -978,7 +998,7 @@ export default function ClientRegistration() {
           ) : (
             <div className="space-y-4">
               <div className="text-center">
-                <p className="text-sm text-emerald-600 mb-4">Enter the 6-digit verification code sent to your email</p>
+                <p className="text-sm text-blue-600 mb-4">Enter the 6-digit verification code sent to your email</p>
 
                 <div className="flex justify-center space-x-2 mb-4">
                   {otp.map((digit, index) => (
@@ -993,27 +1013,35 @@ export default function ClientRegistration() {
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       className={`w-12 h-12 text-center text-lg font-semibold ${isEmailVerified ? "border-emerald-500 bg-emerald-50" : ""}`}
-                      disabled={isEmailVerified}
+                      disabled={isEmailVerified || isVerifyingOtp}
                     />
                   ))}
                 </div>
 
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-sm text-gray-500">{otpTimer > 0 && `Resend available in ${otpTimer}s`}</div>
-                  <Button
+                  <LoadingButton
                     variant="link"
                     onClick={resendOtp}
                     disabled={!canResendOtp}
                     className="text-sm text-emerald-600 hover:text-emerald-700"
+                    isLoading={isSendingOtp}
+                    loadingText="Sending..."
                   >
                     Resend Code
-                  </Button>
+                  </LoadingButton>
                 </div>
 
                 {!isEmailVerified ? (
-                  <Button onClick={verifyOtp} disabled={otp.some((digit) => !digit)} className="w-full">
+                  <LoadingButton 
+                    onClick={verifyOtp} 
+                    disabled={otp.some((digit) => !digit)} 
+                    className="w-full"
+                    isLoading={isVerifyingOtp}
+                    loadingText="Verifying..."
+                  >
                     Verify Code
-                  </Button>
+                  </LoadingButton>
                 ) : (
                   <div className="flex items-center justify-center space-x-2 text-emerald-600">
                     <CheckCircle className="w-5 h-5" />

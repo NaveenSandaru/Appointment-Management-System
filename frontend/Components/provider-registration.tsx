@@ -15,6 +15,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import axios from "axios"
 import { toNamespacedPath } from "path/win32"
+import { LoadingButton } from "@/components/ui/loading-button"
 
 
 type Step = 1 | 2 | 3 | 4
@@ -119,6 +120,8 @@ export default function ProviderRegistration() {
   const [services, setServices] = useState<Service[]>([])
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
 
   const router = useRouter()
 
@@ -512,16 +515,17 @@ export default function ProviderRegistration() {
       toast.error("Email Required", {
         description: "Please enter your email address first.",
       })
-      return
+      return;
     }
 
     if (!isValidEmail(formData.email)) {
       toast.error("Invalid Email", {
         description: "Please enter a valid email address.",
       })
-      return
+      return;
     }
 
+    setIsSendingOtp(true);
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification`,
@@ -551,6 +555,8 @@ export default function ProviderRegistration() {
       toast.error(error.message, {
         description: error.details
       });
+    } finally {
+      setIsSendingOtp(false);
     }
   }
 
@@ -575,6 +581,7 @@ export default function ProviderRegistration() {
 
   const verifyOtp = async () => {
     const enteredOtp = otp.join("");
+    setIsVerifyingOtp(true);
 
     try {
       const response = await axios.post(
@@ -606,6 +613,8 @@ export default function ProviderRegistration() {
       toast.error(error.message, {
         description: error.details,
       })
+    } finally {
+      setIsVerifyingOtp(false);
     }
   }
 
@@ -1348,9 +1357,15 @@ export default function ProviderRegistration() {
 
           {!otpSent ? (
             <>
-              <Button onClick={sendOtpToEmail} disabled={!isRecaptchaVerified || !formData.email} className="w-full">
+              <LoadingButton 
+                onClick={sendOtpToEmail} 
+                disabled={!isRecaptchaVerified || !formData.email} 
+                className="w-full"
+                isLoading={isSendingOtp}
+                loadingText="Sending verification code..."
+              >
                 Send Verification Code
-              </Button>
+              </LoadingButton>
               {!isRecaptchaVerified && (
                 <div className="flex items-center text-amber-600 text-sm">
                   <Info className="w-4 h-4 mr-1" />
@@ -1376,27 +1391,35 @@ export default function ProviderRegistration() {
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       className={`w-12 h-12 text-center text-lg font-semibold ${isEmailVerified ? "border-emerald-500 bg-emerald-50" : ""}`}
-                      disabled={isEmailVerified}
+                      disabled={isEmailVerified || isVerifyingOtp}
                     />
                   ))}
                 </div>
 
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-sm text-gray-500">{otpTimer > 0 && `Resend available in ${otpTimer}s`}</div>
-                  <Button
+                  <LoadingButton
                     variant="link"
                     onClick={resendOtp}
                     disabled={!canResendOtp}
                     className="text-sm text-emerald-600 hover:text-emerald-700"
+                    isLoading={isSendingOtp}
+                    loadingText="Sending..."
                   >
                     Resend Code
-                  </Button>
+                  </LoadingButton>
                 </div>
 
                 {!isEmailVerified ? (
-                  <Button onClick={verifyOtp} disabled={otp.some((digit) => !digit)} className="w-full">
+                  <LoadingButton 
+                    onClick={verifyOtp} 
+                    disabled={otp.some((digit) => !digit)} 
+                    className="w-full"
+                    isLoading={isVerifyingOtp}
+                    loadingText="Verifying..."
+                  >
                     Verify Code
-                  </Button>
+                  </LoadingButton>
                 ) : (
                   <div className="flex items-center justify-center space-x-2 text-emerald-600">
                     <CheckCircle className="w-5 h-5" />
