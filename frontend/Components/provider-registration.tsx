@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { Upload, Building, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft } from "lucide-react"
+import { Upload, Building, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import axios from "axios"
@@ -18,6 +18,11 @@ import { toNamespacedPath } from "path/win32"
 
 
 type Step = 1 | 2 | 3 | 4
+
+interface SecurityQuestion {
+  question_id: string;
+  question: string;
+}
 
 interface ProviderFormData {
   // Personal Info
@@ -34,7 +39,7 @@ interface ProviderFormData {
   companyNumber: string
   serviceType: string
   serviceSpecialty: string
-  appointmentFee: string
+  appointmentDuration: string
   workHoursFrom: string
   workHoursTo: string
   weekDaysFrom: string
@@ -55,21 +60,12 @@ interface FormErrors {
   password?: string
   confirmPassword?: string
   companyName?: string
+  companyAddress?: string
+  companyNumber?: string
   securityAnswer1?: string
   securityAnswer2?: string
   securityAnswer3?: string
 }
-
-const securityQuestions = [
-  "What was the name of your first pet?",
-  "What is your mother's maiden name?",
-  "What was the name of your first school?",
-  "What is your favorite movie?",
-  "What city were you born in?",
-  "What is your favorite food?",
-  "What was your childhood nickname?",
-  "What is the name of your best friend?",
-]
 
 // Add Service interface
 interface Service {
@@ -81,7 +77,7 @@ interface Service {
 
 export default function ProviderRegistration() {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true)
-  const [securityQuestions, setSecurityQuestions] = useState<any[]>([])
+  const [securityQuestions, setSecurityQuestions] = useState<SecurityQuestion[]>([])
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [formData, setFormData] = useState<ProviderFormData>({
     image: null,
@@ -96,7 +92,7 @@ export default function ProviderRegistration() {
     companyNumber: "",
     serviceType: "",
     serviceSpecialty: "",
-    appointmentFee: "",
+    appointmentDuration: "30",
     workHoursFrom: "",
     workHoursTo: "",
     weekDaysFrom: "",
@@ -121,6 +117,8 @@ export default function ProviderRegistration() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingServices, setIsLoadingServices] = useState(false)
   const [services, setServices] = useState<Service[]>([])
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const router = useRouter()
 
@@ -229,6 +227,16 @@ export default function ProviderRegistration() {
           fieldErrors.companyName = "Company name is required"
         }
         break
+      case "companyAddress":
+        if (!value.trim()) {
+          fieldErrors.companyAddress = "Company address is required"
+        }
+        break
+      case "companyNumber":
+        if (!value.trim()) {
+          fieldErrors.companyNumber = "Company number is required"
+        }
+        break
       case "securityAnswer1":
         if (!value.trim()) {
           fieldErrors.securityAnswer1 = "Please provide an answer"
@@ -252,12 +260,14 @@ export default function ProviderRegistration() {
   const handleFieldChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
 
+    // Clear error when user starts typing
+    if (value.trim()) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }))
+    }
+
     if (!touched[name]) {
       setTouched((prev) => ({ ...prev, [name]: true }))
     }
-
-    const fieldErrors = validateField(name, value)
-    setErrors((prev) => ({ ...prev, ...fieldErrors }))
   }
 
   const handleFieldBlur = (name: string) => {
@@ -266,12 +276,41 @@ export default function ProviderRegistration() {
     setErrors((prev) => ({ ...prev, ...fieldErrors }))
   }
 
-  const validateStep = () => {
+  const handlePasswordChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, password: value }))
+    setPasswordStrength(checkPasswordStrength(value))
+    
+    if (formData.confirmPassword) {
+      if (value !== formData.confirmPassword) {
+        setErrors((prev) => ({ ...prev, confirmPassword: "Passwords do not match" }))
+      } else {
+        setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
+      }
+    }
+
+    // Clear password error if valid
+    if (value.length >= 8) {
+      setErrors((prev) => ({ ...prev, password: undefined }))
+    }
+  }
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, confirmPassword: value }))
+    
+    if (value !== formData.password) {
+      setErrors((prev) => ({ ...prev, confirmPassword: "Passwords do not match" }))
+    } else {
+      setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
+    }
+  }
+
+  const validateStep = async () => {
     const stepErrors: FormErrors = {}
     let isValid = true
 
     switch (currentStep) {
       case 1:
+        // Personal Info Validation
         if (!formData.firstName.trim()) {
           stepErrors.firstName = "First name is required"
           isValid = false
@@ -301,23 +340,102 @@ export default function ProviderRegistration() {
           stepErrors.confirmPassword = "Passwords do not match"
           isValid = false
         }
+
+        // Check if email already exists
+        if (isValid && formData.email) {
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+            
+            // Try to create the service provider to check if email exists
+            const checkResponse = await axios.post(`${baseUrl}/service-providers`, {
+              dataToSend: {
+                email: formData.email,
+                name: formData.firstName + " " + formData.lastName,
+                company_phone_number: "temp",
+                password: "temp",
+                language: "temp",
+                service_type: "temp",
+                work_days_from: "monday",
+                work_days_to: "friday",
+                work_hours_from: "09:00",
+                work_hours_to: "17:00",
+                appointment_duration: "30 minutes",
+                company_name: "temp"
+              }
+            }, {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+
+            // If we get here, it means the email doesn't exist (unlikely as we're sending incomplete data)
+            console.log("Unexpected success:", checkResponse);
+            
+          } catch (error: any) {
+            // If we get a 409, it means the email exists
+            if (error.response?.status === 409) {
+              stepErrors.email = "This email is already registered"
+              isValid = false
+              toast.error("Email already registered", {
+                description: "Please use a different email address"
+              });
+            }
+            // For other errors, we'll let the validation pass
+            // as we'll do a proper check during actual registration
+          }
+        }
         break
+
       case 2:
+        // Company Info Validation
         if (!formData.companyName.trim()) {
           stepErrors.companyName = "Company name is required"
           isValid = false
         }
+        if (!formData.companyAddress.trim()) {
+          stepErrors.companyAddress = "Company address is required"
+          isValid = false
+        }
+        if (!formData.companyNumber.trim()) {
+          stepErrors.companyNumber = "Company number is required"
+          isValid = false
+        }
+        if (!formData.serviceType) {
+          toast.error("Service Type Required", {
+            description: "Please select a service type"
+          });
+          isValid = false
+        }
+        if (!formData.workHoursFrom || !formData.workHoursTo) {
+          toast.error("Work Hours Required", {
+            description: "Please specify your working hours"
+          });
+          isValid = false
+        }
+        if (!formData.weekDaysFrom || !formData.weekDaysTo) {
+          toast.error("Work Days Required", {
+            description: "Please specify your working days"
+          });
+          isValid = false
+        }
         break
+
       case 3:
         if (!isRecaptchaVerified) {
-          toast.error("Please complete the reCAPTCHA verification")
+          toast.error("reCAPTCHA Required", {
+            description: "Please complete the reCAPTCHA verification"
+          })
           isValid = false
         }
         if (!isEmailVerified) {
-          toast.error("Please verify your email address")
+          toast.error("Email Verification Required", {
+            description: "Please verify your email address"
+          })
           isValid = false
         }
         break
+
       case 4:
         if (!formData.securityQuestion1 || !formData.securityAnswer1.trim()) {
           stepErrors.securityAnswer1 = "Please select a question and provide an answer"
@@ -331,6 +449,15 @@ export default function ProviderRegistration() {
           stepErrors.securityAnswer3 = "Please select a question and provide an answer"
           isValid = false
         }
+        // Check if security questions are unique
+        const questions = [formData.securityQuestion1, formData.securityQuestion2, formData.securityQuestion3];
+        const uniqueQuestions = new Set(questions);
+        if (uniqueQuestions.size !== 3) {
+          toast.error("Duplicate Security Questions", {
+            description: "Please select different questions for each answer"
+          });
+          isValid = false;
+        }
         break
     }
 
@@ -338,8 +465,9 @@ export default function ProviderRegistration() {
     return isValid
   }
 
-  const handleNext = () => {
-    if (validateStep() && currentStep < 4) {
+  const handleNext = async () => {
+    const isValid = await validateStep();
+    if (isValid && currentStep < 4) {
       setCurrentStep((prev) => (prev + 1) as Step)
       setTouched({})
     }
@@ -490,124 +618,245 @@ export default function ProviderRegistration() {
 
   const handleRegistrationComplete = async () => {
     if (!validateStep()) return;
-  
+
     setIsSubmitting(true);
-  
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    
     try {
-      // Create form data for image upload if image exists
-      const imageFormData = new FormData();
-      if (formData.image) {
-        imageFormData.append("image", formData.image);
-      }
-  
-      // Build registration data with temporary empty profile picture
-      const dataToSend = {
-        name: formData.firstName + " " + formData.lastName,
-        email: formData.email,
-        company_phone_number: formData.companyNumber,
-        profile_picture: "", // will update later if image uploaded
-        company_address: formData.companyAddress,
-        password: formData.password,
-        language: formData.preferredLanguages,
-        service_type: "1",
-        specialization: formData.serviceSpecialty,
-        work_days_from: formData.weekDaysFrom,
-        work_days_to: formData.weekDaysTo,
-        work_hours_from: formData.workHoursFrom,
-        work_hours_to: formData.workHoursTo,
-        appointment_duration: "30 minutes",
-        company_name: formData.companyName
-      };
-  
       // Step 1: Register the service provider
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers`,
-        { dataToSend },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json"
-          }
-        }
-      );
-  
-      if (response.status === 201) {
-        // Step 2: Submit security questions
-        const answeredQuestions = [
-          { question: formData.securityQuestion1, answer: formData.securityAnswer1 },
-          { question: formData.securityQuestion2, answer: formData.securityAnswer2 },
-          { question: formData.securityQuestion3, answer: formData.securityAnswer3 }
-        ].filter(q => q.question && q.answer.trim());
-  
-        await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/provider-user-questions`, {
+      const registrationResponse = await axios.post(`${baseUrl}/service-providers`, {
+        dataToSend: {
+          name: formData.firstName + " " + formData.lastName,
           email: formData.email,
-          answers: answeredQuestions.map(q => ({
-            question_id: q.question,
-            answer: q.answer.trim()
-          }))
-        });
-  
-        // Step 3: Upload profile picture if available
-        if (formData.image) {
-          const uploadResponse = await axios.post(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL}/photos`,
-            imageFormData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data"
-              }
+          company_phone_number: formData.companyNumber,
+          profile_picture: null, // Will be updated after upload if image exists
+          company_address: formData.companyAddress,
+          password: formData.password,
+          language: formData.preferredLanguages,
+          service_type: formData.serviceType,
+          specialization: formData.serviceSpecialty,
+          work_days_from: formData.weekDaysFrom,
+          work_days_to: formData.weekDaysTo,
+          work_hours_from: formData.workHoursFrom,
+          work_hours_to: formData.workHoursTo,
+          appointment_duration: formData.appointmentDuration + " minutes",
+          company_name: formData.companyName
+        }
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }).catch(error => {
+        // Handle specific error cases
+        if (error.response?.status === 409) {
+          toast.error("Email already registered", {
+            description: "Please use a different email address"
+          });
+        } else if (error.code === 'ERR_NETWORK') {
+          toast.error("Network Error", {
+            description: "Cannot connect to the server. Please check your connection and try again."
+          });
+        } else {
+          toast.error("Registration Failed", {
+            description: error.response?.data?.error || "Something went wrong. Please try again."
+          });
+        }
+        throw error; // Re-throw to be caught by outer catch
+      });
+
+      try {
+        // Step 2: Submit security questions
+        await Promise.all([
+          axios.post(`${baseUrl}/service-provider-questions`, {
+            email: formData.email,
+            question_id: formData.securityQuestion1,
+            answer: formData.securityAnswer1.trim()
+          }, {
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
             }
-          );
-  
-          if (uploadResponse.data.url) {
-            await axios.put(`${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers`, {
+          }).catch(error => {
+            toast.error("Failed to save security question 1", {
+              description: error.response?.data?.error || "Please try again"
+            });
+            throw error;
+          }),
+          axios.post(`${baseUrl}/service-provider-questions`, {
+            email: formData.email,
+            question_id: formData.securityQuestion2,
+            answer: formData.securityAnswer2.trim()
+          }, {
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }).catch(error => {
+            toast.error("Failed to save security question 2", {
+              description: error.response?.data?.error || "Please try again"
+            });
+            throw error;
+          }),
+          axios.post(`${baseUrl}/service-provider-questions`, {
+            email: formData.email,
+            question_id: formData.securityQuestion3,
+            answer: formData.securityAnswer3.trim()
+          }, {
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }).catch(error => {
+            toast.error("Failed to save security question 3", {
+              description: error.response?.data?.error || "Please try again"
+            });
+            throw error;
+          })
+        ]);
+      } catch (securityQuestionsError) {
+        // If security questions fail, delete the created user
+        console.error("Error submitting security questions:", securityQuestionsError);
+        try {
+          await axios.delete(`${baseUrl}/service-providers`, {
+            data: { email: formData.email },
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          toast.error("Failed to save security questions", {
+            description: "Registration has been rolled back. Please try again."
+          });
+        } catch (deleteError) {
+          console.error("Error deleting provider after security questions failed:", deleteError);
+          toast.error("Registration error", {
+            description: "Please contact support to resolve this issue."
+          });
+        }
+        return; // Exit without proceeding to image upload
+      }
+
+      // Step 3: Upload profile picture if exists
+      if (formData.image) {
+        try {
+          const imageFormData = new FormData();
+          imageFormData.append("image", formData.image);
+
+          const uploadResponse = await axios.post(`${baseUrl}/photos`, imageFormData, {
+            withCredentials: true,
+            headers: {
+              "Content-Type": "multipart/form-data"
+            }
+          });
+
+          if (uploadResponse.data?.url) {
+            await axios.put(`${baseUrl}/service-providers`, {
               email: formData.email,
               profile_picture: uploadResponse.data.url
+            }, {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
             });
           }
+        } catch (imageError) {
+          console.error("Error uploading profile picture:", imageError);
+          toast.error("Failed to upload profile picture", {
+            description: "Your account was created, but we couldn't upload your profile picture."
+          });
         }
-  
-        toast.success("Registration Successful!", {
-          description: "Your service provider account has been created successfully. Redirecting to login..."
-        });
+      }
+
+      toast.success("Registration Successful!", {
+        description: "Your service provider account has been created successfully. Redirecting to login..."
+      });
+
+      setTimeout(() => {
         router.push("/auth/login");
+      }, 2000);
+
+    } catch (error) {
+      // Main error handling is done in the individual catch blocks above
+      setIsSubmitting(false);
+      return; // Prevent the final setIsSubmitting(false)
+    }
+
+    setIsSubmitting(false);
+  };
+
+  const getAllQuestions = async () => {
+    try {
+      setIsLoadingQuestions(true);
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      
+      const response = await axios.get(`${baseUrl}/security-questions`);
+
+      if (response.data && Array.isArray(response.data)) {
+        setSecurityQuestions(response.data);
+      } else if (response.data && Array.isArray(response.data.data)) {
+        setSecurityQuestions(response.data.data);
       } else {
-        const error = new Error("Registration Failed") as Error & { details?: string };
-        error.details = response.data.error?.message || "Unexpected error";
-        throw error;
+        throw new Error("Invalid response format from server");
       }
     } catch (error: any) {
-      toast.error(error.message || "Registration Failed", {
-        description: error.details || "Something went wrong. Please try again."
+      console.error("Error fetching security questions:", error);
+      toast.error("Error loading security questions", {
+        description: error.response?.data?.error || error.message || "Please check your connection and try again"
       });
+      // Set default questions for development/testing
+      setSecurityQuestions([
+        { question_id: "1", question: "What was your first pet's name?" },
+        { question_id: "2", question: "What city were you born in?" },
+        { question_id: "3", question: "What is your mother's maiden name?" },
+        { question_id: "4", question: "What was your first school's name?" },
+        { question_id: "5", question: "What is your favorite book?" }
+      ]);
     } finally {
-      setIsSubmitting(false);
+      setIsLoadingQuestions(false);
     }
   };
-  
 
-  // Add useEffect to fetch services
+  // Update the services fetching useEffect
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        setIsLoadingServices(true)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/services`)
-        const data = await response.json()
-        if (data.successful) {
-          setServices(data.data)
-        } else {
-          toast.error("Failed to load services")
-        }
-      } catch (error) {
-        console.error('Error fetching services:', error)
-        toast.error('Failed to load services')
-      } finally {
-        setIsLoadingServices(false)
-      }
-    }
+        setIsLoadingServices(true);
+        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        
+        const response = await axios.get(`${baseUrl}/services`);
 
-    fetchServices()
-  }, [])
+        if (response.data && Array.isArray(response.data)) {
+          setServices(response.data);
+        } else if (response.data && Array.isArray(response.data.data)) {
+          setServices(response.data.data);
+        } else {
+          throw new Error("Invalid data format received from server");
+        }
+      } catch (error: any) {
+        console.error('Error fetching services:', error);
+        toast.error('Failed to load services', {
+          description: error.response?.data?.error || error.message || "Failed to connect to server. Please try again."
+        });
+        // Set default services for development/testing
+        setServices([
+          { service_id: "1", service: "Medical Service" },
+          { service_id: "2", service: "Legal Service" },
+          { service_id: "3", service: "Educational Service" }
+        ]);
+      } finally {
+        setIsLoadingServices(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  // Make sure to call getAllQuestions when component mounts
+  useEffect(() => {
+    getAllQuestions();
+  }, []);
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-8 overflow-x-auto">
@@ -658,7 +907,7 @@ export default function ProviderRegistration() {
   }
 
   const renderPasswordStrengthIndicator = () => {
-    if (!formData.password || !passwordStrength) return null
+    if (!formData.password) return null
 
     const getStrengthColor = () => {
       switch (passwordStrength) {
@@ -702,16 +951,16 @@ export default function ProviderRegistration() {
     return (
       <div className="mt-1">
         <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-          <div className={`h-full ${getStrengthColor()} ${getStrengthWidth()} transition-all duration-300`}></div>
+          <div 
+            className={`h-full ${getStrengthColor()} ${getStrengthWidth()} transition-all duration-300`}
+          />
         </div>
         <div className="flex items-center mt-1 text-xs">
-          <span
-            className={`
+          <span className={`
             ${passwordStrength === "weak" ? "text-red-500" : ""}
             ${passwordStrength === "medium" ? "text-yellow-500" : ""}
             ${passwordStrength === "strong" ? "text-green-500" : ""}
-          `}
-          >
+          `}>
             {getStrengthText()}
           </span>
           {passwordStrength !== "strong" && (
@@ -725,24 +974,27 @@ export default function ProviderRegistration() {
   }
 
   const renderPasswordMatchIndicator = () => {
-    if (!formData.password || !formData.confirmPassword || (errors.confirmPassword && touched.confirmPassword)) {
-      return null
-    }
+    if (!formData.password || !formData.confirmPassword) return null
 
     const passwordsMatch = formData.password === formData.confirmPassword
 
-    if (passwordsMatch) {
-      return (
-        <div className="mt-1">
-          <div className="flex items-center text-xs text-green-500">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            <span>Passwords match</span>
-          </div>
+    return (
+      <div className="mt-1">
+        <div className="flex items-center text-xs">
+          {passwordsMatch ? (
+            <div className="text-green-500 flex items-center">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              <span>Passwords match</span>
+            </div>
+          ) : (
+            <div className="text-red-500 flex items-center">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              <span>Passwords do not match</span>
+            </div>
+          )}
         </div>
-      )
-    }
-
-    return null
+      </div>
+    )
   }
 
   const renderPersonalInfo = () => (
@@ -835,16 +1087,27 @@ export default function ProviderRegistration() {
           <Label htmlFor="password" className="flex items-center">
             Password <span className="text-red-500 ml-1">*</span>
           </Label>
-          <Input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => handleFieldChange("password", e.target.value)}
-            onBlur={() => handleFieldBlur("password")}
-            placeholder="Enter your password (min 8 characters)"
-            className={errors.password && touched.password ? "border-red-500" : ""}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              onBlur={() => handleFieldBlur("password")}
+              placeholder="Enter your password (min 8 characters)"
+              className={errors.password && touched.password ? "border-red-500 pr-10" : "pr-10"}
+              required
+            />
+            {formData.password && (
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            )}
+          </div>
           <ErrorMessage message={touched.password ? errors.password : undefined} />
           {renderPasswordStrengthIndicator()}
         </div>
@@ -852,18 +1115,29 @@ export default function ProviderRegistration() {
           <Label htmlFor="confirmPassword" className="flex items-center">
             Confirm Password <span className="text-red-500 ml-1">*</span>
           </Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={(e) => handleFieldChange("confirmPassword", e.target.value)}
-            onBlur={() => handleFieldBlur("confirmPassword")}
-            placeholder="Confirm your password"
-            className={errors.confirmPassword && touched.confirmPassword ? "border-red-500" : ""}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={formData.confirmPassword}
+              onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+              onBlur={() => handleFieldBlur("confirmPassword")}
+              placeholder="Confirm your password"
+              className={errors.confirmPassword && touched.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+              required
+            />
+            {formData.confirmPassword && (
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            )}
+          </div>
           <ErrorMessage message={touched.confirmPassword ? errors.confirmPassword : undefined} />
-          {renderPasswordMatchIndicator()}
+          {formData.confirmPassword && renderPasswordMatchIndicator()}
         </div>
       </div>
     </div>
@@ -928,7 +1202,7 @@ export default function ProviderRegistration() {
               </SelectTrigger>
               <SelectContent>
                 {services.map((service) => (
-                  <SelectItem key={service.service_id} value={service.service}>
+                  <SelectItem key={service.service_id} value={service.service_id}>
                     {service.service}
                     {service.description && (
                       <span className="ml-2 text-sm text-gray-500">({service.description})</span>
@@ -951,16 +1225,17 @@ export default function ProviderRegistration() {
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="appointmentFee">Appointment Fee ($)</Label>
+        <Label htmlFor="appointmentDuration">Appointment Duration (minutes)</Label>
         <Input
-          id="appointmentFee"
+          id="appointmentDuration"
           type="number"
-          min="0"
-          step="0.01"
-          value={formData.appointmentFee}
-          onChange={(e) => setFormData({ ...formData, appointmentFee: e.target.value })}
-          placeholder="Enter appointment fee"
+          min="15"
+          step="15"
+          value={formData.appointmentDuration}
+          onChange={(e) => setFormData({ ...formData, appointmentDuration: e.target.value })}
+          placeholder="Enter appointment duration in minutes"
         />
+        <p className="text-sm text-gray-500">Minimum duration: 15 minutes</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1141,104 +1416,123 @@ export default function ProviderRegistration() {
       <h2 className="text-2xl font-semibold text-center text-gray-900">Security Questions</h2>
       <p className="text-center text-gray-600">Please select and answer 3 security questions for account recovery.</p>
 
-      <div className="space-y-6">
-        {/* Security Question 1 */}
-        <div className="space-y-1">
-          <Label className="flex items-center">
-            Security Question 1 <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Select
-            value={formData.securityQuestion1}
-            onValueChange={(value) => setFormData({ ...formData, securityQuestion1: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a security question" />
-            </SelectTrigger>
-            <SelectContent>
-              {securityQuestions.map((question, index) => (
-                <SelectItem key={index} value={question}>
-                  {question}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            placeholder="Your answer"
-            value={formData.securityAnswer1}
-            onChange={(e) => handleFieldChange("securityAnswer1", e.target.value)}
-            onBlur={() => handleFieldBlur("securityAnswer1")}
-            className={errors.securityAnswer1 && touched.securityAnswer1 ? "border-red-500" : ""}
-            required
-          />
-          <ErrorMessage message={touched.securityAnswer1 ? errors.securityAnswer1 : undefined} />
+      {isLoadingQuestions && (
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+          <p className="mt-2 text-gray-600">Loading security questions...</p>
         </div>
+      )}
 
-        {/* Security Question 2 */}
-        <div className="space-y-1">
-          <Label className="flex items-center">
-            Security Question 2 <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Select
-            value={formData.securityQuestion2}
-            onValueChange={(value) => setFormData({ ...formData, securityQuestion2: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a security question" />
-            </SelectTrigger>
-            <SelectContent>
-              {securityQuestions
-                .filter((q) => q !== formData.securityQuestion1)
-                .map((question, index) => (
-                  <SelectItem key={index} value={question}>
-                    {question}
+      {!isLoadingQuestions && securityQuestions.length === 0 && (
+        <div className="text-center py-4 text-amber-600">
+          <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+          <p>Unable to load security questions. Please try again.</p>
+          <Button onClick={getAllQuestions} variant="outline" className="mt-2">
+            Retry Loading Questions
+          </Button>
+        </div>
+      )}
+
+      {!isLoadingQuestions && securityQuestions.length > 0 && (
+        <div className="space-y-6">
+          {/* Security Question 1 */}
+          <div className="space-y-1">
+            <Label className="flex items-center">
+              Security Question 1 <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <Select
+              value={formData.securityQuestion1}
+              onValueChange={(value) => setFormData({ ...formData, securityQuestion1: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a security question" />
+              </SelectTrigger>
+              <SelectContent>
+                {securityQuestions.map((question) => (
+                  <SelectItem key={question.question_id} value={question.question_id}>
+                    {question.question}
                   </SelectItem>
                 ))}
-            </SelectContent>
-          </Select>
-          <Input
-            placeholder="Your answer"
-            value={formData.securityAnswer2}
-            onChange={(e) => handleFieldChange("securityAnswer2", e.target.value)}
-            onBlur={() => handleFieldBlur("securityAnswer2")}
-            className={errors.securityAnswer2 && touched.securityAnswer2 ? "border-red-500" : ""}
-            required
-          />
-          <ErrorMessage message={touched.securityAnswer2 ? errors.securityAnswer2 : undefined} />
-        </div>
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Your answer"
+              value={formData.securityAnswer1}
+              onChange={(e) => handleFieldChange("securityAnswer1", e.target.value)}
+              onBlur={() => handleFieldBlur("securityAnswer1")}
+              className={errors.securityAnswer1 && touched.securityAnswer1 ? "border-red-500" : ""}
+              required
+            />
+            <ErrorMessage message={touched.securityAnswer1 ? errors.securityAnswer1 : undefined} />
+          </div>
 
-        {/* Security Question 3 */}
-        <div className="space-y-1">
-          <Label className="flex items-center">
-            Security Question 3 <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Select
-            value={formData.securityQuestion3}
-            onValueChange={(value) => setFormData({ ...formData, securityQuestion3: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a security question" />
-            </SelectTrigger>
-            <SelectContent>
-              {securityQuestions
-                .filter((q) => q !== formData.securityQuestion1 && q !== formData.securityQuestion2)
-                .map((question, index) => (
-                  <SelectItem key={index} value={question}>
-                    {question}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          <Input
-            placeholder="Your answer"
-            value={formData.securityAnswer3}
-            onChange={(e) => handleFieldChange("securityAnswer3", e.target.value)}
-            onBlur={() => handleFieldBlur("securityAnswer3")}
-            className={errors.securityAnswer3 && touched.securityAnswer3 ? "border-red-500" : ""}
-            required
-          />
-          <ErrorMessage message={touched.securityAnswer3 ? errors.securityAnswer3 : undefined} />
+          {/* Security Question 2 */}
+          <div className="space-y-1">
+            <Label className="flex items-center">
+              Security Question 2 <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <Select
+              value={formData.securityQuestion2}
+              onValueChange={(value) => setFormData({ ...formData, securityQuestion2: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a security question" />
+              </SelectTrigger>
+              <SelectContent>
+                {securityQuestions
+                  .filter((q) => q.question_id !== formData.securityQuestion1)
+                  .map((question) => (
+                    <SelectItem key={question.question_id} value={question.question_id}>
+                      {question.question}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Your answer"
+              value={formData.securityAnswer2}
+              onChange={(e) => handleFieldChange("securityAnswer2", e.target.value)}
+              onBlur={() => handleFieldBlur("securityAnswer2")}
+              className={errors.securityAnswer2 && touched.securityAnswer2 ? "border-red-500" : ""}
+              required
+            />
+            <ErrorMessage message={touched.securityAnswer2 ? errors.securityAnswer2 : undefined} />
+          </div>
+
+          {/* Security Question 3 */}
+          <div className="space-y-1">
+            <Label className="flex items-center">
+              Security Question 3 <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <Select
+              value={formData.securityQuestion3}
+              onValueChange={(value) => setFormData({ ...formData, securityQuestion3: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a security question" />
+              </SelectTrigger>
+              <SelectContent>
+                {securityQuestions
+                  .filter((q) => q.question_id !== formData.securityQuestion1 && q.question_id !== formData.securityQuestion2)
+                  .map((question) => (
+                    <SelectItem key={question.question_id} value={question.question_id}>
+                      {question.question}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Your answer"
+              value={formData.securityAnswer3}
+              onChange={(e) => handleFieldChange("securityAnswer3", e.target.value)}
+              onBlur={() => handleFieldBlur("securityAnswer3")}
+              className={errors.securityAnswer3 && touched.securityAnswer3 ? "border-red-500" : ""}
+              required
+            />
+            <ErrorMessage message={touched.securityAnswer3 ? errors.securityAnswer3 : undefined} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 
@@ -1256,32 +1550,6 @@ export default function ProviderRegistration() {
         return renderPersonalInfo()
     }
   }
-
-  const getAllQuestions = async () => {
-    try {
-      setIsLoadingQuestions(true)
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/security-questions/`)
-
-      if (response.data && Array.isArray(response.data)) {
-        setSecurityQuestions(response.data)
-        console.log("Security questions loaded:", response.data)
-      } else {
-        throw new Error("Invalid response format")
-      }
-    } catch (err: any) {
-      console.error("Error fetching security questions:", err)
-      toast.error("Error loading security questions", {
-        description: "Please try again or contact support if the issue persists.",
-      })
-      // Don't set fallback questions here - we'll keep using the empty array
-    } finally {
-      setIsLoadingQuestions(false)
-    }
-  }
-
-  useEffect(() => {
-    getAllQuestions()
-  }, [])
 
   const canProceed = () => {
     switch (currentStep) {

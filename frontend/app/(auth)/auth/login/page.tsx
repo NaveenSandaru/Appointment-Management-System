@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import Link from "next/link"
 import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
+import { Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 
 export default function LoginPage() {
 
@@ -18,6 +20,7 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
 
   const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
@@ -41,13 +44,17 @@ export default function LoginPage() {
       if (response.data.successful && response.data.user.role == "client") {
         setUser(response.data.user);
         setAccessToken(response.data.accessToken);
-        window.alert("Logged in as a client");
+        toast.success("Login Successful", {
+          description: "Logged in as a client"
+        });
         router.push("/");
       }
       if (response.data.successful && response.data.user.role == "sp") {
         setUser(response.data.user);
         setAccessToken(response.data.accessToken);
-        window.alert("Logged in as a service provider");
+        toast.success("Login Successful", {
+          description: "Logged in as a service provider"
+        });
         router.push("/sp");
       }
       else {
@@ -57,7 +64,9 @@ export default function LoginPage() {
     }
     catch (error: any) {
       console.log(error);
-      window.Error(error.message);
+      toast.error("Login Failed", {
+        description: error.message || "Invalid credentials"
+      });
     }
     finally{
       setIsLoading(false);
@@ -83,7 +92,25 @@ export default function LoginPage() {
             <Label htmlFor="password" className="text-sm font-medium text-gray-700">
               Password
             </Label>
-            <Input id="password" type="password" placeholder="Enter your password" className="w-full" value={password} onChange={(e) => { setPassword(e.target.value) }} />
+            <div className="relative">
+              <Input 
+                id="password" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Enter your password" 
+                className="w-full pr-10" 
+                value={password} 
+                onChange={(e) => { setPassword(e.target.value) }} 
+              />
+              {password && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between">

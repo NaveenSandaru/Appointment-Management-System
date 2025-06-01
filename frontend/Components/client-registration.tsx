@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { toast } from "sonner"
-import { Upload, User, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft } from "lucide-react"
+import { Upload, User, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -84,6 +84,9 @@ export default function ClientRegistration() {
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong" | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isStepValid, setIsStepValid] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [emailExists, setEmailExists] = useState(false)
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -213,25 +216,38 @@ export default function ClientRegistration() {
     return fieldErrors
   }
 
-  // Add this new function to check if email exists with debounce
+  // Update checkEmailExists function
   const checkEmailExists = async (email: string) => {
     if (!email || !isValidEmail(email)) return;
     
     try {
-      const response = await axios.get(`http://localhost:5000/clients/client`, {
-        data: { email }
+      // Try to create a client to check if email exists
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/clients`, {
+        datatosendtoclient: {
+          email: email,
+          name: "temp",
+          phone_number: "temp",
+          password: "temp"
+        }
       });
-      if (response.data) {
-        setErrors(prev => ({
-          ...prev,
-          email: "This email is already registered"
-        }));
+      
+      // If we get here, email doesn't exist
+      setErrors(prev => ({ ...prev, email: undefined }));
+      setEmailExists(false);
+      return false;
+    } catch (error: any) {
+      // If we get a 409, it means the email exists
+      if (error.response?.status === 409) {
+        setErrors(prev => ({ ...prev, email: "This email is already registered" }));
+        setEmailExists(true);
+        toast.error("Email already registered", {
+          description: "Please use a different email address"
+        });
+        return true;
       }
-    } catch (error:any) {
-      // If we get a 404, it means the email doesn't exist (which is what we want)
-      if (error.response?.status !== 404) {
-        console.error("Error checking email:", error);
-      }
+      // For other errors, we'll let validation pass
+      setEmailExists(false);
+      return false;
     }
   };
 
@@ -844,16 +860,27 @@ export default function ClientRegistration() {
           <Label htmlFor="password" className="flex items-center">
             Password <span className="text-red-500 ml-1">*</span>
           </Label>
-          <Input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => handleFieldChange("password", e.target.value)}
-            onBlur={() => handleFieldBlur("password")}
-            placeholder="Enter your password (min 8 characters)"
-            className={errors.password && touched.password ? "border-red-500" : ""}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={(e) => handleFieldChange("password", e.target.value)}
+              onBlur={() => handleFieldBlur("password")}
+              placeholder="Enter your password (min 8 characters)"
+              className={errors.password && touched.password ? "border-red-500 pr-10" : "pr-10"}
+              required
+            />
+            {formData.password && (
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            )}
+          </div>
           <ErrorMessage message={touched.password ? errors.password : undefined} />
           {renderPasswordStrengthIndicator()}
         </div>
@@ -861,16 +888,27 @@ export default function ClientRegistration() {
           <Label htmlFor="confirmPassword" className="flex items-center">
             Confirm Password <span className="text-red-500 ml-1">*</span>
           </Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={(e) => handleFieldChange("confirmPassword", e.target.value)}
-            onBlur={() => handleFieldBlur("confirmPassword")}
-            placeholder="Confirm your password"
-            className={errors.confirmPassword && touched.confirmPassword ? "border-red-500" : ""}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={formData.confirmPassword}
+              onChange={(e) => handleFieldChange("confirmPassword", e.target.value)}
+              onBlur={() => handleFieldBlur("confirmPassword")}
+              placeholder="Confirm your password"
+              className={errors.confirmPassword && touched.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+              required
+            />
+            {formData.confirmPassword && (
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            )}
+          </div>
           <ErrorMessage message={touched.confirmPassword ? errors.confirmPassword : undefined} />
           {renderPasswordMatchIndicator()}
         </div>
@@ -1145,6 +1183,39 @@ export default function ClientRegistration() {
     getAllQuestions()
   }, [])
 
+  // Update the canProceed function to check for emailExists
+  const canProceed = () => {
+    if (emailExists) return false;
+    
+    switch (currentStep) {
+      case 1:
+        return (
+          formData.firstName.trim() &&
+          formData.lastName.trim() &&
+          formData.email.trim() &&
+          isValidEmail(formData.email) &&
+          formData.password.trim() &&
+          formData.confirmPassword.trim() &&
+          formData.password === formData.confirmPassword &&
+          formData.password.length >= 8 &&
+          !emailExists // Add this condition
+        )
+      case 2:
+        return isRecaptchaVerified && isEmailVerified
+      case 3:
+        // Require at least one security question to be answered
+        const hasAnsweredQuestion = [
+          formData.securityQuestion1 && formData.securityAnswer1.trim(),
+          formData.securityQuestion2 && formData.securityAnswer2.trim(),
+          formData.securityQuestion3 && formData.securityAnswer3.trim()
+        ].some(Boolean)
+
+        return hasAnsweredQuestion
+      default:
+        return false
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-lg">
@@ -1170,13 +1241,13 @@ export default function ClientRegistration() {
             )}
             <div className="ml-auto">
               {currentStep < 3 ? (
-                <Button onClick={handleNext} disabled={!isStepValid} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={handleNext} disabled={!canProceed()} className="bg-emerald-600 hover:bg-emerald-700">
                   Continue
                 </Button>
               ) : (
                 <Button
                   onClick={handleRegistrationComplete}
-                  disabled={!isStepValid || isSubmitting}
+                  disabled={!canProceed() || isSubmitting}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   {isSubmitting ? (
