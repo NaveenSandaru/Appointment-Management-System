@@ -30,8 +30,8 @@ router.get('/', /*authenticateToken*/ async (req, res) => {
 });
 
 // Get a service provider by email
-router.get('/sprovider', /*authenticateToken*/ async (req, res) => {
-  const { email } = req.body;
+router.get('/sprovider/:email', /*authenticateToken*/ async (req, res) => {
+  const { email } = req.params;
   try {
     const provider = await prisma.service_providers.findUnique({ where: { email } });
     if (!provider) return res.status(404).json({ error: 'Service provider not found' });

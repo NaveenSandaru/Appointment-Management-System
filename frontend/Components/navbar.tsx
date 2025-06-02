@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/hooks/use-auth"
 import axios from "axios"
-import { headers } from "next/headers"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -75,7 +74,7 @@ export function Navbar() {
 
   useEffect(()=>{
     getUserPic();
-  },[]);
+  },[isLoggedIn]);
 
   return (
     <header className="w-full border-b border-gray-100">
@@ -220,7 +219,11 @@ export function Navbar() {
                   <Button variant="ghost" className="flex items-center space-x-2 h-auto p-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage
-                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${profilePath}`}
+                        src={
+                          profilePath?.startsWith("/uploads")
+                            ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${profilePath}`
+                            : profilePath
+                        }                        
                         alt={getUserName()}
                       />
                       <AvatarFallback className="text-xs">{getUserInitials(getUserName())}</AvatarFallback>

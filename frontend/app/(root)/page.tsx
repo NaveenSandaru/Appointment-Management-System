@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { use, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ServiceCard } from '@/Components/serviceCard'
@@ -15,7 +15,9 @@ export default function Home() {
   const { isLoggedIn, user } = useContext(AuthContext);
 
   const [retrievedServices, setRetrievedServices] = useState<Service[] | null>(null);
+  const [retrievedAppointments, setRetrievedAppointments] = useState<Appointment[] | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
 
 
   const getFeaturedServices = async () => {
@@ -37,6 +39,89 @@ export default function Home() {
     }
     finally {
       setIsLoadingServices(false);
+    }
+  }
+
+  const getAppointments = async () => {
+    try {
+      setIsLoadingAppointments(true);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/client/${user.email}`
+      );
+
+      const enrichedAppointments = await Promise.all(
+        response.data.map(async (appointment: Appointment) => {
+          let providerName = '';
+          let providerAvatar = '';
+          let serviceName = '';
+
+          try {
+            const providerRes = await axios.get(
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${appointment.service_provider_email}`
+            );
+            const provider = providerRes.data;
+            providerName = provider.name;
+            providerAvatar = provider.profile_picture;
+
+            const serviceRes = await axios.get(
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/service/${provider.service_type}`
+            );
+            serviceName = serviceRes.data.service;
+          } catch (err) {
+            console.error("Failed to enrich appointment", err);
+          }
+
+          return {
+            ...appointment,
+            providerName,
+            providerAvatar,
+            serviceName,
+          };
+        })
+      );
+
+      setRetrievedAppointments(enrichedAppointments);
+    }
+    catch (error: any) {
+      window.alert(error.message);
+    }
+    finally {
+      setIsLoadingAppointments(false);
+    }
+  };
+
+
+  const getProvider = async (provider_email: string) => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${provider_email}`
+      );
+      if (response.data) {
+        return response.data
+      }
+    }
+    catch {
+
+    }
+    finally {
+
+    }
+  }
+
+  const getService = async (service_id: string) => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/service/${service_id}`
+      )
+      if (response.data) {
+        return response.data;
+      }
+    }
+    catch (error: any) {
+
+    }
+    finally {
+
     }
   }
 
@@ -86,18 +171,30 @@ export default function Home() {
   ]
 
   useEffect(() => {
-    getFeaturedServices();
-  }, []);
-
-  useEffect(() => {
-    console.log(isLoggedIn);
-  }, [isLoggedIn]);
+    if (user) {
+      getFeaturedServices();
+      getAppointments();
+    }
+  }, [user]);
 
   type Service = {
     service_id: string;
     service: string;
     description: string;
     picture: string
+  };
+
+  type Appointment = {
+    appointment_id: string;
+    client_email: string;
+    service_provider_email: string;
+    date: string;
+    time_from: string;
+    time_to: string;
+    note: string;
+    providerName: string;
+    providerAvatar: string;
+    serviceName: string
   };
 
   return (
@@ -108,9 +205,15 @@ export default function Home() {
       {/* Header/Hero Section */}
       <div className="bg-gradient-to-r from-[#2563EB]/10 to-[#0891B2]/20 px-6 py-8 mx-6 rounded-3xl mb-8 md:max-w-7xl md:mx-auto">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Welcome back, &lt;Username&gt;!
-          </h1>
+          {isLoggedIn ?
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Welcome back, {user.name.split(" ")[0]}
+            </h1>
+            :
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Welcome!
+            </h1>
+          }
           <p className="text-gray-600 mb-6">
             Find and book the services you need from our trusted providers.
           </p>
@@ -166,20 +269,36 @@ export default function Home() {
           </div>
           <Card>
             <CardContent className="p-0">
-              {appointments.map((appointment) => (
-                <BookingCard
-                  key={appointment.appointmentId}
-                  appointmentId={appointment.appointmentId}
-                  serviceProviderEmail={appointment.serviceProviderEmail}
-                  date={appointment.date}
-                  timeFrom={appointment.timeFrom}
-                  timeTo={appointment.timeTo}
-                  note={appointment.note}
-                  providerName={appointment.providerName}
-                  providerAvatar={appointment.providerAvatar}
-                  serviceName={appointment.serviceName}
-                />
-              ))}
+              {retrievedAppointments && retrievedAppointments.length > 0 ? (
+                <Card>
+                  <CardContent className="p-0">
+                    {isLoadingAppointments ? (
+                      <p className="text-gray-500">Loading bookings...</p>
+                    ) : retrievedAppointments && retrievedAppointments.length > 0 ? (
+                      retrievedAppointments.map((appointment) => (
+                        <BookingCard
+                          key={appointment.appointment_id}
+                          appointmentId={appointment.appointment_id}
+                          serviceProviderEmail={appointment.service_provider_email}
+                          date={appointment.date}
+                          timeFrom={appointment.time_from}
+                          timeTo={appointment.time_to}
+                          note={appointment.note}
+                          providerName={appointment.providerName || "Unknown"}
+                          providerAvatar={appointment.providerAvatar || ""}
+                          serviceName={appointment.serviceName || "Unknown"}
+                        />
+                      ))
+                    ) : (
+                      <p className="text-gray-500 p-4 ">No recent bookings.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+              ) : (
+                <p className="text-gray-500">No recent bookings.</p>
+              )}
+
             </CardContent>
           </Card>
         </div>

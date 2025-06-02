@@ -24,7 +24,9 @@ router.post('/login', async (req, res) => {
             }
             role = "sp";
         }
-
+        if(!user.password){
+            return res.json({ successful: false, message: 'Invalid password' });
+        }
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
             return res.json({ successful: false, message: 'Invalid password' });
@@ -81,6 +83,9 @@ router.post('/google_login', async (req, res) => {
 
         // Check if user exists
         let user = await prisma.clients.findUnique({ where: { email } });
+        if(user.password){
+            return res.status(500).json({ message: 'Account Already Exists. Login with credentials' });
+        }
 
         if (!user) {
             // Create new user

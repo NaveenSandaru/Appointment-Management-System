@@ -41,7 +41,7 @@ interface ProviderFormData {
   serviceType: string
   serviceSpecialty: string
   appointmentDuration: string
-  appointmentFee:  string
+  appointmentFee: string
   workHoursFrom: string
   workHoursTo: string
   weekDaysFrom: string
@@ -284,7 +284,7 @@ export default function ProviderRegistration() {
   const handlePasswordChange = (value: string) => {
     setFormData((prev) => ({ ...prev, password: value }))
     setPasswordStrength(checkPasswordStrength(value))
-    
+
     if (formData.confirmPassword) {
       if (value !== formData.confirmPassword) {
         setErrors((prev) => ({ ...prev, confirmPassword: "Passwords do not match" }))
@@ -301,7 +301,7 @@ export default function ProviderRegistration() {
 
   const handleConfirmPasswordChange = (value: string) => {
     setFormData((prev) => ({ ...prev, confirmPassword: value }))
-    
+
     if (value !== formData.password) {
       setErrors((prev) => ({ ...prev, confirmPassword: "Passwords do not match" }))
     } else {
@@ -350,7 +350,7 @@ export default function ProviderRegistration() {
         if (isValid && formData.email) {
           try {
             const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            
+
             // Try to create the service provider to check if email exists
             const checkResponse = await axios.post(`${baseUrl}/service-providers`, {
               dataToSend: {
@@ -376,7 +376,7 @@ export default function ProviderRegistration() {
 
             // If we get here, it means the email doesn't exist (unlikely as we're sending incomplete data)
             console.log("Unexpected success:", checkResponse);
-            
+
           } catch (error: any) {
             // If we get a 409, it means the email exists
             if (error.response?.status === 409) {
@@ -634,7 +634,7 @@ export default function ProviderRegistration() {
 
     setIsSubmitting(true);
     const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-    
+
     try {
       // Step 1: Register the service provider
       const registrationResponse = await axios.post(`${baseUrl}/service-providers`, {
@@ -642,7 +642,7 @@ export default function ProviderRegistration() {
           name: formData.firstName + " " + formData.lastName,
           email: formData.email,
           company_phone_number: formData.companyNumber,
-          profile_picture: null, // Will be updated after upload if image exists
+          profile_picture: null,
           company_address: formData.companyAddress,
           password: formData.password,
           language: formData.preferredLanguages,
@@ -654,7 +654,7 @@ export default function ProviderRegistration() {
           work_hours_to: formData.workHoursTo,
           appointment_duration: formData.appointmentDuration + " minutes",
           company_name: formData.companyName,
-          appointment_fee: parseInt(formData.appointmentFee)       
+          appointment_fee: 0
         }
       }, {
         withCredentials: true,
@@ -804,7 +804,7 @@ export default function ProviderRegistration() {
     try {
       setIsLoadingQuestions(true);
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      
+
       const response = await axios.get(`${baseUrl}/security-questions`);
 
       if (response.data && Array.isArray(response.data)) {
@@ -838,7 +838,7 @@ export default function ProviderRegistration() {
       try {
         setIsLoadingServices(true);
         const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-        
+
         const response = await axios.get(`${baseUrl}/services`);
 
         if (response.data && Array.isArray(response.data)) {
@@ -878,8 +878,8 @@ export default function ProviderRegistration() {
         <div key={step.number} className="flex items-center">
           <div
             className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${currentStep >= step.number
-                ? "bg-emerald-600 border-emerald-600 text-white"
-                : "border-gray-300 text-gray-400"
+              ? "bg-emerald-600 border-emerald-600 text-white"
+              : "border-gray-300 text-gray-400"
               }`}
           >
             {currentStep > step.number ? (
@@ -965,7 +965,7 @@ export default function ProviderRegistration() {
     return (
       <div className="mt-1">
         <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-          <div 
+          <div
             className={`h-full ${getStrengthColor()} ${getStrengthWidth()} transition-all duration-300`}
           />
         </div>
@@ -1253,19 +1253,19 @@ export default function ProviderRegistration() {
       </div>
 
       <div className="space-y-1">
-  <Label htmlFor="appointmentFee">Appointment Fee (USD)</Label>
-  <Input
-    id="appointmentFee"
-    type="number"
-    min="0"
-    value={formData.appointmentFee}
-    onChange={(e) =>
-      setFormData({ ...formData, appointmentFee: e.target.value })
-    }
-    placeholder="Enter fee in USD"
-    required
-  />
-</div>
+        <Label htmlFor="appointmentFee">Appointment Fee (USD)</Label>
+        <Input
+          id="appointmentFee"
+          type="number"
+          min="0"
+          value={formData.appointmentFee}
+          onChange={(e) =>
+            setFormData({ ...formData, appointmentFee: e.target.value })
+          }
+          placeholder="Enter fee in USD"
+          required
+        />
+      </div>
 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1378,9 +1378,9 @@ export default function ProviderRegistration() {
 
           {!otpSent ? (
             <>
-              <LoadingButton 
-                onClick={sendOtpToEmail} 
-                disabled={!isRecaptchaVerified || !formData.email} 
+              <LoadingButton
+                onClick={sendOtpToEmail}
+                disabled={!isRecaptchaVerified || !formData.email}
                 className="w-full"
                 isLoading={isSendingOtp}
                 loadingText="Sending verification code..."
@@ -1432,9 +1432,9 @@ export default function ProviderRegistration() {
                 </div>
 
                 {!isEmailVerified ? (
-                  <LoadingButton 
-                    onClick={verifyOtp} 
-                    disabled={otp.some((digit) => !digit)} 
+                  <LoadingButton
+                    onClick={verifyOtp}
+                    disabled={otp.some((digit) => !digit)}
                     className="w-full"
                     isLoading={isVerifyingOtp}
                     loadingText="Verifying..."

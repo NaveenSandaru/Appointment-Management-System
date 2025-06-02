@@ -14,13 +14,13 @@ interface ServiceCardProps {
   description?: string
 }
 
-export function ServiceCard({ 
-  serviceId, 
-  service, 
-  image, 
-  rating = 4.8, 
-  reviews = 50, 
-  description 
+export function ServiceCard({
+  serviceId,
+  service,
+  image,
+  rating = 4.8,
+  reviews = 50,
+  description
 }: ServiceCardProps) {
   const router = useRouter();
 
@@ -64,14 +64,16 @@ export function ServiceCard({
   return (
     <Card className="h-[350px] overflow-hidden flex flex-col p-0 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
       <div className="overflow-hidden">
-        <img 
-          src={image || getDefaultImage(service)} 
+        <img
+          src={image || getDefaultImage(service)}
           alt={service}
           className="w-full h-[160px] object-cover rounded-t-lg transition-transform duration-300 hover:scale-105"
         />
       </div>
       <CardContent className="p-3 flex flex-col flex-grow">
-        <h3 className="font-semibold text-base md:mb-1 line-clamp-1">{service}</h3>
+        <h3 className="font-semibold text-base md:mb-1 line-clamp-1">
+          {service?.charAt(0).toUpperCase() + service?.slice(1)}
+        </h3>
         <p className="text-xs md:text-sm text-gray-600 mb-2 flex-grow line-clamp-2">
           {description || getDefaultDescription(service)}
         </p>
@@ -79,7 +81,7 @@ export function ServiceCard({
           onClick={handleBookNow}
           className="w-full bg-emerald-600 hover:bg-emerald-500 text-white mt-auto h-9 text-sm transition-all duration-300 hover:-translate-y-0.5"
         >
-          Available Now
+          Browse Service Providers
         </Button>
       </CardContent>
     </Card>
