@@ -4,6 +4,7 @@ import React, { useState, useEffect, use } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Filter, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Simulated DB fetch (replace with real DB later)
 async function fetchServiceProviders(serviceType: string) {
@@ -12,7 +13,7 @@ async function fetchServiceProviders(serviceType: string) {
       email: "john@dental.com",
       name: "John Doe",
       company_name: "Athurugiriya Dental Clinic",
-      service_type: "Dental Care",
+      service_type: "dentist",
       specialty: "General Dentistry",
       company_address: "No 101, Wellwatta Rd, Kotkawell",
       profile_picture: "https://randomuser.me/api/portraits/men/32.jpg",
@@ -26,7 +27,7 @@ async function fetchServiceProviders(serviceType: string) {
       email: "jane@dental.com",
       name: "Jane Doe",
       company_name: "Maharagama Dental Clinic",
-      service_type: "Dental Care",
+      service_type: "dentist",
       specialty: "Cosmetic Dentistry",
       company_address: "No 35, Colombo Rd, Maharagama",
       profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
@@ -40,7 +41,7 @@ async function fetchServiceProviders(serviceType: string) {
       email: "emma@dental.com",
       name: "Emma Wilson",
       company_name: "Malabe Dental Clinic",
-      service_type: "Dental Care",
+      service_type: "dentist",
       specialty: "Orthodontics",
       company_address: "No 205, Malabe Rd, Malabe",
       profile_picture: "https://randomuser.me/api/portraits/women/65.jpg",
@@ -55,7 +56,7 @@ async function fetchServiceProviders(serviceType: string) {
       email: "jane2@dental.com",
       name: "Jane Doe",
       company_name: "Maharagama Dental Clinic",
-      service_type: "Dental Care",
+      service_type: "dentist",
       specialty: "Pediatric Dentistry",
       company_address: "No 35, Colombo Rd, Maharagama",
       profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
@@ -123,6 +124,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
   const [filteredProviders, setFilteredProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
   
   // Unwrap the params Promise
   const unwrappedParams = use(params);
@@ -160,9 +162,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
   }, [searchQuery, providers]);
 
   const handleBookAppointment = (provider: any) => {
-    // This would navigate to the booking page in a real app
-    console.log('Navigate to booking page for:', provider);
-    alert(`Proceeding to book appointment with ${provider.name}`);
+    router.push(`/book/${encodeURIComponent(provider.email)}`);
   };
 
   if (loading) {
