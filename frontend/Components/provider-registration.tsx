@@ -627,10 +627,7 @@ export default function ProviderRegistration() {
     }
   }
 
-  const fee = parseInt(formData.appointmentFee, 10);
-if (isNaN(fee)) {
-  throw new Error("Appointment fee must be a valid number.");
-}
+
 
   const handleRegistrationComplete = async () => {
     if (!validateStep()) return;
