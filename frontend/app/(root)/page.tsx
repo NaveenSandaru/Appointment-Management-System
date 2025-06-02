@@ -90,91 +90,11 @@ export default function Home() {
     }
   };
 
-
-  const getProvider = async (provider_email: string) => {
-    try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${provider_email}`
-      );
-      if (response.data) {
-        return response.data
-      }
-    }
-    catch {
-
-    }
-    finally {
-
-    }
-  }
-
-  const getService = async (service_id: string) => {
-    try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/service/${service_id}`
-      )
-      if (response.data) {
-        return response.data;
-      }
-    }
-    catch (error: any) {
-
-    }
-    finally {
-
-    }
-  }
-
-  // Sample appointments data matching the appointments table structure
-  // In a real app, you'd also join with service_providers and services tables
-  // to get provider names and service names
-  const appointments = [
-    {
-      appointmentId: "APPT001",
-      clientEmail: "user@example.com",
-      serviceProviderEmail: "emma.wilson@dentalcare.com",
-      date: "2025-05-28",
-      timeFrom: "14:00",
-      timeTo: "15:00",
-      note: "Regular checkup and cleaning",
-      // These would come from joined tables in real implementation
-      providerName: "Dr. Emma Wilson",
-      providerAvatar: "https://images.unsplash.com/photo-1494790108755-2616b2e12d59?w=100&h=100&fit=crop&crop=face",
-      serviceName: "Dental Care"
-    },
-    {
-      appointmentId: "APPT002",
-      clientEmail: "user@example.com",
-      serviceProviderEmail: "nihal.kumara@legalaid.com",
-      date: "2025-05-30",
-      timeFrom: "10:00",
-      timeTo: "11:30",
-      note: "Contract review consultation",
-      // These would come from joined tables in real implementation
-      providerName: "Nihal Kumara",
-      providerAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-      serviceName: "Legal Consultation"
-    },
-    {
-      appointmentId: "APPT003",
-      clientEmail: "user@example.com",
-      serviceProviderEmail: "sofia.johnson@beautyspa.com",
-      date: "2025-06-01",
-      timeFrom: "09:00",
-      timeTo: "11:00",
-      note: "Full spa package treatment",
-      // These would come from joined tables in real implementation
-      providerName: "Sofia Johnson",
-      providerAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-      serviceName: "Beauty & Spa Services"
-    }
-  ]
-
   useEffect(() => {
     if (user) {
-      getFeaturedServices();
       getAppointments();
     }
+    getFeaturedServices();
   }, [user]);
 
   type Service = {

@@ -44,16 +44,21 @@ export function Navbar() {
   }
 
   const getUserPic = async () => {
-    const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user.email}`,
-      {
-        withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-    setProfilePath(response.data.profile_picture);
+    try{
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user.email}`,
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setProfilePath(response.data.profile_picture);
+    }
+    catch(error: any){
+      console.log(error.message)
+    }
   }
 
   const getUserInitials = (name: string) => {

@@ -83,12 +83,15 @@ router.post('/google_login', async (req, res) => {
 
         // Check if user exists
         let user = await prisma.clients.findUnique({ where: { email } });
-        if(user.password){
+        if(user && user.password){
             return res.status(500).json({ message: 'Account Already Exists. Login with credentials' });
         }
 
         if (!user) {
-            // Create new user
+            let user = await prisma.service_providers.findUnique({ where: { email } });
+            if(user){
+                return res.status(500).json({ message: 'Account Already Exists as a Service Provider' });
+            }
             user = await prisma.clients.create({
                 data: {
                     email,
