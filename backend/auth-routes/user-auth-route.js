@@ -51,7 +51,7 @@ router.post('/login', async (req, res) => {
             httpOnly: true,
             sameSite: 'None',
             secure: true,
-            maxAge: checked ? 14 * 24 * 60 * 60 * 1000 : undefined, // 14 days or -1
+            maxAge: checked ? 14 * 24 * 60 * 60 * 1000 : undefined,
           });
           
         console.log("Log in successfull as a" + role); 
@@ -104,12 +104,14 @@ router.post('/google_login', async (req, res) => {
 
         // Generate tokens
         const tokens = jwTokens(user.email, user.name);
+        console.log("Google log in success");
 
         // Set refresh token in cookie (session cookie)
         res.cookie('refreshToken', tokens.refreshToken, {
             httpOnly: true,
             sameSite: 'None',
-            secure: true
+            secure: true,
+            maxAge: undefined
         });
 
         return res.json({
