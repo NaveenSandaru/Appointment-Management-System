@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ServiceCard } from '@/Components/serviceCard'
@@ -8,17 +8,47 @@ import { BookingCard } from '@/Components/BookingCard'
 import { AuthContext } from '@/context/auth-context';
 import { useContext, useEffect } from 'react';
 import Link from 'next/link'
+import axios from 'axios'
 
 export default function Home() {
-    const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
-  console.log(isLoggedIn, user);
+
+  const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
+
+  const [retrievedServices, setRetrievedServices] = useState<Service[] | null>(null);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+
+
+  const getFeaturedServices = async () => {
+    try {
+      setIsLoadingServices(true);
+      console.log("Getting Services");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`
+      );
+
+      if (response.data) {
+        setRetrievedServices(response.data.data);
+      }
+      else {
+        throw new Error("No services found");
+      }
+    }
+    catch (error: any) {
+      window.alert(error.message);
+    }
+    finally {
+      setIsLoadingServices(false);
+      console.log("Finished Getting Services");
+    }
+  }
+
   const services = [
     {
       serviceId: "SERV001",
       service: "Dental Care"
     },
     {
-      serviceId: "SERV002", 
+      serviceId: "SERV002",
       service: "Legal Consultation"
     },
     {
@@ -54,7 +84,7 @@ export default function Home() {
     },
     {
       appointmentId: "APPT002",
-      clientEmail: "user@example.com", 
+      clientEmail: "user@example.com",
       serviceProviderEmail: "nihal.kumara@legalaid.com",
       date: "2025-05-30",
       timeFrom: "10:00",
@@ -68,7 +98,7 @@ export default function Home() {
     {
       appointmentId: "APPT003",
       clientEmail: "user@example.com",
-      serviceProviderEmail: "sofia.johnson@beautyspa.com", 
+      serviceProviderEmail: "sofia.johnson@beautyspa.com",
       date: "2025-06-01",
       timeFrom: "09:00",
       timeTo: "11:00",
@@ -80,11 +110,24 @@ export default function Home() {
     }
   ]
 
+  useEffect(() => {
+    getFeaturedServices();
+  }, []);
+
+  useEffect(() => {
+    console.log("Services: ", retrievedServices);
+  }, [retrievedServices]);
+
+  type Service = {
+    service_id: string;
+    service: string;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Gap between navbar and hero section */}
       <div className="h-6 bg-gray-50"></div>
-      
+
       {/* Header/Hero Section */}
       <div className="bg-gradient-to-r from-[#2563EB]/10 to-[#0891B2]/20 px-6 py-8 mx-6 rounded-3xl mb-8 md:max-w-7xl md:mx-auto">
         <div className="max-w-6xl mx-auto">
@@ -118,14 +161,15 @@ export default function Home() {
             <Link href="/services"><button className="text-[#6B7280] hover:text-[#6B7280]/80 text-sm">View all</button></Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.slice(0, 3).map((service) => (
-              <div key={service.serviceId} className="flex">
-                <ServiceCard 
-                  serviceId={service.serviceId}
-                  service={service.service}
-                />
-              </div>
-            ))}
+            {retrievedServices?.length > 0 &&
+              retrievedServices.slice(0, 3).map((retrievedService: Service) => (
+                <div key={retrievedService.service_id} className="flex">
+                  <ServiceCard
+                    serviceId={retrievedService.service_id}
+                    service={retrievedService.service}
+                  />
+                </div>
+              ))}
           </div>
         </div>
 
@@ -138,8 +182,8 @@ export default function Home() {
           <Card>
             <CardContent className="p-0">
               {appointments.map((appointment) => (
-                <BookingCard 
-                  key={appointment.appointmentId} 
+                <BookingCard
+                  key={appointment.appointmentId}
                   appointmentId={appointment.appointmentId}
                   serviceProviderEmail={appointment.serviceProviderEmail}
                   date={appointment.date}
