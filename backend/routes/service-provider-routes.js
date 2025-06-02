@@ -47,13 +47,13 @@ router.post('/', async (req, res) => {
     email, name, company_phone_number, profile_picture,
     company_address, password, language, service_type,
     specialization, work_days_from, work_days_to,
-    work_hours_from, work_hours_to, appointment_duration, company_name
+    work_hours_from, work_hours_to, appointment_duration, company_name, appointment_fee
   } = req.body.dataToSend;
 
   if (
     !email || !name || !company_phone_number || !password || !language || !service_type ||
     !work_days_from || !work_days_to || !work_hours_from || !work_hours_to ||
-    !appointment_duration || !company_name
+    !appointment_duration || !company_name || appointment_fee
   ) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -89,6 +89,7 @@ router.post('/', async (req, res) => {
         work_hours_from: convertToISOTime(work_hours_from),
         work_hours_to: convertToISOTime(work_hours_to),
         appointment_duration,
+        appointment_fee,
         company_name
       }
     });
