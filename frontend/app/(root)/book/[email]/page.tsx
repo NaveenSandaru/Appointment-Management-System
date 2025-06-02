@@ -119,7 +119,7 @@ export default function BookingPage() {
                   <div className="pt-3 border-t border-gray-200">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 lg:gap-3">
                       <div>
-                        <div className="font-medium text-gray-700 mb-1">Location:</div>
+                        <div className="font-medium text-gray-700 mb-1">Location: </div>
                         <div className="text-xs sm:text-sm leading-relaxed text-gray-600">
                           {provider.company_address}
                         </div>
