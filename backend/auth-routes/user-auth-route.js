@@ -144,7 +144,7 @@ router.get('/refresh_token', (req, res) => {
                 expiresIn: '15m',
             });
 
-            res.json({ accessToken, email, role });
+            res.json({ accessToken, user: {email: user.email, name: user.name} });
         });
     } catch (err) {
         console.error(err.message);
@@ -155,7 +155,12 @@ router.get('/refresh_token', (req, res) => {
 // DELETE /auth/refresh_token
 router.delete('/delete_token', (req, res) => {
     try {
-        res.clearCookie('refreshToken');
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true,
+          });
+          
         return res.status(200).json({ message: 'Refresh token deleted' });
     } catch (error) {
         res.status(401).json({ error: error.message });

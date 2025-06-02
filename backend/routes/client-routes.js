@@ -23,8 +23,8 @@ router.get('/', /*authenticateToken*/ async (req, res) => {
 });
 
 // Get client by email
-router.get('/client', /*authenticateToken*/ async (req, res) => {
-  const { email } = req.body;
+router.get('/client/:email', /*authenticateToken*/ async (req, res) => {
+  const { email } = req.params;
   try {
     const client = await prisma.clients.findUnique({ where: { email } });
     if (!client) return res.status(404).json({ error: 'Client not found' });

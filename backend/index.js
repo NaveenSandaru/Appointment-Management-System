@@ -29,6 +29,7 @@ const corsOptions = {credentials: true, origin: 'http://localhost:3000'};
 app.use(cors(corsOptions));
 app.use(json());
 app.use(cookieParser());
+app.use('/uploads', express.static('uploads'));
 
 //configure routers to redirect to endpoints
 app.use('/auth', authRouter);

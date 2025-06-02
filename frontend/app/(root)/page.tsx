@@ -12,7 +12,7 @@ import axios from 'axios'
 
 export default function Home() {
 
-  const { isLoggedIn, user, setUser, setAccessToken } = useContext(AuthContext);
+  const { isLoggedIn, user } = useContext(AuthContext);
 
   const [retrievedServices, setRetrievedServices] = useState<Service[] | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
@@ -21,7 +21,6 @@ export default function Home() {
   const getFeaturedServices = async () => {
     try {
       setIsLoadingServices(true);
-      console.log("Getting Services");
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`
       );
@@ -38,32 +37,8 @@ export default function Home() {
     }
     finally {
       setIsLoadingServices(false);
-      console.log("Finished Getting Services");
     }
   }
-
-  const services = [
-    {
-      serviceId: "SERV001",
-      service: "Dental Care"
-    },
-    {
-      serviceId: "SERV002",
-      service: "Legal Consultation"
-    },
-    {
-      serviceId: "SERV003",
-      service: "Beauty & Spa Services"
-    },
-    {
-      serviceId: "SERV004",
-      service: "Medical Consultation"
-    },
-    {
-      serviceId: "SERV005",
-      service: "Fitness Training"
-    }
-  ]
 
   // Sample appointments data matching the appointments table structure
   // In a real app, you'd also join with service_providers and services tables
@@ -115,12 +90,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    console.log("Services: ", retrievedServices);
-  }, [retrievedServices]);
+    console.log(isLoggedIn);
+  }, [isLoggedIn]);
 
   type Service = {
     service_id: string;
     service: string;
+    description: string;
+    picture: string
   };
 
   return (
@@ -161,16 +138,24 @@ export default function Home() {
             <Link href="/services"><button className="text-[#6B7280] hover:text-[#6B7280]/80 text-sm">View all</button></Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {retrievedServices?.length > 0 &&
+            {isLoadingServices ? (
+              <p>Loading...</p>
+            ) : retrievedServices?.length > 0 ? (
               retrievedServices.slice(0, 3).map((retrievedService: Service) => (
                 <div key={retrievedService.service_id} className="flex">
                   <ServiceCard
                     serviceId={retrievedService.service_id}
                     service={retrievedService.service}
+                    description={retrievedService.description}
+                    image={`${process.env.NEXT_PUBLIC_BACKEND_URL}${retrievedService.picture}`}
                   />
                 </div>
-              ))}
+              ))
+            ) : (
+              <p>No services available.</p>
+            )}
           </div>
+
         </div>
 
         {/* Recent Bookings */}
