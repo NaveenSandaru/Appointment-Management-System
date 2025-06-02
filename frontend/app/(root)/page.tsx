@@ -170,7 +170,9 @@ export default function Home() {
                     serviceId={retrievedService.service_id}
                     service={retrievedService.service}
                     description={retrievedService.description}
-                    image={`${process.env.NEXT_PUBLIC_BACKEND_URL}${retrievedService.picture}`}
+                    image={retrievedService.picture?.includes('/uploads')
+                      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${retrievedService.picture}`
+                      : retrievedService.picture}
                   />
                 </div>
               ))

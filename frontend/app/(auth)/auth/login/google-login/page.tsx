@@ -18,6 +18,7 @@ export default function GoogleCallback() {
     const sendToBackend = async () => {
       try {
         const user = session.user;
+        console.debug(session.user);
 
         const res = await axios.post(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google_login`,
