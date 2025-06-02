@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, User, LogOut } from "lucide-react"
@@ -15,20 +15,46 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/hooks/use-auth"
+import axios from "axios"
+import { headers } from "next/headers"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMobileProfileOpen, setIsMobileProfileOpen] = useState(false)
   const pathname = usePathname()
-  const { user, isLoggedIn, setUser, setAccessToken } = useAuth()
+  const { user, isLoggedIn, accessToken, setUser, setAccessToken } = useAuth()
+  const [profilePath, setProfilePath] = useState('');
 
   const isActive = (path: string) => pathname === path
 
   const handleSignOut = () => {
-    setUser(null)
-    setAccessToken("")
-    setIsMobileProfileOpen(false)
-    // Additional logout logic here (clear localStorage, redirect, etc.)
+    deleteToken();
+  }
+
+  const deleteToken = async () => {
+    const response = await axios.delete(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`,{
+        withCredentials:true
+      }
+    );
+    if(response.status == 200){
+      setUser(null);
+      setAccessToken("");
+      setIsMobileProfileOpen(false)
+    }
+  }
+
+  const getUserPic = async () => {
+    const response = await axios.get(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user.email}`,
+      {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    setProfilePath(response.data.profile_picture);
   }
 
   const getUserInitials = (name: string) => {
@@ -46,6 +72,10 @@ export function Navbar() {
     }
     return user?.name || user?.email || "User"
   }
+
+  useEffect(()=>{
+    getUserPic();
+  },[]);
 
   return (
     <header className="w-full border-b border-gray-100">
@@ -116,7 +146,7 @@ export function Navbar() {
                   <Button variant="ghost" className="h-9 w-9 p-0 rounded-full">
                     <Avatar className="h-9 w-9">
                       <AvatarImage
-                        src={user?.profileImage || "/placeholder.svg?height=36&width=36"}
+                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${profilePath}`}
                         alt={getUserName()}
                       />
                       <AvatarFallback className="text-xs">{getUserInitials(getUserName())}</AvatarFallback>
@@ -190,7 +220,7 @@ export function Navbar() {
                   <Button variant="ghost" className="flex items-center space-x-2 h-auto p-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage
-                        src={user?.profileImage || "/placeholder.svg?height=32&width=32"}
+                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${profilePath}`}
                         alt={getUserName()}
                       />
                       <AvatarFallback className="text-xs">{getUserInitials(getUserName())}</AvatarFallback>
