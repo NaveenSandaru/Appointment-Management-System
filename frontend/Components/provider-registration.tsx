@@ -41,6 +41,7 @@ interface ProviderFormData {
   serviceType: string
   serviceSpecialty: string
   appointmentDuration: string
+  appointmentFee:  string
   workHoursFrom: string
   workHoursTo: string
   weekDaysFrom: string
@@ -94,6 +95,7 @@ export default function ProviderRegistration() {
     serviceType: "",
     serviceSpecialty: "",
     appointmentDuration: "30",
+    appointmentFee: "",
     workHoursFrom: "",
     workHoursTo: "",
     weekDaysFrom: "",
@@ -625,6 +627,11 @@ export default function ProviderRegistration() {
     }
   }
 
+  const fee = parseInt(formData.appointmentFee, 10);
+if (isNaN(fee)) {
+  throw new Error("Appointment fee must be a valid number.");
+}
+
   const handleRegistrationComplete = async () => {
     if (!validateStep()) return;
 
@@ -649,7 +656,8 @@ export default function ProviderRegistration() {
           work_hours_from: formData.workHoursFrom,
           work_hours_to: formData.workHoursTo,
           appointment_duration: formData.appointmentDuration + " minutes",
-          company_name: formData.companyName
+          company_name: formData.companyName,
+          appointment_fee: parseInt(formData.appointmentFee)       
         }
       }, {
         withCredentials: true,
@@ -1246,6 +1254,22 @@ export default function ProviderRegistration() {
         />
         <p className="text-sm text-gray-500">Minimum duration: 15 minutes</p>
       </div>
+
+      <div className="space-y-1">
+  <Label htmlFor="appointmentFee">Appointment Fee (USD)</Label>
+  <Input
+    id="appointmentFee"
+    type="number"
+    min="0"
+    value={formData.appointmentFee}
+    onChange={(e) =>
+      setFormData({ ...formData, appointmentFee: e.target.value })
+    }
+    placeholder="Enter fee in USD"
+    required
+  />
+</div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
