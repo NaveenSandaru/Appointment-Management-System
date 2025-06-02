@@ -14,6 +14,7 @@ import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
 import { Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,6 +35,12 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleGoogleLogin = async () => {
+    await signIn("google", {
+      callbackUrl: "/auth/login/google-login", // <- redirect here after Google login
+    });
+  };
+
   const handleLogin = async () => {
     setIsLoading(true);
     try {
@@ -45,7 +52,7 @@ export default function LoginPage() {
           checked: remember
         },
         {
-          withCredentials:true,
+          withCredentials: true,
           headers: {
             "Content-type": "application/json"
           }
@@ -78,7 +85,7 @@ export default function LoginPage() {
         description: error.message || "Invalid credentials"
       });
     }
-    finally{
+    finally {
       setIsLoading(false);
     }
   }
@@ -103,12 +110,12 @@ export default function LoginPage() {
             <Label htmlFor="email" className="text-sm font-medium text-gray-700">
               Email
             </Label>
-            <Input 
-              id="email" 
-              type="email" 
-              placeholder="Enter your email" 
-              className="w-full" 
-              value={email} 
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              className="w-full"
+              value={email}
               onChange={(e) => { setEmail(e.target.value) }}
               disabled={isLoading}
             />
@@ -119,12 +126,12 @@ export default function LoginPage() {
               Password
             </Label>
             <div className="relative">
-              <Input 
-                id="password" 
-                type={showPassword ? "text" : "password"} 
-                placeholder="Enter your password" 
-                className="w-full pr-10" 
-                value={password} 
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                className="w-full pr-10"
+                value={password}
                 onChange={(e) => { setPassword(e.target.value) }}
                 disabled={isLoading}
               />
@@ -158,8 +165,8 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <LoadingButton 
-            className="w-full bg-[#059669] hover:bg-[#0eb882] text-white" 
+          <LoadingButton
+            className="w-full bg-[#059669] hover:bg-[#0eb882] text-white"
             onClick={handleLogin}
             isLoading={isLoading}
             loadingText="Logging in..."
@@ -176,7 +183,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full" disabled={isLoading}>
+          <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={isLoading}>
             Google
           </Button>
 
