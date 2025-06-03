@@ -4,6 +4,7 @@ import { ChevronLeft, User, Briefcase, Lock, Eye, EyeOff, CheckCircle } from 'lu
 import Link from 'next/link';
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 interface SecurityQuestion {
   id: number;
@@ -201,24 +202,57 @@ const ForgotPasswordSystem = () => {
     setError('');
     
     try {
-      // Log the password reset request
-      console.log('Password Reset Request:', {
-        email,
-        userType,
-        newPassword: '********' // Don't log actual password
-      });
-
-      // Simulate successful password reset
-      console.log('Password reset successful');
-      toast.success("Password Reset Successful", {
-        description: "Your password has been reset successfully. You can now login with your new password."
-      });
-      setCurrentStep('success');
+      if(userType == 'client'){
+        const response = await axios.put(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/`,
+          {
+            email:email,
+            password: newPassword
+          },
+          {
+            headers:{
+              "Content-type":"application/json"
+            }
+          }
+        );
+        if(response.data){
+          toast.success("Password Reset Successful", {
+            description: "Your password has been reset successfully. You can now login with your new password."
+          });
+          setCurrentStep('success');
+        }
+        else{
+          throw new Error("Error resetting password");
+        }
+      }
+      else if(userType == 'provider'){
+        const response = await axios.put(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/`,
+          {
+            email:email,
+            password: newPassword
+          },
+          {
+            headers:{
+              "Content-type":"application/json"
+            }
+          }
+        );
+        if(response.data){
+          toast.success("Password Reset Successful", {
+            description: "Your password has been reset successfully. You can now login with your new password."
+          });
+          setCurrentStep('success');
+        }
+        else{
+          throw new Error("Error resetting password");
+        }
+      }
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error resetting password:', err);
       toast.error("Reset Failed", {
-        description: "Failed to reset password. Please try again."
+        description: err.message
       });
       setError('Failed to reset password. Please try again.');
     } finally {

@@ -122,7 +122,7 @@ router.post('/', async (req, res) => {
 
 // Update a service provider
 router.put('/', /*authenticateToken*/ async (req, res) => {
-  const { email, profile_picture: newProfilePicture } = req.body;
+  const { email, profile_picture: newProfilePicture, password: rawPassword, ...rest } = req.body;
 
   try {
     const existingProvider = await prisma.service_providers.findUnique({ where: { email } });
@@ -149,7 +149,14 @@ router.put('/', /*authenticateToken*/ async (req, res) => {
       }
     }
 
-    const updateData = { ...req.body };
+    // Build update data
+    const updateData = {
+      ...rest,
+      ...(newProfilePicture && { profile_picture: newProfilePicture }),
+      ...(rawPassword && { password: await bcrypt.hash(rawPassword, 10) }),
+    };
+
+    // Convert work hours if provided
     if (updateData.work_hours_from) {
       updateData.work_hours_from = convertToISOTime(updateData.work_hours_from);
     }
@@ -159,8 +166,9 @@ router.put('/', /*authenticateToken*/ async (req, res) => {
 
     const updated = await prisma.service_providers.update({
       where: { email },
-      data: updateData
+      data: updateData,
     });
+
     res.json(updated);
   } catch (err) {
     if (err.code === 'P2025') {
