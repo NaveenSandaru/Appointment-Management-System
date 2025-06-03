@@ -1,124 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use, useContext } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Filter, Search, MapPin, Clock, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-
-// Simulated DB fetch (replace with real DB later)
-async function fetchServiceProviders(serviceType: string) {
-  const mockProviders = [
-    {
-      email: "john@dental.com",
-      name: "John Doe",
-      company_name: "Athurugiriya Dental Clinic",
-      service_type: "dentist",
-      specialty: "General Dentistry",
-      company_address: "No 101, Wellwatta Rd, Kotkawell",
-      profile_picture: "https://randomuser.me/api/portraits/men/32.jpg",
-      appointment_price: "$40",
-      work_days_from: "Monday",
-      work_days_to: "Saturday",
-      work_hours_from: "8:00 a.m",
-      work_hours_to: "7:00 p.m",
-    },
-    {
-      email: "jane@dental.com",
-      name: "Jane Doe",
-      company_name: "Maharagama Dental Clinic",
-      service_type: "dentist",
-      specialty: "Cosmetic Dentistry",
-      company_address: "No 35, Colombo Rd, Maharagama",
-      profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
-      appointment_price: "$30",
-      work_days_from: "Monday",
-      work_days_to: "Saturday",
-      work_hours_from: "8:00 a.m",
-      work_hours_to: "7:00 p.m",
-    },
-    {
-      email: "emma@dental.com",
-      name: "Emma Wilson",
-      company_name: "Malabe Dental Clinic",
-      service_type: "dentist",
-      specialty: "Orthodontics",
-      company_address: "No 205, Malabe Rd, Malabe",
-      profile_picture: "https://randomuser.me/api/portraits/women/65.jpg",
-      appointment_price: "$30",
-      work_days_from: "Monday",
-      work_days_to: "Saturday",
-      work_hours_from: "8:00 a.m",
-      work_hours_to: "7:00 p.m",
-    },
-    // Duplicate entries to match the image
-    {
-      email: "jane2@dental.com",
-      name: "Jane Doe",
-      company_name: "Maharagama Dental Clinic",
-      service_type: "dentist",
-      specialty: "Pediatric Dentistry",
-      company_address: "No 35, Colombo Rd, Maharagama",
-      profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
-      appointment_price: "$30",
-      work_days_from: "Monday",
-      work_days_to: "Saturday",
-      work_hours_from: "8:00 a.m",
-      work_hours_to: "7:00 p.m",
-    },
-    {
-      email: "jane3@dental.com",
-      name: "Jane Doe",
-      company_name: "Maharagama law firm",
-      service_type: "Legal Consultation",
-      specialty: "Divorce cases",
-      company_address: "No 35, Colombo Rd, Maharagama",
-      profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
-      appointment_price: "$30",
-      work_days_from: "Monday",
-      work_days_to: "Saturday",
-      work_hours_from: "8:00 a.m",
-      work_hours_to: "7:00 p.m",
-    },
-    {
-      email: "emma2@dental.com",
-      name: "Emma Wilson",
-      company_name: "Malabe law firm",
-      service_type: "Legal Consultation",
-      specialty: "Civil cases",
-      company_address: "No 205, Malabe Rd, Malabe",
-      profile_picture: "https://randomuser.me/api/portraits/women/65.jpg",
-      appointment_price: "$30",
-      work_days_from: "Monday",
-      work_days_to: "Saturday",
-      work_hours_from: "8:00 a.m",
-      work_hours_to: "7:00 p.m",
-    },
-    {
-      email: "jane4@dental.com",
-      name: "Jane Doe",
-      company_name: "Maharagama law firm",
-      service_type: "Legal Consultation",
-      specialty: "Criminal cases",
-      company_address: "No 35, Colombo Rd, Maharagama",
-      profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
-      appointment_price: "$30",
-      work_days_from: "Monday",
-      work_days_to: "Saturday",
-      work_hours_from: "8:00 a.m",
-      work_hours_to: "7:00 p.m",
-    },
-  ];
-
-  return mockProviders.filter((p) => p.service_type === serviceType);
-}
+import { AuthContext } from '@/context/auth-context';
 
 interface ServiceProviderPageProps {
   params: Promise<{ service_type: string }>;
 }
 
 export default function ServiceProviderPage({ params }: ServiceProviderPageProps) {
+
+  const { isLoggedIn, user } = useContext(AuthContext);
+
   const [providers, setProviders] = useState<any[]>([]);
   const [filteredProviders, setFilteredProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +64,10 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
   }, [searchQuery, providers]);
 
   const handleBookAppointment = (provider: any) => {
+    if(!isLoggedIn){
+      window.alert("Please log in to book an appointment");
+      return;
+    }
     router.push(`/book/${encodeURIComponent(provider.email)}`);
   };
 
