@@ -61,12 +61,15 @@ export default function Home() {
             );
             const provider = providerRes.data;
             providerName = provider.name;
-            providerAvatar = provider.profile_picture;
+            providerAvatar = provider.profile_picture?.startsWith("/uploads")
+              ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${provider.profile_picture}`
+              : provider.profile_picture || "";
+
 
             const serviceRes = await axios.get(
-              `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/service/${provider.service_type}`
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${provider.service_type}`
             );
-            serviceName = serviceRes.data.service;
+            serviceName = serviceRes.data.data.service;
           } catch (err) {
             console.error("Failed to enrich appointment", err);
           }
@@ -81,6 +84,7 @@ export default function Home() {
       );
 
       setRetrievedAppointments(enrichedAppointments);
+      console.log(enrichedAppointments);
     }
     catch (error: any) {
       window.alert(error.message);
@@ -183,7 +187,7 @@ export default function Home() {
 
         </div>
 
-     {/* Recent Bookings */}
+        {/* Recent Bookings */}
         <div>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Recent Bookings</h2>
@@ -221,15 +225,15 @@ export default function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  
+
                   {/* Message */}
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No recent bookings</h3>
                   <p className="text-gray-500 mb-6 max-w-sm">
                     You haven't booked any services yet. Explore our featured services to get started.
                   </p>
-                  
+
                   {/* Call-to-action Button */}
-                 
+
                 </div>
               )}
             </CardContent>

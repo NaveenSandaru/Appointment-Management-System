@@ -37,14 +37,26 @@ export function BookingCard({
   }
 
   // Format time for display
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':')
-    const hour = parseInt(hours)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const displayHour = hour % 12 || 12
-    return `${displayHour}:${minutes} ${ampm}`
-  }
-
+  const formatTime = (isoString: string | undefined) => {
+    if (!isoString) return 'Invalid Time';
+  
+    const utcDate = new Date(isoString);
+  
+    // Extract just hours and minutes as if they were local (ignoring timezone)
+    const hour = utcDate.getUTCHours();
+    const minute = utcDate.getUTCMinutes();
+  
+    const localDate = new Date();
+    localDate.setHours(hour, minute, 0, 0);
+  
+    return localDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
+  
+  
   // Determine appointment status based on date
   const getAppointmentStatus = (appointmentDate: string) => {
     const today = new Date()
@@ -97,7 +109,7 @@ export function BookingCard({
           </AvatarFallback>
         </Avatar>
         <div>
-          <h4 className="font-medium">{serviceName || 'Service'}</h4>
+          <h4 className="font-medium capitalize">{serviceName || 'Service'}</h4>
           <p className="text-sm text-gray-600">{displayProviderName}</p>
           {note && (
             <p className="text-xs text-gray-500 mt-1 italic">"{note}"</p>
