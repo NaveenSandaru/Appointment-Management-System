@@ -247,52 +247,55 @@ export default function BookingPage() {
                 <p className="text-sm text-gray-600">Select Date & Time</p>
               </div>
 
-              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
-                {/* Calendar */}
-                <div className="flex-1">
+              <div className="flex flex-col items-center space-y-6">
+                {/* Calendar - Made larger and centered */}
+                <div className="w-full max-w-lg">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    className="w-full mx-auto max-w-md xl:max-w-none"
+                    className="w-full mx-auto"
                     classNames={{
                       months: "flex w-full justify-center",
-                      month: "space-y-2 w-full",
-                      caption: "flex justify-center pt-1 relative items-center text-sm font-medium mb-2",
-                      caption_label: "text-sm font-medium",
-                      nav: "space-x-1 flex items-center",
-                      nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                      month: "space-y-4 w-full",
+                      caption: "flex justify-center pt-2 relative items-center text-lg font-semibold mb-4",
+                      caption_label: "text-lg font-semibold",
+                      nav: "space-x-2 flex items-center",
+                      nav_button: "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100",
                       table: "w-full border-collapse",
-                      head_row: "flex w-full mb-1",
-                      head_cell: "text-gray-500 rounded-md w-8 sm:w-9 font-normal text-xs text-center flex-1",
+                      head_row: "flex w-full mb-2",
+                      head_cell: "text-gray-500 rounded-md w-12 h-12 font-medium text-sm text-center flex-1 flex items-center justify-center",
                       row: "flex w-full mt-1",
-                      cell: "text-center text-sm p-0 relative flex-1",
-                      day: "h-8 w-8 sm:h-9 sm:w-9 p-0 font-normal text-xs hover:bg-gray-100 rounded mx-auto",
+                      cell: "text-center text-sm p-0 relative flex-1 h-12",
+                      day: "h-12 w-12 p-0 font-normal text-sm hover:bg-gray-100 rounded mx-auto flex items-center justify-center",
                       day_selected: "bg-gray-100 hover:bg-emerald-700 text-gray-500",
-                      day_today: "bg-gray-50 text-gray-900",
+                      day_today: "bg-gray-50 text-gray-900 font-semibold",
                       day_outside: "text-gray-400 opacity-50",
                     }}
                   />
                 </div>
 
-                {/* Available Time Slots */}
-                <div className="w-full xl:w-40 2xl:w-48">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Available Time Slots</h4>
-                  <p className="text-xs text-gray-500 mb-3 sm:mb-4">
-                    {selectedDate ? selectedDate.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric'
-                    }) : "Today"}
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-2">
+                {/* Available Time Slots - Now positioned below calendar */}
+                <div className="w-full max-w-2xl">
+                  <div className="text-center mb-4">
+                    <h4 className="text-base font-semibold text-gray-700 mb-2">Available Time Slots</h4>
+                    <p className="text-sm text-gray-500">
+                      {selectedDate ? selectedDate.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }) : "Today"}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                     {timeSlots.map((slot) => (
                       <Button
                         key={slot}
                         variant={selectedTime === slot ? "default" : "outline"}
                         onClick={() => setSelectedTime(slot)}
                         size="sm"
-                        className={`text-xs h-8 sm:h-9 ${selectedTime === slot
+                        className={`text-sm h-10 ${selectedTime === slot
                           ? "bg-emerald-500 hover:bg-emerald-600 text-white"
                           : "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
                           }`}
@@ -302,17 +305,17 @@ export default function BookingPage() {
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Confirm Button */}
-              <div className="mt-6 sm:mt-8">
-                <Button
-                  disabled={!selectedDate || !selectedTime}
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-medium h-10 sm:h-11 px-6 sm:px-8 text-sm sm:text-base"
-                  onClick={handleConfirmBooking}
-                >
-                  Confirm Appointment
-                </Button>
+                {/* Confirm Button */}
+                <div className="w-full max-w-lg">
+                  <Button
+                    disabled={!selectedDate || !selectedTime}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-medium h-12 px-8 text-base"
+                    onClick={handleConfirmBooking}
+                  >
+                    Confirm Appointment
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
