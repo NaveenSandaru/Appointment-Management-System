@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Filter, Search, MapPin, Clock, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 // Simulated DB fetch (replace with real DB later)
 async function fetchServiceProviders(serviceType: string) {
@@ -123,25 +124,31 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
-  
+
   // Unwrap the params Promise
   const unwrappedParams = use(params);
 
-  useEffect(() => {
-    const loadProviders = async () => {
-      try {
-        const decodedServiceType = decodeURIComponent(unwrappedParams.service_type);
-        const providersData = await fetchServiceProviders(decodedServiceType);
-        setProviders(providersData);
-        setFilteredProviders(providersData);
-      } catch (error) {
-        console.error('Error loading providers:', error);
-      } finally {
-        setLoading(false);
+  const getProviders = async () => {
+    setLoading(true);
+    try {
+      const decodedServiceType = decodeURIComponent(unwrappedParams.service_type);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/by_type/${decodedServiceType}`
+      );
+      if (response.data) {
+        setProviders(response.data);
       }
-    };
+    }
+    catch (error: any) {
+      window.alert(error.message)
+    }
+    finally {
+      setLoading(false);
+    }
+  }
 
-    loadProviders();
+  useEffect(() => {
+    getProviders();
   }, [unwrappedParams.service_type]);
 
   // Filter providers based on search query
@@ -219,7 +226,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
               <div className="block sm:hidden p-4">
                 <div className="flex items-start gap-3 mb-3">
                   <img
-                    src={provider.profile_picture}
+                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${provider.profile_picture}`}
                     alt={provider.name}
                     className="w-16 h-16 rounded-full object-cover flex-shrink-0"
                   />
@@ -235,7 +242,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
@@ -243,14 +250,18 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Clock className="w-4 h-4 flex-shrink-0" />
-                    <span>{provider.work_days_from} to {provider.work_days_to}, {provider.work_hours_from} - {provider.work_hours_to}</span>
+                    <span>
+                      {provider.work_days_from.charAt(0).toUpperCase() + provider.work_days_from.slice(1)} to{" "}{provider.work_days_to.charAt(0).toUpperCase() + provider.work_days_to.slice(1)},
+                      {provider.work_hours_from.split('T')[1].slice(0, 5)} - {provider.work_hours_to.split('T')[1].slice(0, 5)}
+                    </span>
+
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <DollarSign className="w-4 h-4 flex-shrink-0" />
-                    <span>Appointment: {provider.appointment_price}</span>
+                    <span>Appointment Fee: ${provider.appointment_fee}</span>
                   </div>
                 </div>
-                
+
                 <Button
                   onClick={() => handleBookAppointment(provider)}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white w-full py-2 text-sm"
@@ -264,7 +275,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
                 {/* Profile Image */}
                 <div className="flex-shrink-0 mr-4 lg:mr-6">
                   <img
-                    src={provider.profile_picture}
+                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${provider.profile_picture}`}
                     alt={provider.name}
                     className="w-12 h-12 lg:w-16 lg:h-16 rounded-full object-cover"
                   />
@@ -284,7 +295,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
                       {provider.company_name}
                     </p>
                     <p className="text-xs lg:text-sm text-gray-600">
-                      Appointment: {provider.appointment_price}
+                      Appointment Fee: ${provider.appointment_fee}
                     </p>
                   </div>
 
@@ -301,8 +312,15 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
                     <div className="flex items-start gap-2 text-xs lg:text-sm text-gray-600">
                       <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p>{provider.work_days_from} to {provider.work_days_to}</p>
-                        <p>{provider.work_hours_from} - {provider.work_hours_to}</p>
+                        <p>
+                          {provider.work_days_from.charAt(0).toUpperCase() + provider.work_days_from.slice(1)} to{" "}
+                          {provider.work_days_to.charAt(0).toUpperCase() + provider.work_days_to.slice(1)}
+                        </p>
+
+                        <p>
+                          {provider.work_hours_from.split('T')[1].slice(0, 5)} - {provider.work_hours_to.split('T')[1].slice(0, 5)}
+                        </p>
+
                       </div>
                     </div>
                   </div>
