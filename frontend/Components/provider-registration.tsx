@@ -41,7 +41,7 @@ interface ProviderFormData {
   serviceType: string
   serviceSpecialty: string
   appointmentDuration: string
-  appointmentFee: string
+  appointmentFee: number
   workHoursFrom: string
   workHoursTo: string
   weekDaysFrom: string
@@ -95,7 +95,7 @@ export default function ProviderRegistration() {
     serviceType: "",
     serviceSpecialty: "",
     appointmentDuration: "30",
-    appointmentFee: "",
+    appointmentFee: 0,
     workHoursFrom: "",
     workHoursTo: "",
     weekDaysFrom: "",
@@ -124,6 +124,7 @@ export default function ProviderRegistration() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
   const [isSendingOtp, setIsSendingOtp] = useState(false)
+  const [isEmailUnique, setIsEmailUnique] = useState<boolean | null>(null)
 
   const router = useRouter()
 
@@ -180,6 +181,39 @@ export default function ProviderRegistration() {
     if (strength === 3) return "medium"
     return "strong"
   }
+
+  // Add a new function to check email existence
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      await axios.post(`${baseUrl}/service-providers`, {
+        dataToSend: {
+          email: email,
+          name: "temp",
+          company_phone_number: "temp",
+          password: "temp",
+          language: "temp",
+          service_type: "temp",
+          work_days_from: "monday",
+          work_days_to: "friday",
+          work_hours_from: "09:00",
+          work_hours_to: "17:00",
+          appointment_duration: "30 minutes",
+          company_name: "temp",
+          appointment_fee: 0
+        }
+      });
+      setIsEmailUnique(true);
+      return false; // Email doesn't exist
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        setIsEmailUnique(false);
+        return true; // Email exists
+      }
+      setIsEmailUnique(null);
+      return false;
+    }
+  };
 
   // Validate form fields
   const validateField = (name: string, value: string) => {
@@ -263,6 +297,9 @@ export default function ProviderRegistration() {
   }
 
   const handleFieldChange = (name: string, value: string) => {
+    if (name === 'email') {
+      setIsEmailUnique(null); // Reset email uniqueness check when email changes
+    }
     setFormData((prev) => ({ ...prev, [name]: value }))
 
     // Clear error when user starts typing
@@ -275,10 +312,15 @@ export default function ProviderRegistration() {
     }
   }
 
-  const handleFieldBlur = (name: string) => {
+  const handleFieldBlur = async (name: string) => {
     setTouched((prev) => ({ ...prev, [name]: true }))
     const fieldErrors = validateField(name, formData[name as keyof ProviderFormData] as string)
     setErrors((prev) => ({ ...prev, ...fieldErrors }))
+
+    // Check email existence on blur if it's a valid email
+    if (name === 'email' && formData.email && isValidEmail(formData.email)) {
+      await checkEmailExists(formData.email);
+    }
   }
 
   const handlePasswordChange = (value: string) => {
@@ -345,51 +387,6 @@ export default function ProviderRegistration() {
           stepErrors.confirmPassword = "Passwords do not match"
           isValid = false
         }
-
-        // Check if email already exists
-        if (isValid && formData.email) {
-          try {
-            const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
-            // Try to create the service provider to check if email exists
-            const checkResponse = await axios.post(`${baseUrl}/service-providers`, {
-              dataToSend: {
-                email: formData.email,
-                name: formData.firstName + " " + formData.lastName,
-                company_phone_number: "temp",
-                password: "temp",
-                language: "temp",
-                service_type: "temp",
-                work_days_from: "monday",
-                work_days_to: "friday",
-                work_hours_from: "09:00",
-                work_hours_to: "17:00",
-                appointment_duration: "30 minutes",
-                company_name: "temp"
-              }
-            }, {
-              withCredentials: true,
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            });
-
-            // If we get here, it means the email doesn't exist (unlikely as we're sending incomplete data)
-            console.log("Unexpected success:", checkResponse);
-
-          } catch (error: any) {
-            // If we get a 409, it means the email exists
-            if (error.response?.status === 409) {
-              stepErrors.email = "This email is already registered"
-              isValid = false
-              toast.error("Email already registered", {
-                description: "Please use a different email address"
-              });
-            }
-            // For other errors, we'll let the validation pass
-            // as we'll do a proper check during actual registration
-          }
-        }
         break
 
       case 2:
@@ -421,6 +418,13 @@ export default function ProviderRegistration() {
         if (!formData.weekDaysFrom || !formData.weekDaysTo) {
           toast.error("Work Days Required", {
             description: "Please specify your working days"
+          });
+          isValid = false
+        }
+        // Validate appointment fee
+        if (typeof formData.appointmentFee !== 'number' || isNaN(formData.appointmentFee)) {
+          toast.error("Invalid Appointment Fee", {
+            description: "Please enter a valid appointment fee"
           });
           isValid = false
         }
@@ -472,6 +476,15 @@ export default function ProviderRegistration() {
 
   const handleNext = async () => {
     const isValid = await validateStep();
+    
+    // Special handling for step 1 when email exists
+    if (currentStep === 1 && isEmailUnique === false) {
+      toast.error("Email Already Registered", {
+        description: "This email is already in use. Please use a different email address or login to your existing account.",
+      });
+      return; // Don't proceed to next step
+    }
+    
     if (isValid && currentStep < 4) {
       setCurrentStep((prev) => (prev + 1) as Step)
       setTouched({})
@@ -627,8 +640,6 @@ export default function ProviderRegistration() {
     }
   }
 
-
-
   const handleRegistrationComplete = async () => {
     if (!validateStep()) return;
 
@@ -636,168 +647,177 @@ export default function ProviderRegistration() {
     const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
     try {
+      // Ensure appointment fee is a valid integer
+      const appointmentFeeInt = Math.max(0, Math.round(Number(formData.appointmentFee))) || 0;
+      
       // Step 1: Register the service provider
-      const registrationResponse = await axios.post(`${baseUrl}/service-providers`, {
+      const registrationData = {
         dataToSend: {
-          name: formData.firstName + " " + formData.lastName,
           email: formData.email,
-          company_phone_number: formData.companyNumber,
+          name: formData.firstName + " " + formData.lastName,
+          company_phone_number: formData.companyNumber || "temp",
           profile_picture: null,
-          company_address: formData.companyAddress,
+          company_address: formData.companyAddress || "temp",
           password: formData.password,
-          language: formData.preferredLanguages,
-          service_type: formData.serviceType,
-          specialization: formData.serviceSpecialty,
+          language: formData.preferredLanguages || "temp",
+          service_type: formData.serviceType || "temp",
+          specialization: formData.serviceSpecialty || "temp",
           work_days_from: formData.weekDaysFrom,
           work_days_to: formData.weekDaysTo,
           work_hours_from: formData.workHoursFrom,
           work_hours_to: formData.workHoursTo,
           appointment_duration: formData.appointmentDuration + " minutes",
           company_name: formData.companyName,
-          appointment_fee: 0
+          appointment_fee: appointmentFeeInt
         }
-      }, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }).catch(error => {
-        // Handle specific error cases
-        if (error.response?.status === 409) {
-          toast.error("Email already registered", {
-            description: "Please use a different email address"
-          });
-        } else if (error.code === 'ERR_NETWORK') {
-          toast.error("Network Error", {
-            description: "Cannot connect to the server. Please check your connection and try again."
-          });
-        } else {
-          toast.error("Registration Failed", {
-            description: error.response?.data?.error || "Something went wrong. Please try again."
-          });
-        }
-        throw error; // Re-throw to be caught by outer catch
-      });
+      };
 
       try {
-        // Step 2: Submit security questions
-        await Promise.all([
-          axios.post(`${baseUrl}/service-provider-questions`, {
-            email: formData.email,
-            question_id: formData.securityQuestion1,
-            answer: formData.securityAnswer1.trim()
-          }, {
+        const registrationResponse = await axios.post(
+          `${baseUrl}/service-providers`,
+          registrationData,
+          {
             withCredentials: true,
             headers: {
               'Content-Type': 'application/json'
             }
-          }).catch(error => {
-            toast.error("Failed to save security question 1", {
-              description: error.response?.data?.error || "Please try again"
-            });
-            throw error;
-          }),
-          axios.post(`${baseUrl}/service-provider-questions`, {
-            email: formData.email,
-            question_id: formData.securityQuestion2,
-            answer: formData.securityAnswer2.trim()
-          }, {
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }).catch(error => {
-            toast.error("Failed to save security question 2", {
-              description: error.response?.data?.error || "Please try again"
-            });
-            throw error;
-          }),
-          axios.post(`${baseUrl}/service-provider-questions`, {
-            email: formData.email,
-            question_id: formData.securityQuestion3,
-            answer: formData.securityAnswer3.trim()
-          }, {
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          }).catch(error => {
-            toast.error("Failed to save security question 3", {
-              description: error.response?.data?.error || "Please try again"
-            });
-            throw error;
-          })
-        ]);
-      } catch (securityQuestionsError) {
-        // If security questions fail, delete the created user
-        console.error("Error submitting security questions:", securityQuestionsError);
+          }
+        );
+
+        // If registration is successful, proceed with security questions
         try {
-          await axios.delete(`${baseUrl}/service-providers`, {
-            data: { email: formData.email },
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          toast.error("Failed to save security questions", {
-            description: "Registration has been rolled back. Please try again."
-          });
-        } catch (deleteError) {
-          console.error("Error deleting provider after security questions failed:", deleteError);
-          toast.error("Registration error", {
-            description: "Please contact support to resolve this issue."
-          });
-        }
-        return; // Exit without proceeding to image upload
-      }
-
-      // Step 3: Upload profile picture if exists
-      if (formData.image) {
-        try {
-          const imageFormData = new FormData();
-          imageFormData.append("image", formData.image);
-
-          const uploadResponse = await axios.post(`${baseUrl}/photos`, imageFormData, {
-            withCredentials: true,
-            headers: {
-              "Content-Type": "multipart/form-data"
-            }
-          });
-
-          if (uploadResponse.data?.url) {
-            await axios.put(`${baseUrl}/service-providers`, {
+          await Promise.all([
+            axios.post(`${baseUrl}/service-provider-questions`, {
               email: formData.email,
-              profile_picture: uploadResponse.data.url
+              question_id: formData.securityQuestion1,
+              answer: formData.securityAnswer1.trim()
             }, {
               withCredentials: true,
               headers: {
                 'Content-Type': 'application/json'
               }
+            }),
+            axios.post(`${baseUrl}/service-provider-questions`, {
+              email: formData.email,
+              question_id: formData.securityQuestion2,
+              answer: formData.securityAnswer2.trim()
+            }, {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }),
+            axios.post(`${baseUrl}/service-provider-questions`, {
+              email: formData.email,
+              question_id: formData.securityQuestion3,
+              answer: formData.securityAnswer3.trim()
+            }, {
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            })
+          ]);
+
+          // If everything is successful, handle profile picture upload
+          if (formData.image) {
+            try {
+              const imageFormData = new FormData();
+              imageFormData.append("image", formData.image);
+
+              const uploadResponse = await axios.post(`${baseUrl}/photos`, imageFormData, {
+                withCredentials: true,
+                headers: {
+                  "Content-Type": "multipart/form-data"
+                }
+              });
+
+              if (uploadResponse.data?.url) {
+                await axios.put(`${baseUrl}/service-providers`, {
+                  email: formData.email,
+                  profile_picture: uploadResponse.data.url
+                }, {
+                  withCredentials: true,
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
+              }
+            } catch (imageError) {
+              console.error("Error uploading profile picture:", imageError);
+              toast.error("Profile Picture Upload Failed", {
+                description: "Your account was created, but we couldn't upload your profile picture. You can add it later from your profile settings."
+              });
+            }
+          }
+
+          // Final success message
+          toast.success("Registration Successful!", {
+            description: "Your service provider account has been created successfully. Redirecting to login..."
+          });
+
+          // Redirect after a short delay
+          setTimeout(() => {
+            router.push("/auth/login");
+          }, 2000);
+
+        } catch (securityQuestionsError) {
+          // If security questions fail, delete the created user
+          console.error("Error submitting security questions:", securityQuestionsError);
+          try {
+            await axios.delete(`${baseUrl}/service-providers`, {
+              data: { email: formData.email },
+              withCredentials: true,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            toast.error("Registration Failed", {
+              description: "Failed to save security questions. Please try registering again."
+            });
+          } catch (deleteError) {
+            console.error("Error during cleanup:", deleteError);
+            toast.error("Registration Error", {
+              description: "An error occurred during registration. Please contact support."
             });
           }
-        } catch (imageError) {
-          console.error("Error uploading profile picture:", imageError);
-          toast.error("Failed to upload profile picture", {
-            description: "Your account was created, but we couldn't upload your profile picture."
+        }
+
+      } catch (error: unknown) {
+        // Handle specific registration errors
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 409) {
+            toast.error("Email Already Registered", {
+              description: "This email address is already in use. Please use a different email or login to your existing account."
+            });
+          } else if (error.response?.status === 400) {
+            toast.error("Invalid Data", {
+              description: error.response.data.error || "Please check all required fields and try again."
+            });
+          } else if (error.code === 'ERR_NETWORK') {
+            toast.error("Network Error", {
+              description: "Unable to connect to the server. Please check your internet connection and try again."
+            });
+          } else {
+            toast.error("Registration Failed", {
+              description: "An unexpected error occurred. Please try again later."
+            });
+          }
+        } else {
+          toast.error("Registration Failed", {
+            description: "An unexpected error occurred. Please try again later."
           });
         }
+      } finally {
+        setIsSubmitting(false);
       }
 
-      toast.success("Registration Successful!", {
-        description: "Your service provider account has been created successfully. Redirecting to login..."
-      });
-
-      setTimeout(() => {
-        router.push("/auth/login");
-      }, 2000);
-
     } catch (error) {
-      // Main error handling is done in the individual catch blocks above
-      setIsSubmitting(false);
-      return; // Prevent the final setIsSubmitting(false)
+      console.error("Registration error:", error);
+      toast.error("Registration Failed", {
+        description: "An unexpected error occurred. Please try again later."
+      });
     }
-
-    setIsSubmitting(false);
   };
 
   const getAllQuestions = async () => {
@@ -1073,17 +1093,31 @@ export default function ProviderRegistration() {
         <Label htmlFor="email" className="flex items-center">
           Email <span className="text-red-500 ml-1">*</span>
         </Label>
-        <Input
-          id="email"
-          type="email"
-          value={formData.email}
-          onChange={(e) => handleFieldChange("email", e.target.value)}
-          onBlur={() => handleFieldBlur("email")}
-          placeholder="Enter your email"
-          className={errors.email && touched.email ? "border-red-500" : ""}
-          required
-        />
-        <ErrorMessage message={touched.email ? errors.email : undefined} />
+        <div className="relative">
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleFieldChange("email", e.target.value)}
+            onBlur={() => handleFieldBlur("email")}
+            placeholder="Enter your email"
+            className={`${errors.email || isEmailUnique === false ? "border-red-500" : ""} ${isEmailUnique === true ? "border-green-500" : ""}`}
+            required
+          />
+          {isEmailUnique === false && (
+            <div className="flex items-center mt-1 text-red-500 text-sm">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              <span>This email is already registered. Please use a different email or login to your existing account.</span>
+            </div>
+          )}
+          {isEmailUnique === true && (
+            <div className="flex items-center mt-1 text-green-500 text-sm">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              <span>Email is available</span>
+            </div>
+          )}
+          <ErrorMessage message={touched.email ? errors.email : undefined} />
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -1253,18 +1287,31 @@ export default function ProviderRegistration() {
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="appointmentFee">Appointment Fee (USD)</Label>
+        <Label htmlFor="appointmentFee" className="flex items-center">
+          Appointment Fee (USD) <span className="text-red-500 ml-1">*</span>
+        </Label>
         <Input
           id="appointmentFee"
           type="number"
           min="0"
+          step="1"
           value={formData.appointmentFee}
-          onChange={(e) =>
-            setFormData({ ...formData, appointmentFee: e.target.value })
-          }
-          placeholder="Enter fee in USD"
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            const rawValue = e.target.value;
+            const numValue = rawValue === '' ? 0 : Math.max(0, Math.round(Number(rawValue)));
+            setFormData(prev => ({ ...prev, appointmentFee: numValue }));
+          }}
+          onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+            // Ensure the value is set to 0 if empty or invalid
+            const currentValue = e.target.value;
+            if (currentValue === '' || isNaN(Number(currentValue))) {
+              setFormData(prev => ({ ...prev, appointmentFee: 0 }));
+            }
+          }}
+          placeholder="Enter fee in USD (whole numbers only)"
           required
         />
+        <p className="text-sm text-gray-500">Enter the appointment fee in whole numbers (minimum 0)</p>
       </div>
 
 

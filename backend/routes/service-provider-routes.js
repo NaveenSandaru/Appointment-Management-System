@@ -63,12 +63,15 @@ router.post('/', async (req, res) => {
     work_hours_from, work_hours_to, appointment_duration, company_name, appointment_fee
   } = req.body.dataToSend;
 
+  // Ensure appointment_fee is a valid number
+  appointment_fee = Number(appointment_fee);
+
   if (
     !email || !name || !company_phone_number || !password || !language || !service_type ||
     !work_days_from || !work_days_to || !work_hours_from || !work_hours_to ||
-    !appointment_duration || !company_name || appointment_fee
+    !appointment_duration || !company_name || appointment_fee === undefined || isNaN(appointment_fee)
   ) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: 'Missing required fields or invalid appointment fee' });
   }
 
   try {
@@ -84,6 +87,9 @@ router.post('/', async (req, res) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Ensure appointment_fee is an integer
+    const appointmentFeeInt = Math.round(appointment_fee);
 
     // Create new service provider
     const newProvider = await prisma.service_providers.create({
@@ -102,7 +108,7 @@ router.post('/', async (req, res) => {
         work_hours_from: convertToISOTime(work_hours_from),
         work_hours_to: convertToISOTime(work_hours_to),
         appointment_duration,
-        appointment_fee,
+        appointment_fee: appointmentFeeInt,
         company_name
       }
     });
