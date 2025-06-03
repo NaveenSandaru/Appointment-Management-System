@@ -172,68 +172,78 @@ export default function BookingPage() {
                 <p className="text-sm text-gray-600">Select Date & Time</p>
               </div>
 
-              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
-                {/* Calendar */}
-                <div className="flex-1">
+              {/* Calendar Section - Now Full Width */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Select Date</h4>
+                <div className="flex justify-center">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    className="w-full mx-auto max-w-md xl:max-w-none"
+                    className="w-full max-w-lg"
                     classNames={{
                       months: "flex w-full justify-center",
-                      month: "space-y-2 w-full",
-                      caption: "flex justify-center pt-1 relative items-center text-sm font-medium mb-2",
-                      caption_label: "text-sm font-medium",
-                      nav: "space-x-1 flex items-center",
-                      nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-                      table: "w-full border-collapse",
-                      head_row: "flex w-full mb-1",
-                      head_cell: "text-gray-500 rounded-md w-8 sm:w-9 font-normal text-xs text-center flex-1",
-                      row: "flex w-full mt-1",
-                      cell: "text-center text-sm p-0 relative flex-1",
-                      day: "h-8 w-8 sm:h-9 sm:w-9 p-0 font-normal text-xs hover:bg-gray-100 rounded mx-auto",
-                      day_selected: "bg-gray-100 hover:bg-emerald-700 text-gray-500",
-                      day_today: "bg-gray-50 text-gray-900",
-                      day_outside: "text-gray-400 opacity-50",
+                      month: "space-y-4 w-full",
+                      caption: "flex justify-center pt-1 relative items-center text-base font-medium mb-4",
+                      caption_label: "text-base font-medium",
+                      nav: "space-x-2 flex items-center",
+                      nav_button: "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 hover:bg-gray-100 rounded",
+                      table: "w-full border-collapse space-y-1",
+                      head_row: "flex w-full mb-2",
+                      head_cell: "text-gray-500 rounded-md w-12 font-normal text-sm text-center flex-1 py-2",
+                      row: "flex w-full mt-2",
+                      cell: "text-center text-sm p-0 relative flex-1 [&:has([aria-selected])]:bg-emerald-50 rounded-md",
+                      day: "h-12 w-12 p-0 font-normal text-sm hover:bg-gray-100 rounded-md mx-auto transition-colors",
+                      day_selected: " hover:bg-gray-50 text-emerald-900 font-medium",
+                      day_today: "bg-gray-50 text-gray-900 font-medium",
+                      day_outside: "text-gray-400 opacity-10",
+                      day_disabled: "text-gray-400 opacity-50 cursor-not-allowed",
+                      day_range_middle: "aria-selected:bg-emerald-50 aria-selected:text-emerald-900",
+                      day_hidden: "invisible",
                     }}
                   />
                 </div>
+              </div>
 
-                {/* Available Time Slots */}
-                <div className="w-full xl:w-40 2xl:w-48">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Available Time Slots</h4>
-                  <p className="text-xs text-gray-500 mb-3 sm:mb-4">
-                    {selectedDate ? selectedDate.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric'
-                    }) : "Today"}
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-2">
+              {/* Available Time Slots - Now Below Calendar */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Available Time Slots</h4>
+                <p className="text-xs text-gray-500 mb-4">
+                  {selectedDate ? selectedDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  }) : "Today"}
+                </p>
+                
+                {timeSlots.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
                     {timeSlots.map((slot) => (
                       <Button
                         key={slot}
                         variant={selectedTime === slot ? "default" : "outline"}
                         onClick={() => setSelectedTime(slot)}
                         size="sm"
-                        className={`text-xs h-8 sm:h-9 ${selectedTime === slot
-                          ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                          : "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
+                        className={`text-xs h-9 transition-all duration-200 ${selectedTime === slot
+                          ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md scale-105"
+                          : "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
                           }`}
                       >
                         {slot}
                       </Button>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No available time slots for the selected date.</p>
+                )}
               </div>
 
               {/* Confirm Button */}
-              <div className="mt-6 sm:mt-8">
+              <div className="border-t pt-6">
                 <Button
                   disabled={!selectedDate || !selectedTime}
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-medium h-10 sm:h-11 px-6 sm:px-8 text-sm sm:text-base"
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium h-11 px-8 text-base transition-all duration-200 hover:shadow-lg"
                   onClick={() => {
                     alert(
                       `✅ Appointment confirmed with ${provider.name} on ${selectedDate!.toLocaleDateString('en-US', {
@@ -245,7 +255,10 @@ export default function BookingPage() {
                     );
                   }}
                 >
-                  Confirm Appointment
+                  {!selectedDate || !selectedTime 
+                    ? "Please select date and time" 
+                    : "Confirm Appointment"
+                  }
                 </Button>
               </div>
             </div>
