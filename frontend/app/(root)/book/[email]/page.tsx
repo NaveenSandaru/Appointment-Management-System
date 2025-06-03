@@ -5,91 +5,105 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
-
-// Mock provider data
-const mockProviders = [
-  {
-    email: "john@dental.com",
-    name: "Dr. John Doe",
-    company_name: "Athurugiriya Dental Clinic",
-    service_type: "Dental Care",
-    specialty: "General Dentistry",
-    company_address: "123 Main St, City",
-    profile_picture: "https://randomuser.me/api/portraits/men/32.jpg",
-    appointment_price: "$40",
-    appointment_duration: 30,
-    work_days_from: "Monday",
-    work_days_to: "Saturday",
-    work_hours_from: "8:00 a.m",
-    work_hours_to: "7:00 p.m",
-    phone: "(123) 456-7890"
-  },
-  {
-    email: "jane@dental.com",
-    name: "Dr. Jane Doe",
-    company_name: "Maharagama Dental Clinic",
-    service_type: "Dental Care",
-    specialty: "Cosmetic Dentistry",
-    company_address: "No 35, Colombo Rd, Maharagama",
-    profile_picture: "https://randomuser.me/api/portraits/women/44.jpg",
-    appointment_price: "$30",
-    appointment_duration: 45,
-    work_days_from: "Monday",
-    work_days_to: "Saturday",
-    work_hours_from: "8:00 a.m",
-    work_hours_to: "7:00 p.m",
-    phone: "(123) 456-7890"
-  },
-  {
-    email: "emma@dental.com",
-    name: "Dr. Emma Wilson",
-    company_name: "Malabe Dental Clinic",
-    service_type: "Dental Care",
-    specialty: "Orthodontics",
-    company_address: "No 205, Malabe Rd, Malabe",
-    profile_picture: "https://randomuser.me/api/portraits/women/65.jpg",
-    appointment_price: "$30",
-    appointment_duration: 60,
-    work_days_from: "Monday",
-    work_days_to: "Saturday",
-    work_hours_from: "8:00 a.m",
-    work_hours_to: "7:00 p.m",
-    phone: "(123) 456-7890"
-  },
-];
-
-// Simulated fetch function
-const fetchServiceProviders = async (type: string) => {
-  return mockProviders.filter((p) => p.service_type === type);
-};
+import axios from "axios";
 
 export default function BookingPage() {
   const { email } = useParams();
   const decodedEmail = decodeURIComponent(email as string);
   const [provider, setProvider] = useState<any>(null);
+  const [service, setService] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  const timeSlots = [
-    "9:00 AM",
-    "10:00 AM", 
-    "11:00 AM",
-    "2:00 PM",
-    "3:00 PM",
-    "4:00 PM",
-  ];
+  const fetchProvider = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${decodedEmail}`
+      );
+      if (response.data) {
+        setProvider(response.data);
+      }
+    }
+    catch (error: any) {
+      window.alert(error);
+    }
+    finally {
+
+    }
+  }
+
+  const fetchServices = async (service_id: string) => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${service_id}`
+      );
+      if (response.data) {
+        setService(response.data.data);
+      }
+    }
+    catch (err: any) {
+      window.alert(err);
+    }
+    finally {
+
+    }
+  }
+
+  const parseTimeStringToDate = (timeStr: string): Date => {
+    // Format: "1970-01-01T08:00:00.000Z"
+    const [hours, minutes, seconds] = timeStr.slice(11, 19).split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, seconds || 0, 0);
+    return date;
+  };
+
+  const generateTimeSlots = (
+    startISO: string,
+    endISO: string,
+    interval: number
+  ): string[] => {
+    const slots: string[] = [];
+
+    const start = parseTimeStringToDate(startISO);
+    const end = parseTimeStringToDate(endISO);
+
+    while (start < end) {
+      slots.push(
+        start.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
+      );
+      start.setMinutes(start.getMinutes() + interval);
+    }
+
+    return slots;
+  };
+
+  // ✅ Usage
+  const timeSlots = provider
+    ? generateTimeSlots(
+      provider.work_hours_from,
+      provider.work_hours_to,
+      parseInt(provider.appointment_duration)
+    )
+    : [];
+
+
+
 
   useEffect(() => {
-    const loadProvider = async () => {
-      const all = await fetchServiceProviders("Dental Care");
-      const match = all.find((p) => p.email === decodedEmail);
-      setProvider(match || null);
-    };
-
-    loadProvider();
+    fetchProvider();
   }, [decodedEmail]);
 
-  if (!provider) {
+  useEffect(() => {
+    if (provider) {
+      fetchServices(provider.service_type);
+    }
+  }, [provider]);
+
+  if (!provider && !service) {
     return <p className="p-4 text-gray-500">Loading provider...</p>;
   }
 
@@ -103,18 +117,18 @@ export default function BookingPage() {
               <div className="text-center lg:text-left">
                 <div className="flex flex-col sm:flex-row lg:flex-col items-center sm:items-start lg:items-center gap-4 sm:gap-6 lg:gap-3">
                   <img
-                    src={provider.profile_picture}
+                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${provider.profile_picture}`}
                     alt={provider.name}
                     className="w-16 h-16 sm:w-20 sm:h-20 lg:w-20 lg:h-20 rounded-lg object-cover flex-shrink-0"
                   />
                   <div className="flex-1 sm:text-left lg:text-center">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">{provider.name}</h2>
-                    <h4 className="text-emerald-500 text-sm sm:text-base">{provider.service_type}</h4>
-                    <h4 className="text-gray-600 font-semibold text-sm">{provider.specialty}</h4>
-                    <h3 className="text-emerald-600 font-medium text-sm sm:text-base">{provider.company_name}</h3>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 capitalize">{provider.name}</h2>
+                    <h4 className="text-emerald-500 text-sm sm:text-base capitalize">{service?.service}</h4>
+                    <h4 className="text-gray-600 font-semibold text-sm capitalize">{provider.specialization}</h4>
+                    <h3 className="text-emerald-600 font-medium text-sm sm:text-base capitalize">{provider.company_name}</h3>
                   </div>
                 </div>
-                
+
                 <div className="text-sm text-gray-600 space-y-3 mt-4 sm:mt-6 text-center">
                   <div className="pt-3 border-t border-gray-200">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 lg:gap-3">
@@ -124,25 +138,25 @@ export default function BookingPage() {
                           {provider.company_address}
                         </div>
                       </div>
-                      
+
                       <div>
                         <div className="font-medium text-gray-700 mb-1">Call Us:</div>
                         <div className="font-medium text-gray-800 text-sm">
-                          {provider.phone}
+                          {provider.company_phone_number}
                         </div>
                       </div>
-                      
+
                       <div>
                         <div className="font-medium text-gray-700 mb-1">Price:</div>
                         <div className="text-emerald-600 font-semibold">
-                          {provider.appointment_price}
+                          ${provider.appointment_fee}
                         </div>
                       </div>
-                      
+
                       <div>
                         <div className="font-medium text-gray-700 mb-1">Duration:</div>
                         <div className="text-gray-600">
-                          {provider.appointment_duration} minutes
+                          {provider.appointment_duration}
                         </div>
                       </div>
                     </div>
@@ -190,10 +204,10 @@ export default function BookingPage() {
                 <div className="w-full xl:w-40 2xl:w-48">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Available Time Slots</h4>
                   <p className="text-xs text-gray-500 mb-3 sm:mb-4">
-                    {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      month: 'short', 
-                      day: 'numeric' 
+                    {selectedDate ? selectedDate.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric'
                     }) : "Today"}
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-2">
@@ -203,11 +217,10 @@ export default function BookingPage() {
                         variant={selectedTime === slot ? "default" : "outline"}
                         onClick={() => setSelectedTime(slot)}
                         size="sm"
-                        className={`text-xs h-8 sm:h-9 ${
-                          selectedTime === slot 
-                            ? "bg-emerald-500 hover:bg-emerald-600 text-white" 
-                            : "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
-                        }`}
+                        className={`text-xs h-8 sm:h-9 ${selectedTime === slot
+                          ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                          : "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
+                          }`}
                       >
                         {slot}
                       </Button>
@@ -223,11 +236,11 @@ export default function BookingPage() {
                   className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-medium h-10 sm:h-11 px-6 sm:px-8 text-sm sm:text-base"
                   onClick={() => {
                     alert(
-                      `✅ Appointment confirmed with ${provider.name} on ${selectedDate!.toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
+                      `✅ Appointment confirmed with ${provider.name} on ${selectedDate!.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
                       })} at ${selectedTime} for ${provider.appointment_duration} minutes.`
                     );
                   }}
