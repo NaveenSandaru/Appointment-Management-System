@@ -1,19 +1,22 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
+import { AuthContext } from '@/context/auth-context';
 import axios from "axios";
 
 export default function BookingPage() {
+  const { user } = useContext(AuthContext);
   const { email } = useParams();
   const decodedEmail = decodeURIComponent(email as string);
   const [provider, setProvider] = useState<any>(null);
   const [service, setService] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [note, setNote] = useState('');
 
   const fetchProvider = async () => {
     try {
@@ -49,6 +52,19 @@ export default function BookingPage() {
     }
   }
 
+  const handleConfirmBooking = async() =>{
+    window.alert(`${selectedDate}, ${selectedTime}, ${provider.email}, ${user.email}`);
+    try{
+
+    }
+    catch(err: any){
+
+    }
+    finally{
+      
+    }
+  }
+
   const parseTimeStringToDate = (timeStr: string): Date => {
     // Format: "1970-01-01T08:00:00.000Z"
     const [hours, minutes, seconds] = timeStr.slice(11, 19).split(':').map(Number);
@@ -81,7 +97,6 @@ export default function BookingPage() {
     return slots;
   };
 
-  // ✅ Usage
   const timeSlots = provider
     ? generateTimeSlots(
       provider.work_hours_from,
@@ -89,9 +104,6 @@ export default function BookingPage() {
       parseInt(provider.appointment_duration)
     )
     : [];
-
-
-
 
   useEffect(() => {
     fetchProvider();
@@ -234,16 +246,7 @@ export default function BookingPage() {
                 <Button
                   disabled={!selectedDate || !selectedTime}
                   className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-medium h-10 sm:h-11 px-6 sm:px-8 text-sm sm:text-base"
-                  onClick={() => {
-                    alert(
-                      `✅ Appointment confirmed with ${provider.name} on ${selectedDate!.toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })} at ${selectedTime} for ${provider.appointment_duration} minutes.`
-                    );
-                  }}
+                  onClick={handleConfirmBooking}
                 >
                   Confirm Appointment
                 </Button>
