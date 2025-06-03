@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import {authenticateToken} from './../middleware/authentication.js'
+import { authenticateToken } from './../middleware/authentication.js'
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -83,7 +83,7 @@ router.post('/', async (req, res) => {
 
 // Update a client
 router.put('/', /*authenticateToken*/ async (req, res) => {
-  const { email, profile_picture: newProfilePicture } = req.body;
+  const { email, profile_picture: newProfilePicture, password: rawPassword, ...rest } = req.body;
 
   try {
     // Step 1: Get existing client
@@ -112,10 +112,17 @@ router.put('/', /*authenticateToken*/ async (req, res) => {
       }
     }
 
-    // Step 3: Update the client
+    // Step 3: Prepare update data
+    const updateData = {
+      ...rest,
+      ...(newProfilePicture && { profile_picture: newProfilePicture }),
+      ...(rawPassword && { password: await bcrypt.hash(rawPassword, 10) }),
+    };
+
+    // Step 4: Update the client
     const updatedClient = await prisma.clients.update({
       where: { email },
-      data: req.body,
+      data: updateData,
     });
 
     res.json(updatedClient);
@@ -127,8 +134,6 @@ router.put('/', /*authenticateToken*/ async (req, res) => {
     }
   }
 });
-
-
 
 // DELETE client and profile picture
 router.delete('/', /*authenticateToken*/ async (req, res) => {
