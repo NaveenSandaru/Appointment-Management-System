@@ -183,7 +183,7 @@ export default function Home() {
 
         </div>
 
-        {/* Recent Bookings */}
+     {/* Recent Bookings */}
         <div>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Recent Bookings</h2>
@@ -191,36 +191,47 @@ export default function Home() {
           </div>
           <Card>
             <CardContent className="p-0">
-              {retrievedAppointments && retrievedAppointments.length > 0 ? (
-                <Card>
-                  <CardContent className="p-0">
-                    {isLoadingAppointments ? (
-                      <p className="text-gray-500">Loading bookings...</p>
-                    ) : retrievedAppointments && retrievedAppointments.length > 0 ? (
-                      retrievedAppointments.map((appointment) => (
-                        <BookingCard
-                          key={appointment.appointment_id}
-                          appointmentId={appointment.appointment_id}
-                          serviceProviderEmail={appointment.service_provider_email}
-                          date={appointment.date}
-                          timeFrom={appointment.time_from}
-                          timeTo={appointment.time_to}
-                          note={appointment.note}
-                          providerName={appointment.providerName || "Unknown"}
-                          providerAvatar={appointment.providerAvatar || ""}
-                          serviceName={appointment.serviceName || "Unknown"}
-                        />
-                      ))
-                    ) : (
-                      <p className="text-gray-500 p-4 ">No recent bookings.</p>
-                    )}
-                  </CardContent>
-                </Card>
-
+              {isLoadingAppointments ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading bookings...</p>
+                  </div>
+                </div>
+              ) : retrievedAppointments && retrievedAppointments.length > 0 ? (
+                retrievedAppointments.map((appointment) => (
+                  <BookingCard
+                    key={appointment.appointment_id}
+                    appointmentId={appointment.appointment_id}
+                    serviceProviderEmail={appointment.service_provider_email}
+                    date={appointment.date}
+                    timeFrom={appointment.time_from}
+                    timeTo={appointment.time_to}
+                    note={appointment.note}
+                    providerName={appointment.providerName || "Unknown"}
+                    providerAvatar={appointment.providerAvatar || ""}
+                    serviceName={appointment.serviceName || "Unknown"}
+                  />
+                ))
               ) : (
-                <p className="text-gray-500">No recent bookings.</p>
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                  {/* Calendar Icon */}
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  
+                  {/* Message */}
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No recent bookings</h3>
+                  <p className="text-gray-500 mb-6 max-w-sm">
+                    You haven't booked any services yet. Explore our featured services to get started.
+                  </p>
+                  
+                  {/* Call-to-action Button */}
+                 
+                </div>
               )}
-
             </CardContent>
           </Card>
         </div>
