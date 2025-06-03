@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,6 +61,10 @@ export default function BookingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
 
+  const bookedDates = useMemo(() => {
+    return currentAppointments.map(app => new Date(app.date));
+  }, [currentAppointments]);
+
   const fetchProvider = async () => {
     try {
       setIsLoading(true);
@@ -103,7 +107,6 @@ export default function BookingPage() {
 
   const fetchCurrentAppointments = async () => {
     try {
-      if (!provider) return;
       setIsLoading(true);
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/sprovider/${provider.email}`,
@@ -125,26 +128,38 @@ export default function BookingPage() {
   const pad = (n: number) => n.toString().padStart(2, '0');
 
   const isTimeSlotAvailable = (date: Date, timeSlot: string): boolean => {
-    if (!currentAppointments || !provider) return true;
+    if (!currentAppointments.length || !provider) return true;
+
+    // Get UTC date string for comparison (YYYY-MM-DD)
+    const selectedDateStr = date.toISOString().split('T')[0];
 
     const [hours, minutes] = timeSlot.split(':').map(Number);
-    const appointmentStart = new Date(date);
-    appointmentStart.setHours(hours, minutes, 0, 0);
+    const slotStart = new Date(date);
+    slotStart.setHours(hours, minutes, 0, 0);
 
-    const appointmentEnd = new Date(appointmentStart);
+    const slotEnd = new Date(slotStart);
     const durationMatch = provider.appointment_duration.match(/\d+/);
     const durationInMinutes = durationMatch ? parseInt(durationMatch[0]) : 0;
-    appointmentEnd.setMinutes(appointmentEnd.getMinutes() + durationInMinutes);
+    slotEnd.setMinutes(slotEnd.getMinutes() + durationInMinutes);
 
-    return !currentAppointments.some((appointment: Appointment) => {
-      const existingStart = new Date(appointment.time_from);
-      const existingEnd = new Date(appointment.time_to);
+    return !currentAppointments.some(app => {
+      // Compare UTC dates (YYYY-MM-DD)
+      const appDateStr = new Date(app.date).toISOString().split('T')[0];
+      if (appDateStr !== selectedDateStr) return false;
 
-      return (
-        appointmentStart < existingEnd &&
-        appointmentEnd > existingStart &&
-        date.toDateString() === new Date(appointment.date).toDateString()
-      );
+      // Get existing appointment times (UTC hours/minutes)
+      const appStart = new Date(app.time_from);
+      const appEnd = new Date(app.time_to);
+
+      // Create comparable dates using selected date
+      const appStartTime = new Date(date);
+      appStartTime.setHours(appStart.getUTCHours(), appStart.getUTCMinutes());
+
+      const appEndTime = new Date(date);
+      appEndTime.setHours(appEnd.getUTCHours(), appEnd.getUTCMinutes());
+
+      // Check for time overlap
+      return slotStart < appEndTime && slotEnd > appStartTime;
     });
   };
 
@@ -189,31 +204,31 @@ export default function BookingPage() {
       setIsLoading(true);
       const date = new Date(selectedDate!);
       const [hours, minutes] = selectedTime!.split(':').map(Number);
-  
+
       const year = pad(date.getFullYear());
       const month = pad(date.getMonth() + 1);
       const day = pad(date.getDate());
       const hh = pad(hours);
       const mm = pad(minutes);
       const ss = '00';
-  
+
       const dateStr = `${year}-${month}-${day}T00:00:00.000Z`;
       const timeFromStr = `${year}-${month}-${day}T${hh}:${mm}:${ss}.000Z`;
-  
+
       const durationMatch = provider!.appointment_duration.match(/\d+/);
       const durationInMinutes = durationMatch ? parseInt(durationMatch[0]) : 0;
-  
+
       if (durationInMinutes === 0) {
         toast.error("Invalid Duration", {
           description: "Invalid appointment duration. Please contact support."
         });
         return;
       }
-  
+
       const timeTo = new Date(`${timeFromStr}`);
       timeTo.setUTCMinutes(timeTo.getUTCMinutes() + durationInMinutes);
       const timeToStr = `${year}-${month}-${day}T${pad(timeTo.getUTCHours())}:${pad(timeTo.getUTCMinutes())}:${ss}.000Z`;
-  
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
         {
@@ -225,7 +240,7 @@ export default function BookingPage() {
           note
         }
       );
-  
+
       if (response.status === 201) {
         toast.success("Success", {
           description: "Your appointment has been booked successfully!"
@@ -296,6 +311,12 @@ export default function BookingPage() {
       fetchCurrentAppointments();
     }
   }, [provider]);
+
+  useEffect(() => {
+    if (currentAppointments) {
+      console.log(currentAppointments);
+    }
+  }, [currentAppointments]);
 
   if (!provider && !service) {
     return <p className="p-4 text-gray-500">Loading provider...</p>;
@@ -374,6 +395,10 @@ export default function BookingPage() {
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
+                      modifiers={{ booked: bookedDates }}
+                      modifiersClassNames={{
+                        booked: "relative after:content-[''] after:block after:w-1.5 after:h-1.5 after:rounded-full after:bg-red-500 after:mx-auto after:mt-0.5"
+                      }}
                       className="w-full mx-auto"
                       classNames={{
                         months: "flex w-full justify-center",
@@ -409,20 +434,27 @@ export default function BookingPage() {
                       </p>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                      {timeSlots.map((slot) => (
-                        <Button
-                          key={slot}
-                          variant={selectedTime === slot ? "default" : "outline"}
-                          onClick={() => setSelectedTime(slot)}
-                          size="sm"
-                          className={`text-sm h-10 ${selectedTime === slot
-                            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                            : "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
-                            }`}
-                        >
-                          {slot}
-                        </Button>
-                      ))}
+                      {timeSlots.map((slot) => {
+                        const isAvailable = isTimeSlotAvailable(selectedDate!, slot);
+                        return (
+                          <Button
+                            key={slot}
+                            variant={selectedTime === slot ? "default" : "outline"}
+                            onClick={() => isAvailable && setSelectedTime(slot)}
+                            size="sm"
+                            disabled={!isAvailable}
+                            className={`text-sm h-10 ${selectedTime === slot
+                                ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                : isAvailable
+                                  ? "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
+                                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              }`}
+                          >
+                            {slot}
+                          </Button>
+                        );
+                      })}
+
                     </div>
                   </div>
 
@@ -457,7 +489,7 @@ export default function BookingPage() {
             />
           </div>
           <DialogFooter className="flex justify-end space-x-2">
-           
+
             <Button
               onClick={() => handleNoteSubmit(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
