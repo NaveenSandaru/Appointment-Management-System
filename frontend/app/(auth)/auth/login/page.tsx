@@ -72,7 +72,7 @@ export default function LoginPage() {
         toast.success("Login Successful", {
           description: "Logged in as a service provider"
         });
-        router.push("/sp");
+        router.push("/serviceproviderdashboard");
       }
       else {
         console.log(response.data.error)
