@@ -41,6 +41,19 @@ router.get('/sprovider/:email', /*authenticateToken*/ async (req, res) => {
   }
 });
 
+// Get a service provider by service_type
+router.get('/by_type/:service_type', /*authenticateToken*/ async (req, res) => {
+  const { service_type } = req.params;
+  try {
+    const providers = await prisma.service_providers.findMany({ where: { service_type } });
+    if (!providers) return res.status(404).json({ error: 'Service providers not found' });
+    res.json(providers);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create a new service provider
 router.post('/', async (req, res) => {
   let {

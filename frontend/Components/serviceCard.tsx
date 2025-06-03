@@ -57,7 +57,7 @@ export function ServiceCard({
 
   // Handle button click
   const handleBookNow = () => {
-    const encodedService = encodeURIComponent(service); // handle spaces
+    const encodedService = encodeURIComponent(serviceId); // handle spaces
     router.push(`/serviceprovider/${encodedService}`);
   }
 
