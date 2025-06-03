@@ -7,6 +7,8 @@ import { Filter, Search, MapPin, Clock, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { AuthContext } from '@/context/auth-context';
+import { toast } from "sonner";
+
 
 interface ServiceProviderPageProps {
   params: Promise<{ service_type: string }>;
@@ -37,7 +39,9 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
       }
     }
     catch (error: any) {
-      window.alert(error.message)
+      toast.error("Failed to load providers", {
+        description: error.message
+      });
     }
     finally {
       setLoading(false);
@@ -65,7 +69,9 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
 
   const handleBookAppointment = (provider: any) => {
     if(!isLoggedIn){
-      window.alert("Please log in to book an appointment");
+      toast.error("Authentication Required", {
+        description: "Please log in to book an appointment"
+      });
       return;
     }
     router.push(`/book/${encodeURIComponent(provider.email)}`);

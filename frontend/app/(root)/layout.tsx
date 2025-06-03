@@ -9,7 +9,7 @@ import Footer from "@/components/footer"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Registration Process",
+  title: "Appointment Booking System",
   description: "Multi-step registration form",
 }
 
