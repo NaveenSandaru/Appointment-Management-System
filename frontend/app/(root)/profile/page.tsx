@@ -6,6 +6,7 @@ import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
 import { toast } from 'sonner';
 import { Button } from "@/Components/ui/button";
+import { useRouter } from "next/navigation";
 
 interface ClientData {
   email: string;
@@ -26,6 +27,7 @@ const ProfilePage = () => {
     newProfilePicture: null as File | null,
     newProfilePicturePreview: '' as string
   });
+  const router = useRouter();
 
   useEffect(() => {
     fetchClientData();
@@ -157,6 +159,12 @@ const ProfilePage = () => {
       toast.error("Failed to update profile", {
         description: error.response?.data?.error || "An error occurred"
       });
+    }
+  };
+
+  const handleChangePassword = () => {
+    if (clientData?.email) {
+      router.push(`/changepassword?email=${encodeURIComponent(clientData.email)}`);
     }
   };
 
@@ -347,7 +355,10 @@ const ProfilePage = () => {
           <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Password</h2>
-              <button className="text-sm text-teal-600 hover:text-teal-700 font-medium">
+              <button 
+                onClick={handleChangePassword}
+                className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+              >
                 Change Password
               </button>
             </div>
