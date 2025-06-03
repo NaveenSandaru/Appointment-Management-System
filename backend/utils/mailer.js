@@ -32,4 +32,21 @@ const sendVerificationCode = async (email, code) => {
     }
 };
 
-export {sendVerificationCode};
+const sendAppointmentConfirmation = async (email, date, start_time) => {
+    const mailOptions = {
+        from: `"Global Pearl Ventures" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Appointment Confirmation Notice',
+        text: `Dear user,\n\nPlease acknowledge that, your booking is confirmed\n\nDate: ${date}\nTime: ${start_time}`,
+    };
+    try {
+        // Send the email
+        const info = await transporter.sendMail(mailOptions);
+        return info;
+    } catch (error) {
+        console.error(`Error sending verification email to ${email}:`, error);
+        throw new Error(`Failed to send verification email: ${error.message}`);
+    }
+}
+
+export {sendVerificationCode, sendAppointmentConfirmation};
