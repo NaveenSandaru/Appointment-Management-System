@@ -28,8 +28,8 @@ router.get('/appointment', /*authenticateToken*/ async (req, res) => {
 });
 
 // Get appointment by service provider email
-router.get('/sprovider', /*authenticateToken*/ async (req, res) => {
-  const { service_provider_email } = req.body;
+router.get('/sprovider/:service_provider_email', /*authenticateToken*/ async (req, res) => {
+  const { service_provider_email } = req.params;
   try {
     const appointment = await prisma.appointments.findMany({ where: { service_provider_email } });
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
@@ -78,6 +78,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
     });
     res.status(201).json(appointment);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 });

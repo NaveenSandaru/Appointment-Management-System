@@ -17,6 +17,7 @@ export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const [currentAppointments, setCurrentAppointments] = useState<any>(null);
 
   const fetchProvider = async () => {
     try {
@@ -52,19 +53,80 @@ export default function BookingPage() {
     }
   }
 
-  const handleConfirmBooking = async() =>{
-    window.alert(`${selectedDate}, ${selectedTime}, ${provider.email}, ${user.email}`);
+  const fetchCurrentAppointments = async () =>{
     try{
-
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/sprovider/${provider.email}`,
+      );
+      if(response.data){
+        setCurrentAppointments(response.data);
+      }
     }
     catch(err: any){
-
+      window.alert(err);
     }
     finally{
-      
+
     }
   }
 
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const handleConfirmBooking = async () => {
+    if (!selectedDate || !selectedTime || !provider.email || !user.email) {
+      window.alert("Missing required booking information.");
+      return;
+    }
+  
+    try {
+      const date = new Date(selectedDate);
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+  
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1); // JS months are 0-indexed
+      const day = pad(date.getDate());
+      const hh = pad(hours);
+      const mm = pad(minutes);
+      const ss = '00';
+  
+      // Full ISO string with Z so Prisma accepts it as valid DateTime
+      const dateStr = `${year}-${month}-${day}T00:00:00.000Z`;
+  
+      const timeFromStr = `${year}-${month}-${day}T${hh}:${mm}:${ss}.000Z`;
+  
+      const durationMatch = provider.appointment_duration.match(/\d+/);
+      const durationInMinutes = durationMatch ? parseInt(durationMatch[0]) : 0;
+  
+      if (durationInMinutes === 0) {
+        window.alert("Invalid appointment duration");
+        return;
+      }
+  
+      const timeTo = new Date(`${timeFromStr}`);
+      timeTo.setUTCMinutes(timeTo.getUTCMinutes() + durationInMinutes);
+      const timeToStr = `${year}-${month}-${day}T${pad(timeTo.getUTCHours())}:${pad(timeTo.getUTCMinutes())}:${ss}.000Z`;
+  
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
+        {
+          client_email: user.email,
+          service_provider_email: provider.email,
+          date: dateStr,              // ISO string with Z
+          time_from: timeFromStr,     // ISO time with Z
+          time_to: timeToStr,         // ISO time with Z
+          note
+        }
+      );
+  
+      if (response.status === 201) {
+        window.alert("Booking confirmed!");
+      } else {
+        throw new Error(response.data.error);
+      }
+    } catch (err: any) {
+      window.alert(err.message || "An error occurred during booking.");
+    }
+  };
+  
   const parseTimeStringToDate = (timeStr: string): Date => {
     // Format: "1970-01-01T08:00:00.000Z"
     const [hours, minutes, seconds] = timeStr.slice(11, 19).split(':').map(Number);
@@ -112,6 +174,7 @@ export default function BookingPage() {
   useEffect(() => {
     if (provider) {
       fetchServices(provider.service_type);
+      fetchCurrentAppointments();
     }
   }, [provider]);
 
