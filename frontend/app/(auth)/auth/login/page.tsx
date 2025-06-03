@@ -90,6 +90,16 @@ export default function LoginPage() {
     }
   }
 
+  const handleForgotPassword = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!email.trim()) {
+      e.preventDefault();
+      toast.error("Email Required", {
+        description: "Please enter your email address before resetting the password."
+      });
+      return;
+    }
+  };
+
   if (isPageLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -160,7 +170,11 @@ export default function LoginPage() {
                 Remember me
               </Label>
             </div>
-            <Link href="#" className="text-sm text-[#12D598] hover:text-[#0eb882]">
+            <Link 
+              href={`/auth/forgotpassword?email=${encodeURIComponent(email)}`} 
+              className="text-sm text-[#12D598] hover:text-[#0eb882]"
+              onClick={handleForgotPassword}
+            >
               Forgot Password?
             </Link>
           </div>
