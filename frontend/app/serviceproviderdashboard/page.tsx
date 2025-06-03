@@ -197,7 +197,7 @@ export default function BeautyProDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+      {/* Sidebar 
       <div className="w-64 bg-white shadow-lg">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-indigo-600">BeautyPro</h1>
@@ -241,7 +241,7 @@ export default function BeautyProDashboard() {
             Logout
           </Button>
         </div>
-      </div>
+      </div>*/}
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
