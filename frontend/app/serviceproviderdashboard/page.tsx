@@ -21,17 +21,18 @@ import {
   LogOut,
   Gauge
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Badge } from '@/Components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/Components/ui/dialog';
+import { Label } from '@/Components/ui/label';
+import { Textarea } from '@/Components/ui/textarea';
+import { Checkbox } from '@/Components/ui/checkbox';
+import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
+import { toast } from 'sonner';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
 
@@ -50,7 +51,6 @@ interface Appointment {
   clientImageUrl?: string;
 }
 
-
 export default function ServiceProDashboard() {
   const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('today');
@@ -62,7 +62,7 @@ export default function ServiceProDashboard() {
   const [blockReason, setBlockReason] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
 
-  const [fetchedAppointments, setFetchedAppointments] = useState([]);
+  const [fetchedAppointments, setFetchedAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchAppointments = async () => {
@@ -75,11 +75,15 @@ export default function ServiceProDashboard() {
         setFetchedAppointments(response.data);
       }
       else {
-        throw new Error("Error fetching appointments");
+        toast.error("Error fetching appointments", {
+          description: "Could not fetch your appointments. Please try again."
+        });
       }
     }
     catch (err: any) {
-      window.alert(err.message);
+      toast.error("Error fetching appointments", {
+        description: err.message || "An error occurred while fetching appointments"
+      });
     }
     finally {
       setIsLoading(false);
@@ -107,15 +111,14 @@ export default function ServiceProDashboard() {
 
   // Filter appointments based on criteria
   const filteredAppointments = fetchedAppointments.filter(appointment => {
-    const today = '2025-06-03';
     let tabFilter = true;
 
     if (activeTab === 'today') {
-      tabFilter = appointment.date === today;
+      tabFilter = appointment.date === selectedDate;
     } else if (activeTab === 'upcoming') {
-      tabFilter = appointment.date > today;
+      tabFilter = appointment.date > selectedDate;
     } else if (activeTab === 'past') {
-      tabFilter = appointment.date < today;
+      tabFilter = appointment.date < selectedDate;
     }
 
     const searchFilter = searchQuery ?
@@ -131,9 +134,9 @@ export default function ServiceProDashboard() {
 
   // Statistics
   const stats = {
-    totalToday: fetchedAppointments.filter(a => a.date === '2025-06-03').length,
-    totalUpcoming: fetchedAppointments.filter(a => a.date > '2025-06-03').length,
-    totalPast: fetchedAppointments.filter(a => a.date < '2025-06-03').length,
+    selectedDateTotal: selectedDateAppointments.length,
+    totalUpcoming: fetchedAppointments.filter(a => a.date > selectedDate).length,
+    totalPast: fetchedAppointments.filter(a => a.date < selectedDate).length,
     totalAppointments: fetchedAppointments.length
   };
 
@@ -150,16 +153,31 @@ export default function ServiceProDashboard() {
   };
 
   const handleAppointmentCancel = async (appointment_id: string) => {
-    const response = await axios.delete(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
-    );
-    if (response.data.message == "Appointment deleted") {
-      window.alert("Appointment deleted");
+    try {
+      const response = await axios.delete(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
+      );
+      
+      if (response.data.message === "Appointment deleted") {
+        // Remove the cancelled appointment from the state
+        setFetchedAppointments(prevAppointments => 
+          prevAppointments.filter(apt => apt.appointment_id !== appointment_id)
+        );
+        
+        toast.success("Appointment cancelled", {
+          description: "The appointment has been successfully cancelled"
+        });
+      } else {
+        toast.error("Error cancelling appointment", {
+          description: "Could not cancel the appointment. Please try again."
+        });
+      }
+    } catch (error: any) {
+      toast.error("Error cancelling appointment", {
+        description: error.message || "An error occurred while cancelling the appointment"
+      });
     }
-    else {
-      window.alert("Error");
-    }
-  }
+  };
 
   useEffect(() => {
     if (user) {
@@ -248,8 +266,8 @@ export default function ServiceProDashboard() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div className='flex flex-col gap-2'>
-                    <CardTitle>Today's Schedule</CardTitle>
-                    <p className='text-xs text-grey-500 '>Today appointments: {stats.totalToday}</p>
+                    <CardTitle>Schedule for {format(new Date(selectedDate), 'MMMM d, yyyy')}</CardTitle>
+                    <p className='text-xs text-grey-500'>Appointments today: {stats.selectedDateTotal}</p>
                   </div>
                   <Dialog open={isBlockTimeModalOpen} onOpenChange={setIsBlockTimeModalOpen}>
                     <DialogTrigger asChild>
