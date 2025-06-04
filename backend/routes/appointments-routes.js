@@ -46,7 +46,7 @@ router.get('/sprovider/:service_provider_email', async (req, res) => {
     });
 
     if (!appointments || appointments.length === 0) {
-      return res.status(404).json({ error: 'No appointments found' });
+      return res.status(205).json({ error: 'No appointments found' });
     }
 
     // Enrich response with clientName and clientImageUrl

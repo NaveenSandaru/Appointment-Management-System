@@ -27,7 +27,7 @@ const ServiceproviderHeader = () => {
         setPictureURL(`${process.env.NEXT_PUBLIC_BACKEND_URL}${response.data.profile_picture}`);
       }
       else{
-        throw new Error("Error fetching picture");
+        
       }
     }
     catch(err: any){
