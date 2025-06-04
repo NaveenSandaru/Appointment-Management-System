@@ -297,6 +297,13 @@ export default function BookingPage() {
     return 'available';
   };
 
+   const handleNoteSubmit = async (shouldBook: boolean) => {
+    setIsNoteDialogOpen(false);
+    if (shouldBook) {
+      await processBooking();
+    }
+  };
+
   const handleConfirmBooking = () => {
     if (!selectedDate || !selectedTime || !provider?.email || !user?.email) {
       toast.error("Missing Information", {
@@ -304,6 +311,8 @@ export default function BookingPage() {
       });
       return;
     }
+
+   
 
     // Check if selected date is in the past
     const now = new Date();
