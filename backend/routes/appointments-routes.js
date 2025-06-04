@@ -78,7 +78,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
       }
     });
    
-    sendAppointmentConfirmation(client_email, date, timeOnly);
+    sendAppointmentConfirmation(client_email, date, time_from);
     res.status(201).json(appointment);
   } catch (err) {
     console.log(err);
