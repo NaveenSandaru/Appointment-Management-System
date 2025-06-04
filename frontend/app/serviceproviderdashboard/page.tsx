@@ -2,17 +2,17 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  CheckCircle, 
-  XCircle, 
-  Bell, 
-  Mail, 
-  Settings, 
-  BarChart3, 
-  Scissors, 
+import {
+  Calendar,
+  Clock,
+  Users,
+  CheckCircle,
+  XCircle,
+  Bell,
+  Mail,
+  Settings,
+  BarChart3,
+  Scissors,
   Plus,
   Search,
   Eye,
@@ -67,21 +67,21 @@ export default function ServiceProDashboard() {
 
   const fetchAppointments = async () => {
     setIsLoading(true);
-    try{
+    try {
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/sprovider/${user.email}`
       );
-      if(response.data){
+      if (response.data) {
         setFetchedAppointments(response.data);
       }
-      else{
+      else {
         throw new Error("Error fetching appointments");
       }
     }
-    catch(err: any){
+    catch (err: any) {
       window.alert(err.message);
     }
-    finally{
+    finally {
       setIsLoading(false);
     }
   }
@@ -109,7 +109,7 @@ export default function ServiceProDashboard() {
   const filteredAppointments = fetchedAppointments.filter(appointment => {
     const today = '2025-06-03';
     let tabFilter = true;
-    
+
     if (activeTab === 'today') {
       tabFilter = appointment.date === today;
     } else if (activeTab === 'upcoming') {
@@ -118,10 +118,10 @@ export default function ServiceProDashboard() {
       tabFilter = appointment.date < today;
     }
 
-    const searchFilter = searchQuery ? 
+    const searchFilter = searchQuery ?
       (appointment.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.serviceName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.client_email.toLowerCase().includes(searchQuery.toLowerCase())) : true;
+        appointment.serviceName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appointment.client_email.toLowerCase().includes(searchQuery.toLowerCase())) : true;
 
     return tabFilter && searchFilter;
   });
@@ -149,9 +149,23 @@ export default function ServiceProDashboard() {
     setIsBlockTimeModalOpen(false);
   };
 
-  useEffect(()=>{
-    fetchAppointments();
-  },[])
+  const handleAppointmentCancel = async (appointment_id: string) => {
+    const response = await axios.delete(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
+    );
+    if (response.data.message == "Appointment deleted") {
+      window.alert("Appointment deleted");
+    }
+    else {
+      window.alert("Error");
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      fetchAppointments();
+    }
+  }, [user])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -159,7 +173,7 @@ export default function ServiceProDashboard() {
       <div className="flex-1">
         {/* Dashboard Content */}
         <div className="p-6">
-          
+
 
           {/* Schedule and Calendar Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -179,10 +193,10 @@ export default function ServiceProDashboard() {
               <CardContent>
                 <div className="overflow-y-auto max-h-[calc(100vh-20rem)] space-y-2">
                   {timeSlots.map((timeSlot) => {
-                    const appointment = selectedDateAppointments.find(a => 
+                    const appointment = selectedDateAppointments.find(a =>
                       formatTimeForDisplay(a.time_from) === timeSlot
                     );
-                    
+
                     return (
                       <div key={timeSlot} className="flex">
                         <div className="w-20 py-2 text-sm text-gray-500 flex-shrink-0">
@@ -194,7 +208,16 @@ export default function ServiceProDashboard() {
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center">
                                   <Avatar className="w-8 h-8">
-                                    <AvatarImage src={appointment.clientImageUrl} alt={appointment.clientName} />
+                                    <AvatarImage
+                                      src={
+                                        appointment.clientImageUrl?.startsWith('/uploads')
+                                          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
+                                          : appointment.clientImageUrl
+                                      }
+                                      alt={appointment.clientName}
+                                      className="w-full h-full object-cover"
+                                    />
+
                                     <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
                                   </Avatar>
                                   <div className="ml-3">
@@ -225,8 +248,8 @@ export default function ServiceProDashboard() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div className='flex flex-col gap-2'>
-                  <CardTitle>Today's Schedule</CardTitle>
-                  <p className='text-xs text-grey-500 '>Today appointments: {stats.totalToday}</p>
+                    <CardTitle>Today's Schedule</CardTitle>
+                    <p className='text-xs text-grey-500 '>Today appointments: {stats.totalToday}</p>
                   </div>
                   <Dialog open={isBlockTimeModalOpen} onOpenChange={setIsBlockTimeModalOpen}>
                     <DialogTrigger asChild>
@@ -305,27 +328,36 @@ export default function ServiceProDashboard() {
                   {selectedDateAppointments
                     .sort((a, b) => a.time_from.localeCompare(b.time_from))
                     .map(appointment => (
-                    <div key={appointment.appointment_id} className="p-3 rounded-lg border-l-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium text-gray-800">
-                            {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
-                          </p>
-                          <p className="text-sm text-gray-600">{appointment.serviceName}</p>
-                          {appointment.Note && (
-                            <p className="text-xs text-gray-500 mt-1">{appointment.Note}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center">
-                          <Avatar className="w-8 h-8 mr-2">
-                            <AvatarImage src={appointment.clientImageUrl} alt={appointment.clientName} />
-                            <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium">{appointment.clientName}</span>
+                      <div key={appointment.appointment_id} className="p-3 rounded-lg border-l-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-gray-800">
+                              {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
+                            </p>
+                            <p className="text-sm text-gray-600">{appointment.serviceName}</p>
+                            {appointment.Note && (
+                              <p className="text-xs text-gray-500 mt-1">{appointment.Note}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center">
+                            <Avatar className="w-8 h-8 mr-2">
+                              <AvatarImage
+                                src={
+                                  appointment.clientImageUrl?.startsWith('/uploads')
+                                    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
+                                    : appointment.clientImageUrl
+                                }
+                                alt={appointment.clientName}
+                                className="w-full h-full object-cover"
+                              />
+
+                              <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-medium">{appointment.clientName}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                   {selectedDateAppointments.length === 0 && (
                     <div className="text-center py-6 text-gray-500">
                       <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-300" />
@@ -391,7 +423,16 @@ export default function ServiceProDashboard() {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <Avatar className="w-10 h-10">
-                                    <AvatarImage src={appointment.clientImageUrl} alt={appointment.clientName} />
+                                    <AvatarImage
+                                      src={
+                                        appointment.clientImageUrl?.startsWith('/uploads')
+                                          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
+                                          : appointment.clientImageUrl
+                                      }
+                                      alt={appointment.clientName}
+                                      className="w-full h-full object-cover"
+                                    />
+
                                     <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
                                   </Avatar>
                                   <div className="ml-4">
@@ -417,8 +458,7 @@ export default function ServiceProDashboard() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div className="flex space-x-2">
-                                  <Button size="sm" variant="outline">
-                                    
+                                  <Button size="sm" variant="outline" onClick={() => { handleAppointmentCancel(appointment.appointment_id) }}>
                                     Cancel
                                   </Button>
                                 </div>

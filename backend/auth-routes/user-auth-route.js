@@ -154,7 +154,7 @@ router.get('/refresh_token', (req, res) => {
                 expiresIn: '15m',
             });
 
-            res.json({ accessToken, user: {email: user.email, name: user.name} });
+            res.json({ accessToken, user: {email: user.email, name: user.name, role: user.role} });
         });
     } catch (err) {
         console.error(err.message);

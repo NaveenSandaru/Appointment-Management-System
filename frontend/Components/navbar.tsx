@@ -152,6 +152,7 @@ export function Navbar() {
                       <AvatarImage
                         src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${profilePath}`}
                         alt={getUserName()}
+                        className="w-full h-full object-cover"
                       />
                       <AvatarFallback className="text-xs">{getUserInitials(getUserName())}</AvatarFallback>
                     </Avatar>

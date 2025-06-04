@@ -97,6 +97,15 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       getAppointments();
+      if(user.role=="sp"){
+        window.location.href = "/serviceproviderdashboard";
+      }
+      else if(user.role == "client"){
+        return;
+      }
+      else{
+        window.alert("Error authenticating user");
+      }
     }
     getFeaturedServices();
   }, [user]);

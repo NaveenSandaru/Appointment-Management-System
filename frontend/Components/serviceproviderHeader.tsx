@@ -1,41 +1,95 @@
 "use client";
-import React from 'react'
+import React, { use, useContext, useEffect, useState } from 'react'
 import { Button } from '@/Components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { Bell, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { AuthContext } from '@/context/auth-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import axios from 'axios';
 
 const ServiceproviderHeader = () => {
+  const {setUser, setAccessToken, user} = useContext(AuthContext);
   const router = useRouter();
+  const [pictureURL, setPictureURL] = useState('');
 
+  const getUserPicture = async () => {
+    try{
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${user.email}`
+      );
+      if(response.data.profile_picture){
+        setPictureURL(`${process.env.NEXT_PUBLIC_BACKEND_URL}${response.data.profile_picture}`);
+      }
+      else{
+        throw new Error("Error fetching picture");
+      }
+    }
+    catch(err: any){
+      window.alert(err);
+    }
+    finally{
+
+    }
+  }
+  
   const handleProfileClick = () => {
     router.push('/profile');
   };
 
-  const handleLogout = () => {
-    // Add your logout logic here
-    router.push('/');
+  const handleLogout = async () => {
+    try{
+      const response = await axios.delete(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`,{
+          withCredentials:true
+        }
+      );
+      if(response.status == 200){
+        setUser(null);
+        setAccessToken("");
+        router.push('/');
+      }
+    }
+    catch(err: any){
+      window.alert("Error logging out");
+    }
+    finally{
+
+    }
   };
+
+  useEffect(()=>{
+    if(user){
+      getUserPicture();
+    }
+  },[user])
+
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
     <div className="bg-white shadow-sm w-full">
       <div className="px-6 py-4 flex justify-between items-center max-w-full">
         <div className="flex-shrink-0">
           <h1 className="text-xl font-semibold text-gray-800">Service Provider Dashboard</h1>
-          <p className="text-sm text-gray-500">Tuesday, June 3, 2025</p>
+          <p className="text-sm text-gray-500">{formattedDate}</p>
         </div>
-        <div className="flex items-center space-x-4 flex-shrink-0">        
+        <div className="flex items-center space-x-4 flex-shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src="/api/placeholder/40/40" alt="Profile" />
+                  <AvatarImage src={pictureURL} alt="Profile" />
                   <AvatarFallback>SR</AvatarFallback>
                 </Avatar>
               </Button>

@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import {authenticateToken} from './../middleware/authentication.js'
-import { sendAppointmentConfirmation } from '../utils/mailer.js';
+import { sendAppointmentConfirmation, sendAppointmentCancelation } from '../utils/mailer.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -28,17 +28,41 @@ router.get('/appointment', /*authenticateToken*/ async (req, res) => {
   }
 });
 
-// Get appointment by service provider email
-router.get('/sprovider/:service_provider_email', /*authenticateToken*/ async (req, res) => {
+// Get appointments by service provider email with client info
+router.get('/sprovider/:service_provider_email', async (req, res) => {
   const { service_provider_email } = req.params;
+
   try {
-    const appointment = await prisma.appointments.findMany({ where: { service_provider_email } });
-    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
-    res.json(appointment);
+    const appointments = await prisma.appointments.findMany({
+      where: { service_provider_email },
+      include: {
+        clients: {
+          select: {
+            name: true,
+            profile_picture: true,
+          },
+        },
+      },
+    });
+
+    if (!appointments || appointments.length === 0) {
+      return res.status(404).json({ error: 'No appointments found' });
+    }
+
+    // Enrich response with clientName and clientImageUrl
+    const enriched = appointments.map((appt) => ({
+      ...appt,
+      clientName: appt.clients.name,
+      clientImageUrl: appt.clients.profile_picture,
+    }));
+
+    res.json(enriched);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 router.get('/client/:client_email', /*authenticateToken*/ async (req, res) => {
   const { client_email } = req.params;
@@ -107,19 +131,39 @@ router.put('/:appointment_id', /*authenticateToken*/ async (req, res) => {
 });
 
 // Delete appointment
-router.delete('/', /*authenticateToken*/ async (req, res) => {
-  const { appointment_id } = req.body;
+router.delete('/:appointment_id', /*authenticateToken*/ async (req, res) => {
+  const { appointment_id } = req.params;
 
   try {
+    const appointment = await prisma.appointments.findUnique({where: { appointment_id }});
+    const spEmail = appointment.service_provider_email;
+    const sprovider = await prisma.service_providers.findUnique({where:{email: spEmail}})
+    if (!appointment) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+    if(!sprovider){
+      return res.status(404).json({error:"Service provider not found"});
+    }
+
     await prisma.appointments.delete({ where: { appointment_id } });
+
+    sendAppointmentCancelation(
+      appointment.client_email,
+      appointment.date,
+      appointment.time_from,
+      sprovider.name
+    );
+    
     res.json({ message: 'Appointment deleted' });
   } catch (err) {
     if (err.code === 'P2025') {
       res.status(404).json({ error: 'Appointment not found' });
     } else {
+      console.log(err);
       res.status(500).json({ error: err.message });
     }
   }
 });
+
 
 export default router;

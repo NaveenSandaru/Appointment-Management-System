@@ -19,11 +19,25 @@ const sendVerificationCode = async (email, code) => {
         from: `"Global Pearl Ventures" <${process.env.EMAIL_USER}>`,
         to: email,
         subject: 'Verification Code for Your simplyBooked Account',
-        text: `Dear user,\n\nPlease use the following verification code to verify your email address.\n\nCode: ${code}\n\nBest regards,\nsimplyBooked Team`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #4A90E2;">simplyBooked Email Verification</h2>
+                <p>Dear user,</p>
+                <p>Please use the following verification code to verify your email address:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <span style="display: inline-block; background-color: #4A90E2; color: white; font-size: 24px; padding: 10px 20px; border-radius: 5px; letter-spacing: 3px;">
+                        ${code}
+                    </span>
+                </div>
+                <p>If you did not request this, you can safely ignore this email.</p>
+                <p>Best regards,<br><strong>simplyBooked Team</strong></p>
+                <hr style="margin-top: 40px;">
+                <p style="font-size: 12px; color: #888;">Global Pearl Ventures | simplyBooked</p>
+            </div>
+        `,
     };
 
     try {
-        // Send the email
         const info = await transporter.sendMail(mailOptions);
         return info;
     } catch (error) {
@@ -32,21 +46,82 @@ const sendVerificationCode = async (email, code) => {
     }
 };
 
+
 const sendAppointmentConfirmation = async (email, date, start_time) => {
     const mailOptions = {
         from: `"Global Pearl Ventures" <${process.env.EMAIL_USER}>`,
         to: email,
         subject: 'Appointment Confirmation Notice',
-        text: `Dear user,\n\nPlease acknowledge that, your booking is confirmed\n\nDate: ${date}\nTime: ${start_time}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #4CAF50;">Appointment Confirmed</h2>
+                <p>Dear user,</p>
+                <p>We’re pleased to confirm your appointment booking. Please find the details below:</p>
+                <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0;"><strong>Date:</strong></td>
+                        <td style="padding: 8px 0;">${date}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0;"><strong>Time:</strong></td>
+                        <td style="padding: 8px 0;">${start_time}</td>
+                    </tr>
+                </table>
+                <p style="margin-top: 20px;">Please ensure to be on time. If you have any questions or need to reschedule, feel free to contact us.</p>
+                <p>Best regards,<br><strong>simplyBooked Team</strong></p>
+                <hr style="margin-top: 40px;">
+                <p style="font-size: 12px; color: #888;">Global Pearl Ventures | simplyBooked</p>
+            </div>
+        `,
     };
+
     try {
-        // Send the email
         const info = await transporter.sendMail(mailOptions);
         return info;
     } catch (error) {
-        console.error(`Error sending verification email to ${email}:`, error);
-        throw new Error(`Failed to send verification email: ${error.message}`);
+        console.error(`Error sending appointment confirmation to ${email}:`, error);
+        throw new Error(`Failed to send appointment confirmation: ${error.message}`);
     }
-}
+};
 
-export {sendVerificationCode, sendAppointmentConfirmation};
+const sendAppointmentCancelation = async (email, date, start_time, provider) => {
+    const mailOptions = {
+      from: `"Global Pearl Ventures" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Appointment Cancellation Notice',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #e53935;">Appointment Cancelled</h2>
+          <p>Dear user,</p>
+          <p>We’re sorry to inform you that your appointment with <strong>${provider}</strong> has been cancelled. Please find the details below:</p>
+          <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0;"><strong>Date:</strong></td>
+              <td style="padding: 8px 0;">${date}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0;"><strong>Time:</strong></td>
+              <td style="padding: 8px 0;">${start_time}</td>
+            </tr>
+          </table>
+          <p style="margin-top: 20px;">You can reschedule another appointment with ${provider} at your convenience. If you have any questions, feel free to contact us.</p>
+          <p>Best regards,<br><strong>simplyBooked Team</strong></p>
+          <hr style="margin-top: 40px;">
+          <p style="font-size: 12px; color: #888;">Global Pearl Ventures | simplyBooked</p>
+        </div>
+      `,
+    };
+  
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(info);
+      return info;
+    } catch (error) {
+      console.error(`Error sending appointment cancellation to ${email}:`, error);
+      throw new Error(`Failed to send appointment cancellation: ${error.message}`);
+    }
+  };
+  
+
+
+export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation};

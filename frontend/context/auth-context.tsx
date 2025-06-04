@@ -48,7 +48,6 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
             },
           }
         );
-
         setUser(response.data.user);
         if (response.data.accessToken) {
           setAccessToken(response.data.accessToken);
