@@ -86,7 +86,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
     note
   } = req.body;
 
-  if (!client_email || !service_provider_email || !date || !time_from || !time_to) {
+  if (!service_provider_email || !date || !time_from || !time_to) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -102,7 +102,9 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
       }
     });
    
-    sendAppointmentConfirmation(client_email, date, time_from);
+    if(client_email){
+      sendAppointmentConfirmation(client_email, date, time_from);
+    }
     res.status(201).json(appointment);
   } catch (err) {
     console.log(err);

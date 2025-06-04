@@ -140,8 +140,32 @@ export default function ServiceProDashboard() {
     totalAppointments: fetchedAppointments.length
   };
 
-  const handleBlockTimeSubmit = (e: React.FormEvent) => {
+  const handleBlockTimeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try{
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
+        {
+          service_provider_email: user.email,
+          date: selectedDate,
+          time_from: startTime,
+          time_to:endTime,
+          note: blockReason
+        }
+      );
+      if(response.status == 201){
+        window.alert("Block succesful");
+      }
+      else{
+        throw new Error("Block unsucessful");
+      }
+    }
+    catch(err: any){
+      window.alert(err.message);
+    }
+    finally{
+
+    }
     console.log('Blocked time slot:', {
       date: selectedDate,
       startTime: startTime + ':00', // Add seconds for database compatibility
