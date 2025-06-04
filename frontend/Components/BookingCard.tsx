@@ -36,27 +36,6 @@ export function BookingCard({
     })
   }
 
-  // Format time for display
-  const formatTime = (isoString: string | undefined) => {
-    if (!isoString) return 'Invalid Time';
-  
-    const utcDate = new Date(isoString);
-  
-    // Extract just hours and minutes as if they were local (ignoring timezone)
-    const hour = utcDate.getUTCHours();
-    const minute = utcDate.getUTCMinutes();
-  
-    const localDate = new Date();
-    localDate.setHours(hour, minute, 0, 0);
-  
-    return localDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: false,
-    });
-  };
-  
-  
   // Determine appointment status based on date
   const getAppointmentStatus = (appointmentDate: string) => {
     const today = new Date()
@@ -118,9 +97,9 @@ export function BookingCard({
       </div>
       <div className="text-right">
         <div className="text-sm">
-          <span className="text-gray-600">{formatDate(date)}</span>
+          <span className="text-gray-600">{date}</span>
           <span className="ml-2 text-gray-900">
-            {formatTime(timeFrom)} - {formatTime(timeTo)}
+            {timeFrom} - {timeTo}
           </span>
         </div>
         <div className="flex gap-2 mt-2 justify-end">

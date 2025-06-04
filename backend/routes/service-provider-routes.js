@@ -12,12 +12,6 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Utility to convert "8:00" -> "1970-01-01T08:00:00.000Z"
-const convertToISOTime = (timeStr) => {
-  const [hours, minutes] = timeStr.split(':');
-  const date = new Date(Date.UTC(1970, 0, 1, parseInt(hours), parseInt(minutes)));
-  return date.toISOString();
-};
 
 // Get all service providers
 router.get('/', /*authenticateToken*/ async (req, res) => {
@@ -105,8 +99,8 @@ router.post('/', async (req, res) => {
         specialization,
         work_days_from,
         work_days_to,
-        work_hours_from: convertToISOTime(work_hours_from),
-        work_hours_to: convertToISOTime(work_hours_to),
+        work_hours_from: work_hours_from,
+        work_hours_to: work_hours_to,
         appointment_duration,
         appointment_fee: appointmentFeeInt,
         company_name
@@ -155,14 +149,6 @@ router.put('/', /*authenticateToken*/ async (req, res) => {
       ...(newProfilePicture && { profile_picture: newProfilePicture }),
       ...(rawPassword && { password: await bcrypt.hash(rawPassword, 10) }),
     };
-
-    // Convert work hours if provided
-    if (updateData.work_hours_from) {
-      updateData.work_hours_from = convertToISOTime(updateData.work_hours_from);
-    }
-    if (updateData.work_hours_to) {
-      updateData.work_hours_to = convertToISOTime(updateData.work_hours_to);
-    }
 
     const updated = await prisma.service_providers.update({
       where: { email },

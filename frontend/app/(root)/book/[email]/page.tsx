@@ -42,9 +42,9 @@ interface Appointment {
   appointment_id: string;
   client_email: string;
   service_provider_email: string;
-  date: string;
-  time_from: string;
-  time_to: string;
+  date: string; // YYYY-MM-DD
+  time_from: string; // HH:MM:SS
+  time_to: string; // HH:MM:SS
   note?: string;
 }
 
@@ -109,7 +109,7 @@ export default function BookingPage() {
     try {
       setIsLoading(true);
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/sprovider/${provider.email}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/sprovider/${provider?.email}`,
       );
       if (response.data) {
         setCurrentAppointments(response.data);
@@ -130,10 +130,11 @@ export default function BookingPage() {
   const isTimeSlotAvailable = (date: Date, timeSlot: string): boolean => {
     if (!currentAppointments.length || !provider) return true;
 
-    // Get UTC date string for comparison (YYYY-MM-DD)
+    // Get date string in YYYY-MM-DD format for comparison
     const selectedDateStr = date.toISOString().split('T')[0];
-
     const [hours, minutes] = timeSlot.split(':').map(Number);
+
+    // Calculate slot start and end times
     const slotStart = new Date(date);
     slotStart.setHours(hours, minutes, 0, 0);
 
@@ -143,23 +144,20 @@ export default function BookingPage() {
     slotEnd.setMinutes(slotEnd.getMinutes() + durationInMinutes);
 
     return !currentAppointments.some(app => {
-      // Compare UTC dates (YYYY-MM-DD)
-      const appDateStr = new Date(app.date).toISOString().split('T')[0];
-      if (appDateStr !== selectedDateStr) return false;
+      // Compare dates
+      if (app.date !== selectedDateStr) return false;
 
-      // Get existing appointment times (UTC hours/minutes)
-      const appStart = new Date(app.time_from);
-      const appEnd = new Date(app.time_to);
+      // Parse appointment times (HH:MM:SS)
+      const [appHours, appMinutes] = app.time_from.split(':').map(Number);
+      const appStart = new Date(date);
+      appStart.setHours(appHours, appMinutes, 0, 0);
 
-      // Create comparable dates using selected date
-      const appStartTime = new Date(date);
-      appStartTime.setHours(appStart.getUTCHours(), appStart.getUTCMinutes());
-
-      const appEndTime = new Date(date);
-      appEndTime.setHours(appEnd.getUTCHours(), appEnd.getUTCMinutes());
+      const [appEndHours, appEndMinutes] = app.time_to.split(':').map(Number);
+      const appEnd = new Date(date);
+      appEnd.setHours(appEndHours, appEndMinutes, 0, 0);
 
       // Check for time overlap
-      return slotStart < appEndTime && slotEnd > appStartTime;
+      return slotStart < appEnd && slotEnd > appStart;
     });
   };
 
@@ -180,7 +178,11 @@ export default function BookingPage() {
 
     // Check if selected date is in the past
     const now = new Date();
-    if (selectedDate < now) {
+    now.setHours(0, 0, 0, 0);
+    const selectedDateCopy = new Date(selectedDate);
+    selectedDateCopy.setHours(0, 0, 0, 0);
+    
+    if (selectedDateCopy < now) {
       toast.error("Invalid Date", {
         description: "Cannot book appointments in the past."
       });
@@ -202,20 +204,15 @@ export default function BookingPage() {
   const processBooking = async () => {
     try {
       setIsLoading(true);
-      const date = new Date(selectedDate!);
-      const [hours, minutes] = selectedTime!.split(':').map(Number);
+      if (!selectedDate || !selectedTime || !provider || !user) {
+        throw new Error("Missing required booking information");
+      }
 
-      const year = pad(date.getFullYear());
-      const month = pad(date.getMonth() + 1);
-      const day = pad(date.getDate());
-      const hh = pad(hours);
-      const mm = pad(minutes);
-      const ss = '00';
-
-      const dateStr = `${year}-${month}-${day}T00:00:00.000Z`;
-      const timeFromStr = `${year}-${month}-${day}T${hh}:${mm}:${ss}.000Z`;
-
-      const durationMatch = provider!.appointment_duration.match(/\d+/);
+      const dateStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const timeFromStr = `${pad(hours)}:${pad(minutes)}:00`;
+      
+      const durationMatch = provider.appointment_duration.match(/\d+/);
       const durationInMinutes = durationMatch ? parseInt(durationMatch[0]) : 0;
 
       if (durationInMinutes === 0) {
@@ -225,19 +222,20 @@ export default function BookingPage() {
         return;
       }
 
-      const timeTo = new Date(`${timeFromStr}`);
-      timeTo.setUTCMinutes(timeTo.getUTCMinutes() + durationInMinutes);
-      const timeToStr = `${year}-${month}-${day}T${pad(timeTo.getUTCHours())}:${pad(timeTo.getUTCMinutes())}:${ss}.000Z`;
+      // Calculate end time
+      const endTime = new Date(selectedDate);
+      endTime.setHours(hours, minutes + durationInMinutes, 0, 0);
+      const timeToStr = `${pad(endTime.getHours())}:${pad(endTime.getMinutes())}:00`;
 
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
         {
-          client_email: user!.email,
-          service_provider_email: provider!.email,
+          client_email: user.email,
+          service_provider_email: provider.email,
           date: dateStr,
           time_from: timeFromStr,
           time_to: timeToStr,
-          note
+          note: note || undefined // Send undefined if note is empty
         }
       );
 
@@ -245,9 +243,7 @@ export default function BookingPage() {
         toast.success("Success", {
           description: "Your appointment has been booked successfully!"
         });
-        // Reset note
         setNote('');
-        // Refresh appointments
         fetchCurrentAppointments();
       } else {
         throw new Error(response.data.error || "Failed to book appointment");
@@ -261,33 +257,29 @@ export default function BookingPage() {
     }
   };
 
-  const parseTimeStringToDate = (timeStr: string): Date => {
-    // Format: "1970-01-01T08:00:00.000Z"
-    const [hours, minutes, seconds] = timeStr.slice(11, 19).split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, seconds || 0, 0);
-    return date;
-  };
-
   const generateTimeSlots = (
-    startISO: string,
-    endISO: string,
-    interval: number
+    startTime: string, // HH:MM:SS
+    endTime: string,   // HH:MM:SS
+    interval: number   // in minutes
   ): string[] => {
     const slots: string[] = [];
+    
+    // Parse start and end times
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
 
-    const start = parseTimeStringToDate(startISO);
-    const end = parseTimeStringToDate(endISO);
+    let currentHours = startHours;
+    let currentMinutes = startMinutes;
 
-    while (start < end) {
-      slots.push(
-        start.toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        })
-      );
-      start.setMinutes(start.getMinutes() + interval);
+    while (currentHours < endHours || (currentHours === endHours && currentMinutes < endMinutes)) {
+      slots.push(`${pad(currentHours)}:${pad(currentMinutes)}`);
+      
+      // Increment by interval
+      currentMinutes += interval;
+      if (currentMinutes >= 60) {
+        currentHours += Math.floor(currentMinutes / 60);
+        currentMinutes = currentMinutes % 60;
+      }
     }
 
     return slots;
@@ -298,8 +290,7 @@ export default function BookingPage() {
       provider.work_hours_from,
       provider.work_hours_to,
       parseInt(provider.appointment_duration)
-    )
-    : [];
+    ): [];
 
   useEffect(() => {
     fetchProvider();
@@ -311,12 +302,6 @@ export default function BookingPage() {
       fetchCurrentAppointments();
     }
   }, [provider]);
-
-  useEffect(() => {
-    if (currentAppointments) {
-      console.log(currentAppointments);
-    }
-  }, [currentAppointments]);
 
   if (!provider && !service) {
     return <p className="p-4 text-gray-500">Loading provider...</p>;
@@ -454,7 +439,6 @@ export default function BookingPage() {
                           </Button>
                         );
                       })}
-
                     </div>
                   </div>
 
@@ -489,7 +473,6 @@ export default function BookingPage() {
             />
           </div>
           <DialogFooter className="flex justify-end space-x-2">
-
             <Button
               onClick={() => handleNoteSubmit(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"

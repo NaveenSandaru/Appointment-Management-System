@@ -159,7 +159,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
                     <Clock className="w-4 h-4 flex-shrink-0" />
                     <span>
                       {provider.work_days_from.charAt(0).toUpperCase() + provider.work_days_from.slice(1)} to{" "}{provider.work_days_to.charAt(0).toUpperCase() + provider.work_days_to.slice(1)},
-                      {provider.work_hours_from.split('T')[1].slice(0, 5)} - {provider.work_hours_to.split('T')[1].slice(0, 5)}
+                      {provider.work_hours_from - provider.work_hours_to}
                     </span>
 
                   </div>
@@ -225,7 +225,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
                         </p>
 
                         <p>
-                          {provider.work_hours_from.split('T')[1].slice(0, 5)} - {provider.work_hours_to.split('T')[1].slice(0, 5)}
+                          {provider.work_hours_from} - {provider.work_hours_to}
                         </p>
 
                       </div>

@@ -37,8 +37,8 @@ model service_providers {
   specialization      String?
   work_days_from      String
   work_days_to        String
-  work_hours_from     DateTime @db.Time
-  work_hours_to       DateTime @db.Time
+  work_hours_from     String
+  work_hours_to       String
   appointment_duration String
   appointment_fee      Int
   company_name        String
@@ -108,9 +108,9 @@ model appointments {
   appointment_id         String   @id @default(cuid())
   client_email           String
   service_provider_email String
-  date                   DateTime @db.Date
-  time_from              DateTime @db.Time
-  time_to                DateTime @db.Time
+  date                   String
+  time_from              String
+  time_to                String
   note                   String?
 
   clients           clients           @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
@@ -121,7 +121,7 @@ model appointment_history {
   history_id             String   @id
   client_email           String
   service_provider_email String
-  date_and_time          DateTime
+  date_and_time          String
   status                 String
 
   clients           clients           @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)

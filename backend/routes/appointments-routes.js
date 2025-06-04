@@ -77,16 +77,8 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
         note
       }
     });
-    
-    // Extract date (in YYYY-MM-DD format)
-    const dateOnly = new Date(date).toISOString().split("T")[0]; // '2025-06-21'
-    
-    // Extract time (in HH:MM format)
-    const localTime = new Date(time_from);
-    const timeOnly = localTime.toISOString().split("T")[1].slice(0, 5);
-    
-    // Now call the function
-    sendAppointmentConfirmation(client_email, dateOnly, timeOnly);
+   
+    sendAppointmentConfirmation(client_email, date, timeOnly);
     res.status(201).json(appointment);
   } catch (err) {
     console.log(err);
