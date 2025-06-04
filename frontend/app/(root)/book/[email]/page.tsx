@@ -2,9 +2,9 @@
 
 import { useParams } from "next/navigation";
 import { useContext, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/Components/ui/button";
+import { Card } from "@/Components/ui/card";
+import { Calendar } from "@/Components/ui/calendar";
 import { AuthContext } from '@/context/auth-context';
 import { toast } from "sonner";
 import axios from "axios";
@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/Components/ui/dialog";
+import { Textarea } from "@/Components/ui/textarea";
 
 interface Provider {
   email: string;
@@ -127,15 +127,18 @@ export default function BookingPage() {
 
   const pad = (n: number) => n.toString().padStart(2, '0');
 
-  const isTimeSlotAvailable = (date: Date, timeSlot: string): boolean => {
-    if (!currentAppointments.length || !provider) return true;
+  const isTimeSlotAvailable = (date: Date | undefined, timeSlot: string): boolean => {
+    if (!currentAppointments.length || !provider || !date) return true;
 
-    // Get date string in YYYY-MM-DD format for comparison
-    const selectedDateStr = date.toISOString().split('T')[0];
+    // Get date string in YYYY-MM-DD format for comparison, adjusting for local timezone
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+
     const [hours, minutes] = timeSlot.split(':').map(Number);
 
-    // Calculate slot start and end times
-    const slotStart = new Date(date);
+    // Calculate slot start and end times using the adjusted date
+    const slotStart = new Date(selectedDate);
     slotStart.setHours(hours, minutes, 0, 0);
 
     const slotEnd = new Date(slotStart);
@@ -143,22 +146,106 @@ export default function BookingPage() {
     const durationInMinutes = durationMatch ? parseInt(durationMatch[0]) : 0;
     slotEnd.setMinutes(slotEnd.getMinutes() + durationInMinutes);
 
-    return !currentAppointments.some(app => {
-      // Compare dates
-      if (app.date !== selectedDateStr) return false;
+    // Filter appointments for the selected date only
+    const appointmentsForDate = currentAppointments.filter(app => {
+      const appDate = new Date(app.date + 'T00:00:00');
+      appDate.setHours(0, 0, 0, 0);
+      const appDateStr = appDate.toISOString().split('T')[0];
+      return appDateStr === selectedDateStr;
+    });
 
+    return !appointmentsForDate.some(app => {
       // Parse appointment times (HH:MM:SS)
       const [appHours, appMinutes] = app.time_from.split(':').map(Number);
-      const appStart = new Date(date);
+      const appStart = new Date(selectedDate);
       appStart.setHours(appHours, appMinutes, 0, 0);
 
       const [appEndHours, appEndMinutes] = app.time_to.split(':').map(Number);
-      const appEnd = new Date(date);
+      const appEnd = new Date(selectedDate);
       appEnd.setHours(appEndHours, appEndMinutes, 0, 0);
 
       // Check for time overlap
       return slotStart < appEnd && slotEnd > appStart;
     });
+  };
+
+  const isTimeSlotBooked = (date: Date | undefined, timeSlot: string): boolean => {
+    if (!currentAppointments.length || !date) return false;
+
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    const slotTime = `${pad(hours)}:${pad(minutes)}:00`;
+
+    // Filter appointments for the selected date only
+    const appointmentsForDate = currentAppointments.filter(app => {
+      const appDate = new Date(app.date + 'T00:00:00');
+      appDate.setHours(0, 0, 0, 0);
+      const appDateStr = appDate.toISOString().split('T')[0];
+      return appDateStr === selectedDateStr;
+    });
+
+    return appointmentsForDate.some(app => app.time_from === slotTime);
+  };
+
+  const isTimeSlotBookedByUser = (date: Date | undefined, timeSlot: string): boolean => {
+    if (!currentAppointments.length || !date || !user) return false;
+
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    const slotTime = `${pad(hours)}:${pad(minutes)}:00`;
+
+    // Filter appointments for the selected date only
+    const appointmentsForDate = currentAppointments.filter(app => {
+      const appDate = new Date(app.date + 'T00:00:00');
+      appDate.setHours(0, 0, 0, 0);
+      const appDateStr = appDate.toISOString().split('T')[0];
+      return appDateStr === selectedDateStr;
+    });
+
+    return appointmentsForDate.some(app => 
+      app.time_from === slotTime && 
+      app.client_email === user.email
+    );
+  };
+
+  const isPastTimeSlot = (date: Date | undefined, timeSlot: string): boolean => {
+    if (!date) return true;
+
+    const now = new Date();
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    const slotDateTime = new Date(date);
+    slotDateTime.setHours(hours, minutes, 0, 0);
+
+    return slotDateTime < now;
+  };
+
+  const getTimeSlotState = (date: Date | undefined, timeSlot: string): 'available' | 'booked' | 'blocked' | 'user-booked' => {
+    if (!date) return 'blocked';
+    
+    // Check if it's a past time slot
+    if (isPastTimeSlot(date, timeSlot)) {
+      return 'blocked';
+    }
+
+    // Check if the user has already booked this slot
+    if (isTimeSlotBookedByUser(date, timeSlot)) {
+      return 'user-booked';
+    }
+
+    // Check general availability
+    if (!isTimeSlotAvailable(date, timeSlot)) {
+      if (isTimeSlotBooked(date, timeSlot)) {
+        return 'booked';
+      }
+      return 'blocked';
+    }
+    return 'available';
   };
 
   const handleNoteSubmit = async (shouldBook: boolean) => {
@@ -208,7 +295,12 @@ export default function BookingPage() {
         throw new Error("Missing required booking information");
       }
 
-      const dateStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Create a date string that preserves the selected date regardless of timezone
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`; // YYYY-MM-DD
+      
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const timeFromStr = `${pad(hours)}:${pad(minutes)}:00`;
       
@@ -222,9 +314,8 @@ export default function BookingPage() {
         return;
       }
 
-      // Calculate end time
-      const endTime = new Date(selectedDate);
-      endTime.setHours(hours, minutes + durationInMinutes, 0, 0);
+      // Calculate end time using the selected date components
+      const endTime = new Date(year, selectedDate.getMonth(), selectedDate.getDate(), hours, minutes + durationInMinutes);
       const timeToStr = `${pad(endTime.getHours())}:${pad(endTime.getMinutes())}:00`;
 
       const response = await axios.post(
@@ -235,7 +326,7 @@ export default function BookingPage() {
           date: dateStr,
           time_from: timeFromStr,
           time_to: timeToStr,
-          note: note || undefined // Send undefined if note is empty
+          note: note || undefined
         }
       );
 
@@ -303,8 +394,8 @@ export default function BookingPage() {
     }
   }, [provider]);
 
-  if (!provider && !service) {
-    return <p className="p-4 text-gray-500">Loading provider...</p>;
+  if (!provider || !service) {
+    return <p className="p-4 text-gray-500">Loading provider details...</p>;
   }
 
   return (
@@ -405,41 +496,55 @@ export default function BookingPage() {
                     />
                   </div>
 
-                  {/* Available Time Slots - Now positioned below calendar */}
-                  <div className="w-full max-w-2xl">
-                    <div className="text-center mb-4">
-                      <h4 className="text-base font-semibold text-gray-700 mb-2">Available Time Slots</h4>
-                      <p className="text-sm text-gray-500">
-                        {selectedDate ? selectedDate.toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        }) : "Today"}
-                      </p>
+                  {/* Time Slots Legend */}
+                  <div className="w-full max-w-2xl mb-4">
+                    <div className="flex items-center justify-center space-x-6">
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded border border-gray-300 bg-white mr-2"></div>
+                        <span className="text-sm text-gray-600">Available</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded bg-red-100 border border-red-300 mr-2"></div>
+                        <span className="text-sm text-gray-600">Booked</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded bg-gray-200 mr-2"></div>
+                        <span className="text-sm text-gray-600">Blocked</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 rounded bg-emerald-100 border border-emerald-300 mr-2"></div>
+                        <span className="text-sm text-gray-600">Your Booking</span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                      {timeSlots.map((slot) => {
-                        const isAvailable = isTimeSlotAvailable(selectedDate!, slot);
-                        return (
-                          <Button
-                            key={slot}
-                            variant={selectedTime === slot ? "default" : "outline"}
-                            onClick={() => isAvailable && setSelectedTime(slot)}
-                            size="sm"
-                            disabled={!isAvailable}
-                            className={`text-sm h-10 ${selectedTime === slot
-                                ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                                : isAvailable
-                                  ? "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
-                                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              }`}
-                          >
-                            {slot}
-                          </Button>
-                        );
-                      })}
-                    </div>
+                  </div>
+
+                  {/* Available Time Slots */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-3">
+                    {timeSlots.map((slot) => {
+                      const slotState = getTimeSlotState(selectedDate, slot);
+                      return (
+                        <Button
+                          key={slot}
+                          variant={selectedTime === slot ? "default" : "outline"}
+                          onClick={() => slotState === 'available' && setSelectedTime(slot)}
+                          size="sm"
+                          disabled={slotState !== 'available'}
+                          className={`text-sm h-10 ${
+                            selectedTime === slot
+                              ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                              : slotState === 'available'
+                                ? "border-gray-300 hover:border-emerald-500 text-gray-700 hover:bg-emerald-50"
+                                : slotState === 'booked'
+                                  ? "bg-red-100 border-red-300 text-red-700 cursor-not-allowed"
+                                  : slotState === 'user-booked'
+                                    ? "bg-emerald-100 border-emerald-300 text-emerald-700 cursor-not-allowed"
+                                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          }`}
+                        >
+                          {slot}
+                        </Button>
+                      );
+                    })}
                   </div>
 
                   {/* Confirm Button */}
