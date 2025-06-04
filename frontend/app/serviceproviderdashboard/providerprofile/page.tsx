@@ -245,7 +245,7 @@ const ProviderProfilePage = () => {
 
   const handleChangePassword = () => {
     if (clientData?.email) {
-      router.push(`/changepassword?email=${encodeURIComponent(clientData.email)}`);
+      router.push(`/serviceproviderdashboard/changepassword?email=${encodeURIComponent(clientData.email)}`);
     }
   };
 
