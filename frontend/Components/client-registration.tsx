@@ -219,41 +219,6 @@ export default function ClientRegistration() {
     return fieldErrors
   }
 
-  // Update checkEmailExists function
-  const checkEmailExists = async (email: string) => {
-    if (!email || !isValidEmail(email)) return;
-    
-    try {
-      // Try to create a client to check if email exists
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/clients`, {
-        datatosendtoclient: {
-          email: email,
-          name: "temp",
-          phone_number: "temp",
-          password: "temp"
-        }
-      });
-      
-      // If we get here, email doesn't exist
-      setErrors(prev => ({ ...prev, email: undefined }));
-      setEmailExists(false);
-      return false;
-    } catch (error: any) {
-      // If we get a 409, it means the email exists
-      if (error.response?.status === 409) {
-        setErrors(prev => ({ ...prev, email: "This email is already registered" }));
-        setEmailExists(true);
-        toast.error("Email already registered", {
-          description: "Please use a different email address"
-        });
-        return true;
-      }
-      // For other errors, we'll let validation pass
-      setEmailExists(false);
-      return false;
-    }
-  };
-
   const handleFieldChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
 
@@ -272,7 +237,7 @@ export default function ClientRegistration() {
 
     // Check email existence only on blur and if it's a valid email
     if (name === 'email' && formData.email && isValidEmail(formData.email)) {
-      checkEmailExists(formData.email);
+      
     }
   }
 

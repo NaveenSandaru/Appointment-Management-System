@@ -106,14 +106,14 @@ model service_provider_questions {
 
 model appointments {
   appointment_id         String   @id @default(cuid())
-  client_email           String
+  client_email           String?
   service_provider_email String
   date                   String
   time_from              String
   time_to                String
   note                   String?
 
-  clients           clients           @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
+  clients           clients?           @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
   service_providers service_providers @relation(fields: [service_provider_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
 }
 

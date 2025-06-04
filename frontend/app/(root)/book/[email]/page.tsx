@@ -128,24 +128,24 @@ export default function BookingPage() {
   const pad = (n: number) => n.toString().padStart(2, '0');
 
   const isTimeSlotAvailable = (date: Date | undefined, timeSlot: string): boolean => {
-    if (!currentAppointments.length || !provider || !date) return true;
-
-    // Get date string in YYYY-MM-DD format for comparison, adjusting for local timezone
+    if (!provider || !date) return true;
+  
+    // Get date string in YYYY-MM-DD format for comparison
     const selectedDate = new Date(date);
     selectedDate.setHours(0, 0, 0, 0);
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
-
+  
     const [hours, minutes] = timeSlot.split(':').map(Number);
-
-    // Calculate slot start and end times using the adjusted date
+  
+    // Calculate slot start and end times
     const slotStart = new Date(selectedDate);
     slotStart.setHours(hours, minutes, 0, 0);
-
+  
     const slotEnd = new Date(slotStart);
     const durationMatch = provider.appointment_duration.match(/\d+/);
     const durationInMinutes = durationMatch ? parseInt(durationMatch[0]) : 0;
     slotEnd.setMinutes(slotEnd.getMinutes() + durationInMinutes);
-
+  
     // Filter appointments for the selected date only
     const appointmentsForDate = currentAppointments.filter(app => {
       const appDate = new Date(app.date + 'T00:00:00');
@@ -153,61 +153,68 @@ export default function BookingPage() {
       const appDateStr = appDate.toISOString().split('T')[0];
       return appDateStr === selectedDateStr;
     });
-
+  
     return !appointmentsForDate.some(app => {
       // Parse appointment times (HH:MM:SS)
       const [appHours, appMinutes] = app.time_from.split(':').map(Number);
       const appStart = new Date(selectedDate);
       appStart.setHours(appHours, appMinutes, 0, 0);
-
+  
       const [appEndHours, appEndMinutes] = app.time_to.split(':').map(Number);
       const appEnd = new Date(selectedDate);
       appEnd.setHours(appEndHours, appEndMinutes, 0, 0);
-
+  
       // Check for time overlap
-      return slotStart < appEnd && slotEnd > appStart;
+      const isOverlap = slotStart < appEnd && slotEnd > appStart;
+      
+      // If it's a provider blocked time (no client_email), return the overlap status
+      if (!app.client_email) {
+        return isOverlap;
+      }
+      // For client bookings, only block if there's an overlap
+      return isOverlap;
     });
   };
 
   const isTimeSlotBooked = (date: Date | undefined, timeSlot: string): boolean => {
-    if (!currentAppointments.length || !date) return false;
-
+    if (!date) return false;
+  
     const selectedDate = new Date(date);
     selectedDate.setHours(0, 0, 0, 0);
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
-
+  
     const [hours, minutes] = timeSlot.split(':').map(Number);
     const slotTime = `${pad(hours)}:${pad(minutes)}:00`;
-
+  
     // Filter appointments for the selected date only
     const appointmentsForDate = currentAppointments.filter(app => {
       const appDate = new Date(app.date + 'T00:00:00');
       appDate.setHours(0, 0, 0, 0);
       const appDateStr = appDate.toISOString().split('T')[0];
-      return appDateStr === selectedDateStr;
+      return appDateStr === selectedDateStr && app.client_email; // Only consider appointments with client_email
     });
-
+  
     return appointmentsForDate.some(app => app.time_from === slotTime);
   };
 
   const isTimeSlotBookedByUser = (date: Date | undefined, timeSlot: string): boolean => {
-    if (!currentAppointments.length || !date || !user) return false;
-
+    if (!date || !user) return false;
+  
     const selectedDate = new Date(date);
     selectedDate.setHours(0, 0, 0, 0);
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
-
+  
     const [hours, minutes] = timeSlot.split(':').map(Number);
     const slotTime = `${pad(hours)}:${pad(minutes)}:00`;
-
+  
     // Filter appointments for the selected date only
     const appointmentsForDate = currentAppointments.filter(app => {
       const appDate = new Date(app.date + 'T00:00:00');
       appDate.setHours(0, 0, 0, 0);
       const appDateStr = appDate.toISOString().split('T')[0];
-      return appDateStr === selectedDateStr;
+      return appDateStr === selectedDateStr && app.client_email; // Only consider appointments with client_email
     });
-
+  
     return appointmentsForDate.some(app => 
       app.time_from === slotTime && 
       app.client_email === user.email
@@ -232,12 +239,54 @@ export default function BookingPage() {
     if (isPastTimeSlot(date, timeSlot)) {
       return 'blocked';
     }
-
+  
     // Check if the user has already booked this slot
     if (isTimeSlotBookedByUser(date, timeSlot)) {
       return 'user-booked';
     }
-
+  
+    // Check if this specific time slot is blocked by the provider
+    const isProviderBlocked = currentAppointments.some(app => {
+      if (!app.client_email) {
+        const appDate = new Date(app.date + 'T00:00:00');
+        appDate.setHours(0, 0, 0, 0);
+        const appDateStr = appDate.toISOString().split('T')[0];
+        
+        const selectedDateCopy = new Date(date);
+        selectedDateCopy.setHours(0, 0, 0, 0);
+        const selectedDateStr = selectedDateCopy.toISOString().split('T')[0];
+        
+        if (appDateStr !== selectedDateStr) return false;
+        
+        const [hours, minutes] = timeSlot.split(':').map(Number);
+        const slotTime = `${pad(hours)}:${pad(minutes)}:00`;
+        
+        // Check if this exact time slot is blocked
+        if (app.time_from === slotTime) {
+          return true;
+        }
+        
+        // Also check if this time falls within a blocked time range
+        const [appStartHours, appStartMinutes] = app.time_from.split(':').map(Number);
+        const appStart = new Date(selectedDate);
+        appStart.setHours(appStartHours, appStartMinutes, 0, 0);
+  
+        const [appEndHours, appEndMinutes] = app.time_to.split(':').map(Number);
+        const appEnd = new Date(selectedDate);
+        appEnd.setHours(appEndHours, appEndMinutes, 0, 0);
+  
+        const slotTimeDate = new Date(selectedDate);
+        slotTimeDate.setHours(hours, minutes, 0, 0);
+  
+        return slotTimeDate >= appStart && slotTimeDate < appEnd;
+      }
+      return false;
+    });
+  
+    if (isProviderBlocked) {
+      return 'blocked';
+    }
+  
     // Check general availability
     if (!isTimeSlotAvailable(date, timeSlot)) {
       if (isTimeSlotBooked(date, timeSlot)) {
@@ -246,13 +295,6 @@ export default function BookingPage() {
       return 'blocked';
     }
     return 'available';
-  };
-
-  const handleNoteSubmit = async (shouldBook: boolean) => {
-    setIsNoteDialogOpen(false);
-    if (shouldBook) {
-      await processBooking();
-    }
   };
 
   const handleConfirmBooking = () => {

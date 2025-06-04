@@ -182,38 +182,6 @@ export default function ProviderRegistration() {
     return "strong"
   }
 
-  // Add a new function to check email existence
-  const checkEmailExists = async (email: string): Promise<boolean> => {
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      await axios.post(`${baseUrl}/service-providers`, {
-        dataToSend: {
-          email: email,
-          name: "temp",
-          company_phone_number: "temp",
-          password: "temp",
-          language: "temp",
-          service_type: "temp",
-          work_days_from: "monday",
-          work_days_to: "friday",
-          work_hours_from: "09:00",
-          work_hours_to: "17:00",
-          appointment_duration: "30 minutes",
-          company_name: "temp",
-          appointment_fee: 0
-        }
-      });
-      setIsEmailUnique(true);
-      return false; // Email doesn't exist
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        setIsEmailUnique(false);
-        return true; // Email exists
-      }
-      setIsEmailUnique(null);
-      return false;
-    }
-  };
 
   // Validate form fields
   const validateField = (name: string, value: string) => {
@@ -319,7 +287,7 @@ export default function ProviderRegistration() {
 
     // Check email existence on blur if it's a valid email
     if (name === 'email' && formData.email && isValidEmail(formData.email)) {
-      await checkEmailExists(formData.email);
+
     }
   }
 

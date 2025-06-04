@@ -52,8 +52,8 @@ router.get('/sprovider/:service_provider_email', async (req, res) => {
     // Enrich response with clientName and clientImageUrl
     const enriched = appointments.map((appt) => ({
       ...appt,
-      clientName: appt.clients.name,
-      clientImageUrl: appt.clients.profile_picture,
+      clientName: appt.clients?.name,
+      clientImageUrl: appt.clients?.profile_picture,
     }));
 
     res.json(enriched);
