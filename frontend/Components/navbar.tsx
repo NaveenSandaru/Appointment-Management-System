@@ -230,6 +230,7 @@ export function Navbar() {
                             : profilePath
                         }                        
                         alt={getUserName()}
+                        className="w-full h-full object-cover"
                       />
                       <AvatarFallback className="text-xs">{getUserInitials(getUserName())}</AvatarFallback>
                     </Avatar>
