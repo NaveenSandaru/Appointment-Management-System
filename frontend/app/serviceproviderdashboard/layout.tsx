@@ -1,19 +1,28 @@
-
-import ProviderSidebar from "@/Components/serviceprovidersidebar"
-import { SidebarProvider } from "@/Components/ui/sidebar"
 import type React from "react"
+import "@/app/globals.css"
+import { Inter } from "next/font/google"
 
-export default function providerLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return ( 
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <ProviderSidebar/>
-          <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">{children}</div>
-        </div>
-    </SidebarProvider>
+import ServiceproviderHeader from "@/components/serviceproviderheader"
+
+import { Toaster } from "sonner"
+
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata = {
+  title: "Appointment Booking System",
+  description: "Multi-step registration form",
+}
+
+export default function ProviderLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+          <ServiceproviderHeader/>
+          {children}
+          <Toaster position="top-center" />
+          
+        
+      </body>
+    </html>
   )
 }

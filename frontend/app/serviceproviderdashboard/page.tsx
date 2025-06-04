@@ -21,85 +21,106 @@ import {
   LogOut,
   Gauge
 } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/Components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/Components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Appointment {
-  id: number;
-  customerName: string;
-  service: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
-  price: string;
-  imageUrl: string;
+  appointment_id: string;
+  client_email: string;
+  service_provider_email: string;
+  date: string; // DATE format (YYYY-MM-DD)
+  time_from: string; // TIME format (HH:MM:SS)
+  time_to: string; // TIME format (HH:MM:SS)
+  Note: string | null;
+  // Additional fields for UI display (would come from joins with other tables)
+  clientName?: string;
+  serviceName?: string;
+  servicePrice?: string;
+  status?: 'pending' | 'confirmed' | 'cancelled';
+  clientImageUrl?: string;
 }
 
+// Sample data compatible with the database schema
 const appointments: Appointment[] = [
   {
-    id: 1,
-    customerName: 'Emma Thompson',
-    service: 'Hair Styling',
+    appointment_id: 'apt_001',
+    client_email: 'emma.thompson@email.com',
+    service_provider_email: 'stylist@beautysalon.com',
     date: '2025-06-03',
-    startTime: '10:00',
-    endTime: '11:00',
+    time_from: '10:00:00',
+    time_to: '11:00:00',
+    Note: 'First time client, prefers natural look',
+    // Display fields (from joins)
+    clientName: 'Emma Thompson',
+    serviceName: 'Hair Styling',
+    servicePrice: '$75',
     status: 'pending',
-    price: '$75',
-    imageUrl: '/api/placeholder/80/80'
+    clientImageUrl: '/api/placeholder/80/80'
   },
   {
-    id: 2,
-    customerName: 'Michael Chen',
-    service: 'Beard Trim',
+    appointment_id: 'apt_002',
+    client_email: 'michael.chen@email.com',
+    service_provider_email: 'barber@beautysalon.com',
     date: '2025-06-03',
-    startTime: '11:30',
-    endTime: '12:00',
+    time_from: '11:30:00',
+    time_to: '12:00:00',
+    Note: 'Regular client, usual trim',
+    clientName: 'Michael Chen',
+    serviceName: 'Beard Trim',
+    servicePrice: '$35',
     status: 'confirmed',
-    price: '$35',
-    imageUrl: '/api/placeholder/80/80'
+    clientImageUrl: '/api/placeholder/80/80'
   },
   {
-    id: 3,
-    customerName: 'Sarah Johnson',
-    service: 'Full Makeup',
+    appointment_id: 'apt_003',
+    client_email: 'sarah.johnson@email.com',
+    service_provider_email: 'makeup@beautysalon.com',
     date: '2025-06-03',
-    startTime: '14:00',
-    endTime: '15:30',
+    time_from: '14:00:00',
+    time_to: '15:30:00',
+    Note: 'Wedding makeup trial - bring inspiration photos',
+    clientName: 'Sarah Johnson',
+    serviceName: 'Full Makeup',
+    servicePrice: '$120',
     status: 'confirmed',
-    price: '$120',
-    imageUrl: '/api/placeholder/80/80'
+    clientImageUrl: '/api/placeholder/80/80'
   },
   {
-    id: 4,
-    customerName: 'David Wilson',
-    service: 'Haircut & Color',
+    appointment_id: 'apt_004',
+    client_email: 'david.wilson@email.com',
+    service_provider_email: 'colorist@beautysalon.com',
     date: '2025-06-04',
-    startTime: '09:30',
-    endTime: '11:30',
+    time_from: '09:30:00',
+    time_to: '11:30:00',
+    Note: 'Root touch up and highlights',
+    clientName: 'David Wilson',
+    serviceName: 'Haircut & Color',
+    servicePrice: '$150',
     status: 'pending',
-    price: '$150',
-    imageUrl: '/api/placeholder/80/80'
+    clientImageUrl: '/api/placeholder/80/80'
   },
   {
-    id: 5,
-    customerName: 'Jessica Parker',
-    service: 'Manicure & Pedicure',
+    appointment_id: 'apt_005',
+    client_email: 'jessica.parker@email.com',
+    service_provider_email: 'nails@beautysalon.com',
     date: '2025-06-04',
-    startTime: '13:00',
-    endTime: '14:30',
+    time_from: '13:00:00',
+    time_to: '14:30:00',
+    Note: null,
+    clientName: 'Jessica Parker',
+    serviceName: 'Manicure & Pedicure',
+    servicePrice: '$85',
     status: 'cancelled',
-    price: '$85',
-    imageUrl: '/api/placeholder/80/80'
+    clientImageUrl: '/api/placeholder/80/80'
   }
 ];
 
@@ -113,6 +134,11 @@ export default function BeautyProDashboard() {
   const [endTime, setEndTime] = useState('10:00');
   const [blockReason, setBlockReason] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
+
+  // Helper function to format time for display (remove seconds)
+  const formatTimeForDisplay = (timeString: string) => {
+    return timeString.substring(0, 5); // "HH:MM:SS" -> "HH:MM"
+  };
 
   // Generate time slots from 9 AM to 8 PM
   const generateTimeSlots = () => {
@@ -142,8 +168,9 @@ export default function BeautyProDashboard() {
     }
 
     const searchFilter = searchQuery ? 
-      appointment.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+      (appointment.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      appointment.serviceName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      appointment.client_email.toLowerCase().includes(searchQuery.toLowerCase())) : true;
 
     const statusFilterMatch = statusFilter === 'all' ? true : appointment.status === statusFilter;
 
@@ -161,16 +188,17 @@ export default function BeautyProDashboard() {
     cancelled: appointments.filter(a => a.status === 'cancelled').length
   };
 
-  const handleStatusChange = (appointmentId: number, newStatus: string) => {
+  const handleStatusChange = (appointmentId: string, newStatus: string) => {
     console.log(`Appointment ${appointmentId} status changed to ${newStatus}`);
+    // In a real application, this would update the database
   };
 
   const handleBlockTimeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Blocked time slot:', {
       date: selectedDate,
-      startTime,
-      endTime,
+      startTime: startTime + ':00', // Add seconds for database compatibility
+      endTime: endTime + ':00',
       reason: blockReason,
       recurring: isRecurring
     });
@@ -196,76 +224,9 @@ export default function BeautyProDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar 
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-indigo-600">BeautyPro</h1>
-          <p className="text-gray-500 text-sm mt-1">Service Provider Portal</p>
-        </div>
-        
-        <nav className="mt-4">
-          <div className="px-6 py-3 bg-indigo-50 border-l-4 border-indigo-600">
-            <div className="flex items-center">
-              <Gauge className="w-5 h-5 text-indigo-600" />
-              <span className="ml-3 text-indigo-600 font-medium">Dashboard</span>
-            </div>
-          </div>
-          
-          {[
-            { icon: Calendar, label: 'Appointments' },
-            
-          ].map(({ icon: Icon, label }) => (
-            <div key={label} className="px-6 py-3 hover:bg-gray-50 cursor-pointer">
-              <div className="flex items-center">
-                <Icon className="w-5 h-5 text-gray-500" />
-                <span className="ml-3 text-gray-700">{label}</span>
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        <div className="absolute bottom-0 w-64 p-6">
-          <div className="flex items-center">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src="/api/placeholder/40/40" alt="Profile" />
-              <AvatarFallback>SR</AvatarFallback>
-            </Avatar>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-700">Sophia Reynolds</p>
-              <p className="text-xs text-gray-500">Hair Stylist</p>
-            </div>
-          </div>
-          <Button variant="outline" className="mt-4 w-full">
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </div>*/}
-
+    <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {/* Header */}
-        <div className="bg-white shadow-sm">
-          <div className="px-6 py-4 flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-semibold text-gray-800">Service Provider Dashboard</h1>
-              <p className="text-sm text-gray-500">Tuesday, June 3, 2025</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
-                  3
-                </span>
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Mail className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
+      <div className="flex-1">
         {/* Dashboard Content */}
         <div className="p-6">
           {/* Stats Cards */}
@@ -355,9 +316,11 @@ export default function BeautyProDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-y-auto max-h-[600px] space-y-2">
+                <div className="overflow-y-auto max-h-[calc(100vh-20rem)] space-y-2">
                   {timeSlots.map((timeSlot) => {
-                    const appointment = selectedDateAppointments.find(a => a.startTime === timeSlot);
+                    const appointment = selectedDateAppointments.find(a => 
+                      formatTimeForDisplay(a.time_from) === timeSlot
+                    );
                     
                     return (
                       <div key={timeSlot} className="flex">
@@ -366,20 +329,23 @@ export default function BeautyProDashboard() {
                         </div>
                         <div className="flex-1 ml-4">
                           {appointment ? (
-                            <div className={`p-3 rounded-lg border-l-4 ${getStatusColor(appointment.status)}`}>
+                            <div className={`p-3 rounded-lg border-l-4 ${getStatusColor(appointment.status || 'pending')}`}>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center">
                                   <Avatar className="w-8 h-8">
-                                    <AvatarImage src={appointment.imageUrl} alt={appointment.customerName} />
-                                    <AvatarFallback>{appointment.customerName.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={appointment.clientImageUrl} alt={appointment.clientName} />
+                                    <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
                                   </Avatar>
                                   <div className="ml-3">
-                                    <p className="text-sm font-medium text-gray-900">{appointment.customerName}</p>
-                                    <p className="text-xs text-gray-500">{appointment.service}</p>
+                                    <p className="text-sm font-medium text-gray-900">{appointment.clientName}</p>
+                                    <p className="text-xs text-gray-500">{appointment.serviceName}</p>
+                                    {appointment.Note && (
+                                      <p className="text-xs text-gray-400 mt-1">{appointment.Note}</p>
+                                    )}
                                   </div>
                                 </div>
-                                <Badge variant={getStatusBadgeVariant(appointment.status)}>
-                                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                                <Badge variant={getStatusBadgeVariant(appointment.status || 'pending')}>
+                                  {(appointment.status || 'pending').charAt(0).toUpperCase() + (appointment.status || 'pending').slice(1)}
                                 </Badge>
                               </div>
                             </div>
@@ -476,20 +442,25 @@ export default function BeautyProDashboard() {
               <CardContent>
                 <div className="space-y-4">
                   {selectedDateAppointments
-                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .sort((a, b) => a.time_from.localeCompare(b.time_from))
                     .map(appointment => (
-                    <div key={appointment.id} className={`p-3 rounded-lg border-l-4 ${getStatusColor(appointment.status)}`}>
+                    <div key={appointment.appointment_id} className={`p-3 rounded-lg border-l-4 ${getStatusColor(appointment.status || 'pending')}`}>
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="font-medium text-gray-800">{appointment.startTime} - {appointment.endTime}</p>
-                          <p className="text-sm text-gray-600">{appointment.service}</p>
+                          <p className="font-medium text-gray-800">
+                            {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
+                          </p>
+                          <p className="text-sm text-gray-600">{appointment.serviceName}</p>
+                          {appointment.Note && (
+                            <p className="text-xs text-gray-500 mt-1">{appointment.Note}</p>
+                          )}
                         </div>
                         <div className="flex items-center">
                           <Avatar className="w-8 h-8 mr-2">
-                            <AvatarImage src={appointment.imageUrl} alt={appointment.customerName} />
-                            <AvatarFallback>{appointment.customerName.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={appointment.clientImageUrl} alt={appointment.clientName} />
+                            <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-medium">{appointment.customerName}</span>
+                          <span className="text-sm font-medium">{appointment.clientName}</span>
                         </div>
                       </div>
                     </div>
@@ -569,31 +540,37 @@ export default function BeautyProDashboard() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {filteredAppointments.map((appointment) => (
-                            <tr key={appointment.id}>
+                            <tr key={appointment.appointment_id}>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <Avatar className="w-10 h-10">
-                                    <AvatarImage src={appointment.imageUrl} alt={appointment.customerName} />
-                                    <AvatarFallback>{appointment.customerName.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={appointment.clientImageUrl} alt={appointment.clientName} />
+                                    <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
                                   </Avatar>
                                   <div className="ml-4">
-                                    <div className="text-sm font-medium text-gray-900">{appointment.customerName}</div>
+                                    <div className="text-sm font-medium text-gray-900">{appointment.clientName}</div>
+                                    <div className="text-sm text-gray-500">{appointment.client_email}</div>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{appointment.service}</div>
+                                <div className="text-sm text-gray-900">{appointment.serviceName}</div>
+                                {appointment.Note && (
+                                  <div className="text-xs text-gray-500 mt-1">{appointment.Note}</div>
+                                )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm text-gray-900">{appointment.date}</div>
-                                <div className="text-sm text-gray-500">{appointment.startTime} - {appointment.endTime}</div>
+                                <div className="text-sm text-gray-500">
+                                  {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
+                                </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{appointment.price}</div>
+                                <div className="text-sm text-gray-900">{appointment.servicePrice}</div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge variant={getStatusBadgeVariant(appointment.status)}>
-                                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                                <Badge variant={getStatusBadgeVariant(appointment.status || 'pending')}>
+                                  {(appointment.status || 'pending').charAt(0).toUpperCase() + (appointment.status || 'pending').slice(1)}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -603,7 +580,7 @@ export default function BeautyProDashboard() {
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => handleStatusChange(appointment.id, 'confirmed')}
+                                        onClick={() => handleStatusChange(appointment.appointment_id, 'confirmed')}
                                         className="text-green-600 hover:text-green-700"
                                       >
                                         <Check className="w-4 h-4 mr-1" />
@@ -612,7 +589,7 @@ export default function BeautyProDashboard() {
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => handleStatusChange(appointment.id, 'cancelled')}
+                                        onClick={() => handleStatusChange(appointment.appointment_id, 'cancelled')}
                                         className="text-red-600 hover:text-red-700"
                                       >
                                         <X className="w-4 h-4 mr-1" />
@@ -624,7 +601,7 @@ export default function BeautyProDashboard() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleStatusChange(appointment.id, 'cancelled')}
+                                      onClick={() => handleStatusChange(appointment.appointment_id, 'cancelled')}
                                       className="text-red-600 hover:text-red-700"
                                     >
                                       <X className="w-4 h-4 mr-1" />
