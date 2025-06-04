@@ -1,6 +1,7 @@
 import React from 'react'
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
 import { Button } from './ui/button'
+import axios from 'axios'
 
 interface BookingCardProps {
   appointmentId: string
@@ -76,6 +77,26 @@ export function BookingCard({
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  const handleAppointmentCancellation = async (appointment_id: string) => {
+    try{
+      const response = await axios.delete(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
+      );
+      if(response.data.message == "Appointment deleted"){
+        window.alert("Appointment cancelled");
+      }
+      else{
+        throw new Error("Cancellation error");
+      }
+    }
+    catch(err: any){
+      window.alert(err.message);
+    }
+    finally{
+
+    }
+  }
+
   return (
     <div className="flex items-center justify-between p-4 border-b last:border-b-0">
       <div className="flex items-center gap-3">
@@ -112,7 +133,7 @@ export function BookingCard({
             </Button>
           )}
           {(status === 'Upcoming' || status === 'Today') && (
-            <Button variant="outline" size="sm" className="text-green-600 border-green-600/20 hover:bg-red-50">
+            <Button variant="outline" size="sm" className="text-green-600 border-green-600/20 hover:bg-red-50" onClick={()=>{handleAppointmentCancellation(appointmentId)}}>
               Cancel
             </Button>
           )}
