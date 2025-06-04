@@ -39,7 +39,7 @@ const ServiceproviderHeader = () => {
   }
   
   const handleProfileClick = () => {
-    router.push('/profile');
+    router.push('/serviceproviderdashboard/providerprofile');
   };
 
   const handleLogout = async () => {

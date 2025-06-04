@@ -1252,9 +1252,9 @@ export default function ProviderRegistration() {
                 {services.map((service) => (
                   <SelectItem key={service.service_id} value={service.service_id}>
                     {service.service}
-                    {service.description && (
+                    {/*service.description && (
                       <span className="ml-2 text-sm text-gray-500">({service.description})</span>
-                    )}
+                    )*/}
                   </SelectItem>
                 ))}
               </SelectContent>
