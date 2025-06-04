@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { 
   Calendar, 
@@ -32,6 +32,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import axios from 'axios';
+import { AuthContext } from '@/context/auth-context';
 
 interface Appointment {
   appointment_id: string;
@@ -49,82 +51,9 @@ interface Appointment {
   clientImageUrl?: string;
 }
 
-// Sample data compatible with the database schema
-const appointments: Appointment[] = [
-  {
-    appointment_id: 'apt_001',
-    client_email: 'emma.thompson@email.com',
-    service_provider_email: 'stylist@beautysalon.com',
-    date: '2025-06-03',
-    time_from: '10:00:00',
-    time_to: '11:00:00',
-    Note: 'First time client, prefers natural look',
-    // Display fields (from joins)
-    clientName: 'Emma Thompson',
-    serviceName: 'Hair Styling',
-    servicePrice: '$75',
-    status: 'pending',
-    clientImageUrl: '/api/placeholder/80/80'
-  },
-  {
-    appointment_id: 'apt_002',
-    client_email: 'michael.chen@email.com',
-    service_provider_email: 'barber@beautysalon.com',
-    date: '2025-06-03',
-    time_from: '11:30:00',
-    time_to: '12:00:00',
-    Note: 'Regular client, usual trim',
-    clientName: 'Michael Chen',
-    serviceName: 'Beard Trim',
-    servicePrice: '$35',
-    status: 'confirmed',
-    clientImageUrl: '/api/placeholder/80/80'
-  },
-  {
-    appointment_id: 'apt_003',
-    client_email: 'sarah.johnson@email.com',
-    service_provider_email: 'makeup@beautysalon.com',
-    date: '2025-06-03',
-    time_from: '14:00:00',
-    time_to: '15:30:00',
-    Note: 'Wedding makeup trial - bring inspiration photos',
-    clientName: 'Sarah Johnson',
-    serviceName: 'Full Makeup',
-    servicePrice: '$120',
-    status: 'confirmed',
-    clientImageUrl: '/api/placeholder/80/80'
-  },
-  {
-    appointment_id: 'apt_004',
-    client_email: 'david.wilson@email.com',
-    service_provider_email: 'colorist@beautysalon.com',
-    date: '2025-06-04',
-    time_from: '09:30:00',
-    time_to: '11:30:00',
-    Note: 'Root touch up and highlights',
-    clientName: 'David Wilson',
-    serviceName: 'Haircut & Color',
-    servicePrice: '$150',
-    status: 'pending',
-    clientImageUrl: '/api/placeholder/80/80'
-  },
-  {
-    appointment_id: 'apt_005',
-    client_email: 'jessica.parker@email.com',
-    service_provider_email: 'nails@beautysalon.com',
-    date: '2025-06-04',
-    time_from: '13:00:00',
-    time_to: '14:30:00',
-    Note: null,
-    clientName: 'Jessica Parker',
-    serviceName: 'Manicure & Pedicure',
-    servicePrice: '$85',
-    status: 'cancelled',
-    clientImageUrl: '/api/placeholder/80/80'
-  }
-];
 
-export default function BeautyProDashboard() {
+export default function ServiceProDashboard() {
+  const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('today');
   const [selectedDate, setSelectedDate] = useState('2025-06-03');
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,6 +63,30 @@ export default function BeautyProDashboard() {
   const [endTime, setEndTime] = useState('10:00');
   const [blockReason, setBlockReason] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
+
+  const [fetchedAppointments, setFetchedAppointments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchAppointments = async () => {
+    setIsLoading(true);
+    try{
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/sprovider/${user.email}`
+      );
+      if(response.data){
+        setFetchedAppointments(response.data);
+      }
+      else{
+        throw new Error("Error fetching appointments");
+      }
+    }
+    catch(err: any){
+      window.alert(err.message);
+    }
+    finally{
+      setIsLoading(false);
+    }
+  }
 
   // Helper function to format time for display (remove seconds)
   const formatTimeForDisplay = (timeString: string) => {
@@ -155,7 +108,7 @@ export default function BeautyProDashboard() {
   const timeSlots = generateTimeSlots();
 
   // Filter appointments based on criteria
-  const filteredAppointments = appointments.filter(appointment => {
+  const filteredAppointments = fetchedAppointments.filter(appointment => {
     const today = '2025-06-03';
     let tabFilter = true;
     
@@ -178,14 +131,14 @@ export default function BeautyProDashboard() {
   });
 
   // Get appointments for selected date
-  const selectedDateAppointments = appointments.filter(apt => apt.date === selectedDate);
+  const selectedDateAppointments = fetchedAppointments.filter(apt => apt.date === selectedDate);
 
   // Statistics
   const stats = {
-    totalToday: appointments.filter(a => a.date === '2025-06-03').length,
-    pending: appointments.filter(a => a.status === 'pending').length,
-    confirmed: appointments.filter(a => a.status === 'confirmed').length,
-    cancelled: appointments.filter(a => a.status === 'cancelled').length
+    totalToday: fetchedAppointments.filter(a => a.date === '2025-06-03').length,
+    pending: fetchedAppointments.filter(a => a.status === 'pending').length,
+    confirmed: fetchedAppointments.filter(a => a.status === 'confirmed').length,
+    cancelled: fetchedAppointments.filter(a => a.status === 'cancelled').length
   };
 
   const handleStatusChange = (appointmentId: string, newStatus: string) => {
@@ -222,6 +175,10 @@ export default function BeautyProDashboard() {
       default: return 'bg-gray-50 border-l-gray-500';
     }
   };
+
+  useEffect(()=>{
+    fetchAppointments();
+  },[])
 
   return (
     <div className="min-h-screen bg-gray-50">
