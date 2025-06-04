@@ -75,8 +75,8 @@ export default function ServiceProDashboard() {
         setFetchedAppointments(response.data);
       }
       else {
-        toast.error("Error fetching appointments", {
-          description: "Could not fetch your appointments. Please try again."
+        toast.info("No appointments", {
+          description: "There are no appointments yet."
         });
       }
     }
