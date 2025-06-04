@@ -47,7 +47,6 @@ interface Appointment {
   clientName?: string;
   serviceName?: string;
   servicePrice?: string;
-  status?: 'pending' | 'confirmed' | 'cancelled';
   clientImageUrl?: string;
 }
 
@@ -57,7 +56,6 @@ export default function ServiceProDashboard() {
   const [activeTab, setActiveTab] = useState('today');
   const [selectedDate, setSelectedDate] = useState('2025-06-03');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [isBlockTimeModalOpen, setIsBlockTimeModalOpen] = useState(false);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
@@ -125,9 +123,7 @@ export default function ServiceProDashboard() {
       appointment.serviceName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       appointment.client_email.toLowerCase().includes(searchQuery.toLowerCase())) : true;
 
-    const statusFilterMatch = statusFilter === 'all' ? true : appointment.status === statusFilter;
-
-    return tabFilter && searchFilter && statusFilterMatch;
+    return tabFilter && searchFilter;
   });
 
   // Get appointments for selected date
@@ -136,14 +132,9 @@ export default function ServiceProDashboard() {
   // Statistics
   const stats = {
     totalToday: fetchedAppointments.filter(a => a.date === '2025-06-03').length,
-    pending: fetchedAppointments.filter(a => a.status === 'pending').length,
-    confirmed: fetchedAppointments.filter(a => a.status === 'confirmed').length,
-    cancelled: fetchedAppointments.filter(a => a.status === 'cancelled').length
-  };
-
-  const handleStatusChange = (appointmentId: string, newStatus: string) => {
-    console.log(`Appointment ${appointmentId} status changed to ${newStatus}`);
-    // In a real application, this would update the database
+    totalUpcoming: fetchedAppointments.filter(a => a.date > '2025-06-03').length,
+    totalPast: fetchedAppointments.filter(a => a.date < '2025-06-03').length,
+    totalAppointments: fetchedAppointments.length
   };
 
   const handleBlockTimeSubmit = (e: React.FormEvent) => {
@@ -158,24 +149,6 @@ export default function ServiceProDashboard() {
     setIsBlockTimeModalOpen(false);
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'default';
-      case 'pending': return 'secondary';
-      case 'cancelled': return 'destructive';
-      default: return 'outline';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-green-50 border-l-green-500';
-      case 'pending': return 'bg-yellow-50 border-l-yellow-500';
-      case 'cancelled': return 'bg-red-50 border-l-red-500';
-      default: return 'bg-gray-50 border-l-gray-500';
-    }
-  };
-
   useEffect(()=>{
     fetchAppointments();
   },[])
@@ -186,76 +159,7 @@ export default function ServiceProDashboard() {
       <div className="flex-1">
         {/* Dashboard Content */}
         <div className="p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Today's Appointments</p>
-                    <h3 className="text-3xl font-bold text-gray-800 mt-1">{stats.totalToday}</h3>
-                  </div>
-                  <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-indigo-600" />
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-gray-500">
-                  <span className="text-green-500">↑ 12%</span> from yesterday
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Pending Confirmations</p>
-                    <h3 className="text-3xl font-bold text-gray-800 mt-1">{stats.pending}</h3>
-                  </div>
-                  <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-yellow-500" />
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-gray-500">
-                  <span className="text-red-500">↑ 3</span> need attention
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Confirmed Appointments</p>
-                    <h3 className="text-3xl font-bold text-gray-800 mt-1">{stats.confirmed}</h3>
-                  </div>
-                  <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-green-500" />
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-gray-500">
-                  <span className="text-green-500">↑ 8%</span> from last week
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Cancelled Bookings</p>
-                    <h3 className="text-3xl font-bold text-gray-800 mt-1">{stats.cancelled}</h3>
-                  </div>
-                  <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
-                    <XCircle className="w-6 h-6 text-red-500" />
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-gray-500">
-                  <span className="text-green-500">↓ 2%</span> from last week
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          
 
           {/* Schedule and Calendar Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -286,7 +190,7 @@ export default function ServiceProDashboard() {
                         </div>
                         <div className="flex-1 ml-4">
                           {appointment ? (
-                            <div className={`p-3 rounded-lg border-l-4 ${getStatusColor(appointment.status || 'pending')}`}>
+                            <div className="p-3 rounded-lg border border-gray-200 bg-white">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center">
                                   <Avatar className="w-8 h-8">
@@ -301,9 +205,6 @@ export default function ServiceProDashboard() {
                                     )}
                                   </div>
                                 </div>
-                                <Badge variant={getStatusBadgeVariant(appointment.status || 'pending')}>
-                                  {(appointment.status || 'pending').charAt(0).toUpperCase() + (appointment.status || 'pending').slice(1)}
-                                </Badge>
                               </div>
                             </div>
                           ) : (
@@ -323,7 +224,10 @@ export default function ServiceProDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
+                  <div className='flex flex-col gap-2'>
                   <CardTitle>Today's Schedule</CardTitle>
+                  <p className='text-xs text-grey-500 '>Today appointments: {stats.totalToday}</p>
+                  </div>
                   <Dialog open={isBlockTimeModalOpen} onOpenChange={setIsBlockTimeModalOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm">
@@ -401,7 +305,7 @@ export default function ServiceProDashboard() {
                   {selectedDateAppointments
                     .sort((a, b) => a.time_from.localeCompare(b.time_from))
                     .map(appointment => (
-                    <div key={appointment.appointment_id} className={`p-3 rounded-lg border-l-4 ${getStatusColor(appointment.status || 'pending')}`}>
+                    <div key={appointment.appointment_id} className="p-3 rounded-lg border-l-4">
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium text-gray-800">
@@ -448,17 +352,6 @@ export default function ServiceProDashboard() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -486,9 +379,6 @@ export default function ServiceProDashboard() {
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Price
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Status
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Actions
@@ -525,49 +415,11 @@ export default function ServiceProDashboard() {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm text-gray-900">{appointment.servicePrice}</div>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge variant={getStatusBadgeVariant(appointment.status || 'pending')}>
-                                  {(appointment.status || 'pending').charAt(0).toUpperCase() + (appointment.status || 'pending').slice(1)}
-                                </Badge>
-                              </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div className="flex space-x-2">
-                                  {appointment.status === 'pending' && (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleStatusChange(appointment.appointment_id, 'confirmed')}
-                                        className="text-green-600 hover:text-green-700"
-                                      >
-                                        <Check className="w-4 h-4 mr-1" />
-                                        Confirm
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleStatusChange(appointment.appointment_id, 'cancelled')}
-                                        className="text-red-600 hover:text-red-700"
-                                      >
-                                        <X className="w-4 h-4 mr-1" />
-                                        Cancel
-                                      </Button>
-                                    </>
-                                  )}
-                                  {appointment.status === 'confirmed' && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleStatusChange(appointment.appointment_id, 'cancelled')}
-                                      className="text-red-600 hover:text-red-700"
-                                    >
-                                      <X className="w-4 h-4 mr-1" />
-                                      Cancel
-                                    </Button>
-                                  )}
                                   <Button size="sm" variant="outline">
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    View
+                                    
+                                    Cancel
                                   </Button>
                                 </div>
                               </td>
