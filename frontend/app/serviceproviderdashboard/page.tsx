@@ -60,7 +60,7 @@ export default function ServiceProDashboard() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [blockReason, setBlockReason] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
+  
 
   const [fetchedAppointments, setFetchedAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,14 +154,18 @@ export default function ServiceProDashboard() {
         }
       );
       if(response.status == 201){
-        window.alert("Block succesful");
+        toast.success("Time slot blocked", {
+          description: "The time slot has been successfully blocked"
+        })
       }
       else{
         throw new Error("Block unsucessful");
       }
     }
     catch(err: any){
-      window.alert(err.message);
+      toast.error("Error blocking time slot", {
+        description: "Could not block the time slot. Please try again."
+      });
     }
     finally{
 
@@ -171,7 +175,7 @@ export default function ServiceProDashboard() {
       startTime: startTime + ':00', // Add seconds for database compatibility
       endTime: endTime + ':00',
       reason: blockReason,
-      recurring: isRecurring
+      
     });
     setIsBlockTimeModalOpen(false);
   };
@@ -306,7 +310,7 @@ export default function ServiceProDashboard() {
                       </DialogHeader>
                       <form onSubmit={handleBlockTimeSubmit} className="space-y-4">
                         <div>
-                          <Label htmlFor="date">Date</Label>
+                          <Label className='mb-2' htmlFor="date">Date</Label>
                           <Input
                             id="date"
                             type="date"
@@ -317,7 +321,7 @@ export default function ServiceProDashboard() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <Label htmlFor="startTime">Start Time</Label>
+                            <Label className='mb-2' htmlFor="startTime">Start Time</Label>
                             <Input
                               id="startTime"
                               type="time"
@@ -327,7 +331,7 @@ export default function ServiceProDashboard() {
                             />
                           </div>
                           <div>
-                            <Label htmlFor="endTime">End Time</Label>
+                            <Label className='mb-2' htmlFor="endTime">End Time</Label>
                             <Input
                               id="endTime"
                               type="time"
@@ -338,7 +342,7 @@ export default function ServiceProDashboard() {
                           </div>
                         </div>
                         <div>
-                          <Label htmlFor="reason">Reason (Optional)</Label>
+                          <Label className='mb-2' htmlFor="reason">Reason (Optional)</Label>
                           <Textarea
                             id="reason"
                             value={blockReason}
@@ -346,14 +350,7 @@ export default function ServiceProDashboard() {
                             placeholder="Enter reason for blocking this time slot"
                           />
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="recurring"
-                            checked={isRecurring}
-                            onCheckedChange={setIsRecurring}
-                          />
-                          <Label htmlFor="recurring">Make this a recurring block (weekly)</Label>
-                        </div>
+                       
                         <div className="flex justify-end space-x-3">
                           <Button type="button" variant="outline" onClick={() => setIsBlockTimeModalOpen(false)}>
                             Cancel

@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const ServiceproviderHeader = () => {
   const {setUser, setAccessToken, user} = useContext(AuthContext);
@@ -31,7 +32,9 @@ const ServiceproviderHeader = () => {
       }
     }
     catch(err: any){
-      window.alert(err);
+      toast.error("Error fetching profile picture", {
+          description: "Could not fetch profile picture."
+        });
     }
     finally{
 
@@ -56,7 +59,9 @@ const ServiceproviderHeader = () => {
       }
     }
     catch(err: any){
-      window.alert("Error logging out");
+      toast.error("Error logging out", {
+        description: "Could not log out."
+      });
     }
     finally{
 
