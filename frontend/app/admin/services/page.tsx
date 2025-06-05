@@ -131,10 +131,6 @@ export default function ServicesPage() {
 
     try {
       setIsSubmitting(true);
-      
-      // Generate a unique service_id
-      const service_id = newService.service.toLowerCase().replace(/\s+/g, '-') + 
-                        '-' + Math.random().toString(36).substr(2, 9);
 
       let pictureUrl = null;
 
@@ -165,11 +161,11 @@ export default function ServicesPage() {
         }
       }
 
+      window.alert(pictureUrl);
       // Create the service with the image URL
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`,
         {
-          service_id,
           service: newService.service,
           description: newService.description || null,
           picture: pictureUrl

@@ -61,6 +61,10 @@ export default function Page() {
                   <ServiceCard 
                     serviceId={service.service_id}
                     service={service.service}
+                    description={service.description}
+                    image={service.picture?.includes('/uploads')
+                      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${service.picture}`
+                      : service.picture}
                   />
                 </div>
               ))}

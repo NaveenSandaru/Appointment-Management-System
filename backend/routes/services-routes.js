@@ -24,13 +24,11 @@ const upload = multer({ storage });
 
 // CREATE a new service with optional picture
 router.post('/', upload.single('picture'), async (req, res) => {
-  const { service_id, service, description } = req.body;
-  const picture = req.file ? req.file.filename : null;
+  const { service, picture, description } = req.body;
 
   try {
     const created = await prisma.services.create({
       data: {
-        service_id,
         service,
         picture,
         description
