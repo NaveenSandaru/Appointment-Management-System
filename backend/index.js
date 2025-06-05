@@ -19,6 +19,7 @@ import serviceProviderQuestionsRouter from './routes/service-provider-questions-
 import serviceProviderRouter from './routes/service-provider-routes.js'; 
 import photoRouter from './routes/photos-routes.js';
 import servicesRouter from './routes/services-routes.js';
+import adminRouter from './routes/admin-routes.js';
 
 dotenv.config();
 
@@ -46,5 +47,6 @@ app.use('/client-user-questions', clientUserQuestionsRouter);
 app.use('/service-provider-questions', serviceProviderQuestionsRouter);
 app.use('/services',servicesRouter);
 app.use('/photos',photoRouter);
+app.use('/admins',adminRouter);
 
 app.listen(PORT, ()=>console.log(`Server listening on ${PORT}`));

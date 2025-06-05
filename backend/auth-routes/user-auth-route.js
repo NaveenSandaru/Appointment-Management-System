@@ -138,6 +138,45 @@ router.post('/google_login', async (req, res) => {
     }
 });
 
+router.post('/admin_login', async (req, res) => {
+    const { id, password, checked } = req.body;
+    try {
+      const admin = await prisma.admins.findUnique({ where: { id } });
+  
+      if (!admin || !admin.password) {
+        return res.status(401).json({ successful: false, message: 'Invalid credentials' });
+      }
+  
+      const validPassword = await bcrypt.compare(password, admin.password);
+      if (!validPassword) {
+        return res.status(401).json({ successful: false, message: 'Invalid credentials' });
+      }
+  
+      const tokens = jwTokens(admin.id, admin.name, "admin");
+  
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        sameSite: 'None',
+        secure: true,
+        maxAge: checked ? 14 * 24 * 60 * 60 * 1000 : undefined,
+      });
+  
+      return res.json({
+        successful: true,
+        message: 'Login successful',
+        accessToken: tokens.accessToken,
+        user: {
+          email: admin.id,
+          name: admin.name,
+          role: 'admin',
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+
 
 router.get('/refresh_token', (req, res) => {
     try {

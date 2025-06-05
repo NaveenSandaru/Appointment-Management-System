@@ -36,6 +36,7 @@ const ProfilePage = () => {
   const fetchClientData = async () => {
     if (!user?.email) {
       toast.error("User not found");
+      window.location.href = "/";
       return;
     }
 

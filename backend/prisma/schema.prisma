@@ -104,6 +104,11 @@ model service_provider_questions {
   @@id([email, question_id])
 }
 
+model admins {
+  id       String @id
+  password String
+}
+
 model appointments {
   appointment_id         String   @id @default(cuid())
   client_email           String?

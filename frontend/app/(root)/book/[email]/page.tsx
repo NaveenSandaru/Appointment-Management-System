@@ -445,6 +445,13 @@ export default function BookingPage() {
     }
   }, [provider]);
 
+  useEffect(() => {
+    if (user === null) {
+      window.alert("Please login before continuing");
+      window.location.href = "/auth/login";
+    }
+  }, [user]);
+
   if (!provider || !service) {
     return <p className="p-4 text-gray-500">Loading provider details...</p>;
   }
