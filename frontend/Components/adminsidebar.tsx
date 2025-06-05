@@ -45,11 +45,11 @@ const items = [
     url: "/admin/clients", 
     icon: Users,
   },
-  /*{
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },*/
+  {
+    title: "Services",
+    url: "/admin/services",
+    icon: KanbanSquare,
+  },
 ];
 
 const AdminSidebar = () => {
