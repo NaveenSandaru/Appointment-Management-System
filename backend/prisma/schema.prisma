@@ -107,6 +107,7 @@ model service_provider_questions {
 model admins {
   id       String @id
   password String
+  name String
 }
 
 model appointments {

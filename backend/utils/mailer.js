@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { link } from 'fs';
 
 dotenv.config();
 
@@ -121,7 +122,42 @@ const sendAppointmentCancelation = async (email, date, start_time, provider) => 
       throw new Error(`Failed to send appointment cancellation: ${error.message}`);
     }
   };
+
+  const sendAccountCreationInvite = async (email, role, link) => {
+    const mailOptions = {
+      from: `"Global Pearl Ventures" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Your simplyBooked Account Invitation',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #43a047;">You're Invited to Join simplyBooked</h2>
+          <p>Dear user,</p>
+          <p>You’ve been invited to join <strong>simplyBooked</strong> as a <strong>${role}</strong>.</p>
+          <p>Please click the button below to create your account and get started:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${link}" style="background-color: #43a047; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Create Account</a>
+          </div>
+          <p>If the button doesn't work, copy and paste the following link into your browser:</p>
+          <p style="word-break: break-all;">${link}</p>
+          <p>We're excited to have you on board. If you have any questions, feel free to reach out to our support team.</p>
+          <p>Best regards,<br><strong>simplyBooked Team</strong></p>
+          <hr style="margin-top: 40px;">
+          <p style="font-size: 12px; color: #888;">Global Pearl Ventures | simplyBooked</p>
+        </div>
+      `,
+    };
+  
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(info);
+      return info;
+    } catch (error) {
+      console.error(`Error sending account creation invite to ${email}:`, error);
+      throw new Error(`Failed to send account creation invite: ${error.message}`);
+    }
+  };
+  
   
 
 
-export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation};
+export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation, sendAccountCreationInvite};

@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart3, LogOut, Settings } from "lucide-react"; 
+import { AuthContext } from "@/context/auth-context";
 
 import {
   Sidebar,
@@ -20,11 +21,12 @@ import {
 import Image from "next/image";
 import { LayoutGrid, KanbanSquare, Ticket, ClipboardList, BookText, Users, UserCheck, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
 
 const items = [
   {
     title: "Dashboard",
-    url: "/admin",
+    url: "/admin/dashboard",
     icon: LayoutGrid,
   },
   {
@@ -50,13 +52,35 @@ const items = [
 ];
 
 const AdminSidebar = () => {
+  const {setUser, setAccessToken} = useContext(AuthContext);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
 
   const handleLogout = async () => {
     setIsLoading(true);
-    router.push("/");
+    try{
+      const response = await axios.delete(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`,
+        {
+          withCredentials: true
+        }
+      );
+      if(response.status == 200){
+        setUser(null);
+        setAccessToken("");
+        router.push("/");
+      }
+      else{
+        throw new Error("Error logging out");
+      }
+    }
+    catch(err: any){
+      window.alert(err.message);
+    }
+    finally{
+      setIsLoading(false);
+    } 
   };
 
   return (

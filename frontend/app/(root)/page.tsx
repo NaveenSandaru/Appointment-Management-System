@@ -100,6 +100,9 @@ export default function Home() {
       if(user.role=="sp"){
         window.location.href = "/serviceproviderdashboard";
       }
+      else if(user.role == "admin"){
+        window.location.href = "/admin/dashboard";
+      }
       else if(user.role == "client"){
         return;
       }

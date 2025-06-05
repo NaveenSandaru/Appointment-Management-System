@@ -75,6 +75,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/google_login', async (req, res) => {
     try {
+        const role = "client";
         const { email, name, ...rest } = req.body;
 
         if (!email) {
@@ -111,7 +112,7 @@ router.post('/google_login', async (req, res) => {
         }
 
         // Generate tokens
-        const tokens = jwTokens(user.email, user.name);
+        const tokens = jwTokens(user.email, user.name, role);
         console.log("Google log in success");
 
         // Set refresh token in cookie (session cookie)
@@ -128,7 +129,8 @@ router.post('/google_login', async (req, res) => {
             accessToken: tokens.accessToken,
             user: {
                 email: user.email,
-                name: user.name
+                name: user.name,
+                role: role
             }
         });
 

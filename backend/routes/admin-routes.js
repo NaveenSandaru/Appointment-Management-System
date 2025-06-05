@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
 import { jwTokens } from '../utils/jwt-helper.js';
 import jwt from 'jsonwebtoken';
+import {sendAccountCreationInvite} from './../utils/mailer.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -92,5 +93,17 @@ router.delete('/:id', async (req, res) => {
     }
   }
 });
+
+router.post('/sendEmail', async (req, res) => {
+  try{
+    const {email, role, link} = req.body;
+    await sendAccountCreationInvite(email, role, link);
+    res.status(201).json({message:"Invitation sent"});
+  }
+  catch(err){
+    console.log(err.message);
+    res.status(500).json({error:err.message});
+  }
+})
 
 export default router;
