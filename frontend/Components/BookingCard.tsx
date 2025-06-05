@@ -16,6 +16,7 @@ interface BookingCardProps {
   providerName?: string
   providerAvatar?: string
   serviceName?: string
+  onCancel?: (appointmentId: string) => void
 }
 
 export function BookingCard({ 
@@ -27,7 +28,8 @@ export function BookingCard({
   note,
   providerName,
   providerAvatar,
-  serviceName
+  serviceName,
+  onCancel
 }: BookingCardProps) {
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -80,26 +82,23 @@ export function BookingCard({
   }
 
   const handleAppointmentCancellation = async (appointment_id: string) => {
-    try{
+    try {
       const response = await axios.delete(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
       );
-      if(response.data.message == "Appointment deleted"){
+      if(response.data.message == "Appointment deleted") {
         toast.success("Appointment cancelled", {
           description: "The appointment has been successfully cancelled"
         });
-      }
-      else{
+        // Call the onCancel callback to update parent state
+        onCancel?.(appointment_id);
+      } else {
         throw new Error("Cancellation error");
       }
-    }
-    catch(err: any){
+    } catch(err: any) {
       toast.error("Error cancelling appointment", {
         description: "Could not cancel the appointment. Please try again."
       });
-    }
-    finally{
-
     }
   }
 
