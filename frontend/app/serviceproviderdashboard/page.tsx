@@ -142,42 +142,32 @@ export default function ServiceProDashboard() {
 
   const handleBlockTimeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try{
+    try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
         {
           service_provider_email: user.email,
           date: selectedDate,
           time_from: startTime,
-          time_to:endTime,
+          time_to: endTime,
           note: blockReason
         }
       );
-      if(response.status == 201){
+      if(response.status == 201) {
         toast.success("Time slot blocked", {
           description: "The time slot has been successfully blocked"
-        })
+        });
+        // Fetch appointments again to update the UI
+        await fetchAppointments();
+        setIsBlockTimeModalOpen(false);
+      } else {
+        throw new Error("Block unsuccessful");
       }
-      else{
-        throw new Error("Block unsucessful");
-      }
-    }
-    catch(err: any){
+    } catch(err: any) {
       toast.error("Error blocking time slot", {
-        description: "Could not block the time slot. Please try again."
+        description: err.response?.data?.error || "Could not block the time slot. Please try again."
       });
     }
-    finally{
-
-    }
-    console.log('Blocked time slot:', {
-      date: selectedDate,
-      startTime: startTime + ':00', // Add seconds for database compatibility
-      endTime: endTime + ':00',
-      reason: blockReason,
-      
-    });
-    setIsBlockTimeModalOpen(false);
   };
 
   const handleAppointmentCancel = async (appointment_id: string) => {

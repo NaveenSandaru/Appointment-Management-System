@@ -24,29 +24,29 @@ import { Button } from "@/components/ui/button";
 const items = [
   {
     title: "Dashboard",
-    url: "/serviceproviderdashboard",
+    url: "/admin",
     icon: LayoutGrid,
   },
   {
     title: "Appointments",
-    url: "/adminsDashboard/students",
+    url: "/admin/appointments",
     icon: Calendar,
   },
   {
     title: "Service Providers",
-    url: "/providers",
+    url: "/admin/service-providers",
     icon: UserCheck,
   },
   {
     title: "Clients",
-    url: "/clients", 
+    url: "/admin/clients", 
     icon: Users,
   },
-  {
+  /*{
     title: "Settings",
     url: "/settings",
     icon: Settings,
-  },
+  },*/
 ];
 
 const AdminSidebar = () => {
