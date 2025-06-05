@@ -1,76 +1,54 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Login Page Tests', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate to the login page before each test
-    await page.goto('http://localhost:3000/auth/login');
-  });
-
-  test('should display login form', async ({ page }) => {
-    // Check if login form elements are present
-    await expect(page.getByRole('heading', { name: /login/i })).toBeVisible();
-    await expect(page.getByLabel(/email/i)).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /login/i })).toBeVisible();
-  });
-
-  test('should show error with empty fields', async ({ page }) => {
-    // Click login without entering any data
-    await page.getByRole('button', { name: /login/i }).click();
-    
-    // Check for validation messages
-    await expect(page.getByText(/email is required/i)).toBeVisible();
-    await expect(page.getByText(/password is required/i)).toBeVisible();
-  });
-
-  test('should show error with invalid email format', async ({ page }) => {
-    // Enter invalid email format
-    await page.getByLabel(/email/i).fill('invalidemail');
-    await page.getByLabel(/password/i).fill('password123');
-    await page.getByRole('button', { name: /login/i }).click();
-    
-    // Check for validation message
-    await expect(page.getByText(/invalid email format/i)).toBeVisible();
-  });
-
-  test('should show error with incorrect credentials', async ({ page }) => {
-    // Enter incorrect credentials
-    await page.getByLabel(/email/i).fill('wrong@example.com');
-    await page.getByLabel(/password/i).fill('wrongpassword');
-    await page.getByRole('button', { name: /login/i }).click();
-    
-    // Check for error message
-    await expect(page.getByText(/invalid credentials/i)).toBeVisible();
-  });
-
+test('client basic test', async ({ page }) => {
+  await page.goto('http://localhost:3000/');
+  await page.getByText('Featured ServicesView allDentistBook an experienced dental specialist to').click();
+  await page.getByRole('link', { name: 'Sign In' }).click();
+  await page.getByRole('textbox', { name: 'Email' }).click();
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByText('Login Failed').click();
+  await page.getByRole('listitem').click();
+  await page.getByRole('textbox', { name: 'Email' }).click();
+  await page.getByRole('textbox', { name: 'Email' }).fill('qwer');
+  await page.getByRole('textbox', { name: 'Password' }).click();
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByRole('textbox', { name: 'Email' }).click();
+  await page.getByRole('textbox', { name: 'Email' }).fill('gayashankdd@gmail.com');
+  await page.getByRole('textbox', { name: 'Password' }).click();
+  await page.getByRole('textbox', { name: 'Password' }).fill('123');
+  await page.locator('div').filter({ hasText: /^Password$/ }).getByRole('button').click();
+  await page.locator('div').filter({ hasText: /^Password$/ }).getByRole('button').click();
+  await page.getByRole('button', { name: 'Login' }).click();
   
-  test('should maintain login state after page refresh', async ({ page }) => {
-    // Login with valid credentials
-    await page.getByLabel(/email/i).fill('gayashankdd@gmail.com');
-    await page.getByLabel(/password/i).fill('12345678');
-    await page.getByRole('button', { name: /login/i }).click();
-    
-    // Verify login successful
-    await expect(page).toHaveURL(/dashboard/);
-    
-    // Refresh the page
-    await page.reload();
-    
-    // Verify still logged in
-    await expect(page).toHaveURL(/dashboard/);
-    await expect(page.getByText(/welcome/i)).toBeVisible();
-  });
-
-  test('should be able to logout', async ({ page }) => {
-    // Login first
-    await page.getByLabel(/email/i).fill('test@example.com');
-    await page.getByLabel(/password/i).fill('password123');
-    await page.getByRole('button', { name: /login/i }).click();
-    
-    // Find and click logout button/link
-    await page.getByRole('button', { name: /logout/i }).click();
-    
-    // Verify redirect to login page
-    await expect(page).toHaveURL(/login/);
-  });
-}); 
+  await page.getByRole('textbox', { name: 'Password' }).click();
+  await page.getByRole('textbox', { name: 'Password' }).fill('12345678');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByText('logoHomeServicesDGd gayashan').click();
+  await page.getByRole('button', { name: 'DG d gayashan' }).click();
+  await page.locator('html').click();
+  await page.getByRole('button', { name: 'DG d gayashan' }).click();
+  await page.getByRole('menuitem', { name: 'Profile' }).click();
+  await page.getByRole('button', { name: 'DG d gayashan' }).click();
+  await page.locator('html').click();
+  await page.getByText('d gayashangayashankdd@gmail.').click();
+  await page.getByRole('heading', { name: 'd gayashan' }).click();
+  await page.getByRole('button', { name: 'DG d gayashan' }).click();
+  await page.locator('html').click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Services' }).click();
+  await page.getByRole('button', { name: 'Browse Service Providers' }).first().click();
+ 
+  await page.getByRole('navigation').getByRole('link', { name: 'Home' }).click();
+  await page.goto('http://localhost:3000/');
+  await page.getByText('Featured ServicesView allDentistBook an experienced dental specialist to').click();
+  await page.reload();
+  await page.getByRole('button', { name: 'Browse Service Providers' }).first().click();
+  await page.getByRole('button', { name: 'Book Now' }).first().click();
+  await page.getByRole('gridcell', { name: '6', exact: true }).click();
+  await page.getByRole('button', { name: '14:00' }).click();
+  await page.getByRole('button', { name: 'Confirm Appointment' }).click();
+  await page.getByRole('button', { name: 'Book Without Note' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Home' }).click();
+  await page.getByText('NSDentistNaveen Samarawickrama2025-06-0613:00:00 - 13:15:00UpcomingCancel').click();
+  await page.getByRole('button', { name: 'DG d gayashan' }).click();
+  await page.getByRole('menuitem', { name: 'Logout' }).click();
+});
