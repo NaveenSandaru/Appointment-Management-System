@@ -61,6 +61,10 @@ export default function ServiceProDashboard() {
   const [endTime, setEndTime] = useState('10:00');
   const [blockReason, setBlockReason] = useState('');
 
+  const [timeSlotStart, setTimeSlotStart] = useState('');
+  const [timeSlotStop, setTimeSlotStop] = useState('');
+  const [timeSlotDuration, setTimeSlotDuration] = useState('');
+
 
   const [fetchedAppointments, setFetchedAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +94,22 @@ export default function ServiceProDashboard() {
     }
   }
 
+  const fetchServiceProvider = async () => {
+    try{
+      const resposne = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${user.email}`
+      );
+      if(resposne.data){
+        setTimeSlotStart(resposne.data.work_hours_from);
+        setTimeSlotStop(resposne.data.work_hours_to);
+        setTimeSlotDuration(resposne.data.appointment_duration);
+      }
+    }
+    catch(err: any){
+      window.alert(err.message);
+    }
+  }
+
   // Helper function to format time for display (remove seconds)
   const formatTimeForDisplay = (timeString: string) => {
     return timeString.substring(0, 5); // "HH:MM:SS" -> "HH:MM"
@@ -97,15 +117,28 @@ export default function ServiceProDashboard() {
 
   // Generate time slots from 9 AM to 8 PM
   const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 9; hour <= 20; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        slots.push(timeString);
-      }
+    const start = parseInt(timeSlotStart); // e.g., "09" => 9
+    const end = parseInt(timeSlotStop); // e.g., "17" => 17
+    const duration = parseInt(timeSlotDuration); // e.g., "30" => 30 minutes
+  
+    if (isNaN(start) || isNaN(end) || isNaN(duration)) return [];
+  
+    const slots: string[] = [];
+    let current = new Date();
+    current.setHours(start, 0, 0, 0); // Start of the work hours
+  
+    const endTime = new Date();
+    endTime.setHours(end, 0, 0, 0); // End of the work hours
+  
+    while (current < endTime) {
+      const timeString = current.toTimeString().slice(0, 5); // HH:MM
+      slots.push(timeString);
+      current.setMinutes(current.getMinutes() + duration);
     }
+  
     return slots;
   };
+  
 
   const timeSlots = generateTimeSlots();
 
@@ -200,6 +233,7 @@ export default function ServiceProDashboard() {
   useEffect(() => {
     if (user) {
       fetchAppointments();
+      fetchServiceProvider();
     }
   }, [user])
 
