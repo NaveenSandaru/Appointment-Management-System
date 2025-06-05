@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Button } from "@/Components/ui/button";
 import { Card } from "@/Components/ui/card";
@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from "@/Components/ui/dialog";
 import { Textarea } from "@/Components/ui/textarea";
+
 
 interface Provider {
   email: string;
@@ -60,6 +61,7 @@ export default function BookingPage() {
   const [currentAppointments, setCurrentAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const router = useRouter();
 
   const bookedDates = useMemo(() => {
     return currentAppointments.map(app => new Date(app.date));
@@ -447,8 +449,11 @@ export default function BookingPage() {
 
   useEffect(() => {
     if (user === null) {
-      window.alert("Please login before continuing");
-      window.location.href = "/auth/login";
+      toast.error("Please log in to book an appointment",{
+        description: "You must be logged in to book an appointment."
+      });
+      
+      router.push("/auth/login");
     }
   }, [user]);
 

@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { AuthContext } from "@/context/auth-context";
 import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface Appointment {
   appointment_id: string;
@@ -62,6 +64,8 @@ const Dashboard = () => {
 
   const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+  const router = useRouter();
+
   const [stats, setStats] = useState({
     totalProviders: 0,
     totalClients: 0,
@@ -77,10 +81,15 @@ const Dashboard = () => {
   useEffect(() => {
     if (user !== undefined && user !== null) {
       if (!isLoggedIn) {
-        window.alert("Please log in");
-        window.location.href = "/admin";
+        toast.info("Please log in", {
+          description: "You are not logged in",
+        })
+        router.push("/admin");
       } else if (user.role !== "admin") {
-        window.location.href = "/";
+        toast.error("Unauthorized Access", {
+          description: "You are not authorized to view this page",
+        });
+        router.push("/");
       }
     }
   }, [user, isLoggedIn]);

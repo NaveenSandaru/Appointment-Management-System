@@ -5,6 +5,7 @@ import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart3, LogOut, Settings } from "lucide-react"; 
 import { AuthContext } from "@/context/auth-context";
+import { toast } from "sonner";
 
 import {
   Sidebar,
@@ -76,7 +77,9 @@ const AdminSidebar = () => {
       }
     }
     catch(err: any){
-      window.alert(err.message);
+      toast.error("Error logging out", {
+        description: "Could not log out."
+      });
     }
     finally{
       setIsLoading(false);

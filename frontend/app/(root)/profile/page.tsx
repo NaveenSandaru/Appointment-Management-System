@@ -20,6 +20,7 @@ const ProfilePage = () => {
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  
   const [editedData, setEditedData] = useState({
     firstName: '',
     lastName: '',
@@ -36,7 +37,7 @@ const ProfilePage = () => {
   const fetchClientData = async () => {
     if (!user?.email) {
       toast.error("User not found");
-      window.location.href = "/";
+      router.push("/");
       return;
     }
 

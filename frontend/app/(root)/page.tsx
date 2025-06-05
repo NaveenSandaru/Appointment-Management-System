@@ -9,6 +9,9 @@ import { AuthContext } from '@/context/auth-context';
 import { useContext, useEffect } from 'react';
 import Link from 'next/link'
 import axios from 'axios'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+
 
 export default function Home() {
 
@@ -18,6 +21,7 @@ export default function Home() {
   const [retrievedAppointments, setRetrievedAppointments] = useState<Appointment[] | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
+  const router = useRouter();
 
 
   const getFeaturedServices = async () => {
@@ -35,7 +39,9 @@ export default function Home() {
       }
     }
     catch (error: any) {
-      window.alert(error.message);
+      toast.error("Error", {
+        description: error.message || "Failed to fetch services"
+      });
     }
     finally {
       setIsLoadingServices(false);
@@ -87,7 +93,9 @@ export default function Home() {
       console.log(enrichedAppointments);
     }
     catch (error: any) {
-      window.alert(error.message);
+      toast.error("Error", {
+        description: error.message || "Failed to fetch appointments"
+      });
     }
     finally {
       setIsLoadingAppointments(false);
@@ -98,16 +106,16 @@ export default function Home() {
     if (user) {
       getAppointments();
       if(user.role=="sp"){
-        window.location.href = "/serviceproviderdashboard";
+        router.push("/serviceproviderdashboard");
       }
       else if(user.role == "admin"){
-        window.location.href = "/admin/dashboard";
+        router.push("/admin/dashboard");
       }
       else if(user.role == "client"){
         return;
       }
       else{
-        window.alert("Error authenticating user");
+        toast.error("Error authenticating user");
       }
     }
     getFeaturedServices();

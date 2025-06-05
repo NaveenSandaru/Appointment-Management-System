@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { ServiceCard } from '@/Components/serviceCard'
 import axios from 'axios'
 import { Loader2 } from 'lucide-react' // Optional: any spinner icon
+import { toast } from 'sonner'
 
 export default function Page() {
 
@@ -20,7 +21,9 @@ export default function Page() {
         setFetchedServices(response.data.data);
       }
     } catch (err: any) {
-      window.alert("Error fetching services: " + err.message);
+      toast.error("Error", {
+        description: err.message || "Failed to fetch services"
+      });
     } finally {
       setIsLoading(false);
     }

@@ -4,6 +4,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Search, Eye, MapPin, Clock, Plus, X } from 'lucide-react';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface ServiceProvider {
   email: string;
@@ -33,16 +35,24 @@ const ServiceProvidersPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+  const router = useRouter();
+
   const { isLoggedIn, user } = useContext(AuthContext);
 
   useEffect(() => {
     // Only run this when user is not undefined/null
     if (user !== undefined && user !== null) {
       if (!isLoggedIn) {
-        window.alert("Please log in");
-        window.location.href = "/admin";
+        toast.info("Please log in", {
+          description: "You are not logged in"
+        })
+
+        router.push("/admin");
       } else if (user.role !== "admin") {
-        window.location.href = "/";
+        toast.error("Unauthorized Access", {
+          description: "You are not authorized to view this page"
+        });
+        router.push("/");
       }
     }
   }, [user, isLoggedIn]);

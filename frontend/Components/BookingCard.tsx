@@ -2,6 +2,8 @@ import React from 'react'
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
 import { Button } from './ui/button'
 import axios from 'axios'
+import { toast } from 'sonner'
+
 
 interface BookingCardProps {
   appointmentId: string
@@ -83,14 +85,18 @@ export function BookingCard({
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
       );
       if(response.data.message == "Appointment deleted"){
-        window.alert("Appointment cancelled");
+        toast.success("Appointment cancelled", {
+          description: "The appointment has been successfully cancelled"
+        });
       }
       else{
         throw new Error("Cancellation error");
       }
     }
     catch(err: any){
-      window.alert(err.message);
+      toast.error("Error cancelling appointment", {
+        description: "Could not cancel the appointment. Please try again."
+      });
     }
     finally{
 
