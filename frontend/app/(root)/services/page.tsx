@@ -59,7 +59,7 @@ export default function Page() {
               {fetchedServices.map((service) => (
                 <div key={service.serviceId} className="flex">
                   <ServiceCard 
-                    serviceId={service.serviceId}
+                    serviceId={service.service_id}
                     service={service.service}
                   />
                 </div>

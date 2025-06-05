@@ -118,8 +118,11 @@ export default function Home() {
         toast.error("Error authenticating user");
       }
     }
-    getFeaturedServices();
   }, [user]);
+
+  useEffect(()=>{
+    getFeaturedServices();
+  },[])
 
   type Service = {
     service_id: string;
