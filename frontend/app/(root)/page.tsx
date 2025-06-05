@@ -144,6 +144,12 @@ export default function Home() {
     serviceName: string
   };
 
+  const handleAppointmentCancel = (appointmentId: string) => {
+    setRetrievedAppointments((prevAppointments) => 
+      prevAppointments?.filter(appointment => appointment.appointment_id !== appointmentId) || null
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Gap between navbar and hero section */}
@@ -190,7 +196,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoadingServices ? (
               <p>Loading...</p>
-            ) : retrievedServices?.length > 0 ? (
+            ) : retrievedServices && retrievedServices.length > 0 ? (
               retrievedServices.slice(0, 3).map((retrievedService: Service) => (
                 <div key={retrievedService.service_id} className="flex">
                   <ServiceCard
@@ -204,10 +210,9 @@ export default function Home() {
                 </div>
               ))
             ) : (
-              <p>No services available.</p>
+              <p>No services available</p>
             )}
           </div>
-
         </div>
 
         {/* Recent Bookings */}
@@ -238,6 +243,7 @@ export default function Home() {
                     providerName={appointment.providerName || "Unknown"}
                     providerAvatar={appointment.providerAvatar || ""}
                     serviceName={appointment.serviceName || "Unknown"}
+                    onCancel={handleAppointmentCancel}
                   />
                 ))
               ) : (
