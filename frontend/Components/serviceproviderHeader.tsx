@@ -15,64 +15,66 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 const ServiceproviderHeader = () => {
-  const {setUser, setAccessToken, user} = useContext(AuthContext);
+  const { setUser, setAccessToken, user } = useContext(AuthContext);
   const router = useRouter();
   const [pictureURL, setPictureURL] = useState('');
+  const [name, setName] = useState('');
 
   const getUserPicture = async () => {
-    try{
+    try {
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${user.email}`
       );
-      if(response.data.profile_picture){
+      if (response.data.profile_picture) {
         setPictureURL(`${process.env.NEXT_PUBLIC_BACKEND_URL}${response.data.profile_picture}`);
+        setName(response.data.name);
       }
-      else{
-        
+      else {
+
       }
     }
-    catch(err: any){
+    catch (err: any) {
       toast.error("Error fetching profile picture", {
-          description: "Could not fetch profile picture."
-        });
+        description: "Could not fetch profile picture."
+      });
     }
-    finally{
+    finally {
 
     }
   }
-  
+
   const handleProfileClick = () => {
     router.push('/serviceproviderdashboard/providerprofile');
   };
 
   const handleLogout = async () => {
-    try{
+    try {
       const response = await axios.delete(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`,{
-          withCredentials:true
-        }
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`, {
+        withCredentials: true
+      }
       );
-      if(response.status == 200){
+      if (response.status == 200) {
         setUser(null);
         setAccessToken("");
         router.push('/');
       }
     }
-    catch(err: any){
+    catch (err: any) {
       toast.error("Error logging out", {
         description: "Could not log out."
       });
     }
-    finally{
+    finally {
 
     }
   };
 
-  useEffect(()=>{
-    if(user){
+  useEffect(() => {
+    if (user) {
       getUserPicture();
     }
-  },[user])
+  }, [user])
 
   const today = new Date();
   const formattedDate = today.toLocaleDateString('en-US', {
@@ -95,7 +97,11 @@ const ServiceproviderHeader = () => {
               <Button variant="ghost" size="icon" className="relative">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={pictureURL} alt="Profile" />
-                  <AvatarFallback>SR</AvatarFallback>
+                  <AvatarFallback>
+                    {(name?.split(" ")[0]?.[0] || '').toUpperCase()}
+                    {(name?.split(" ")[1]?.[0] || '').toUpperCase()}
+                  </AvatarFallback>
+
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

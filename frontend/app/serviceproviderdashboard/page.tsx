@@ -60,7 +60,7 @@ export default function ServiceProDashboard() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [blockReason, setBlockReason] = useState('');
-  
+
 
   const [fetchedAppointments, setFetchedAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -153,7 +153,7 @@ export default function ServiceProDashboard() {
           note: blockReason
         }
       );
-      if(response.status == 201) {
+      if (response.status == 201) {
         toast.success("Time slot blocked", {
           description: "The time slot has been successfully blocked"
         });
@@ -163,7 +163,7 @@ export default function ServiceProDashboard() {
       } else {
         throw new Error("Block unsuccessful");
       }
-    } catch(err: any) {
+    } catch (err: any) {
       toast.error("Error blocking time slot", {
         description: err.response?.data?.error || "Could not block the time slot. Please try again."
       });
@@ -175,13 +175,13 @@ export default function ServiceProDashboard() {
       const response = await axios.delete(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
       );
-      
+
       if (response.data.message === "Appointment deleted") {
         // Remove the cancelled appointment from the state
-        setFetchedAppointments(prevAppointments => 
+        setFetchedAppointments(prevAppointments =>
           prevAppointments.filter(apt => apt.appointment_id !== appointment_id)
         );
-        
+
         toast.success("Appointment cancelled", {
           description: "The appointment has been successfully cancelled"
         });
@@ -229,8 +229,8 @@ export default function ServiceProDashboard() {
               <CardContent>
                 <div className="overflow-y-auto max-h-[calc(100vh-20rem)] space-y-2">
                   {timeSlots.map((timeSlot) => {
-                    const appointment = selectedDateAppointments.find(a =>
-                      formatTimeForDisplay(a.time_from) === timeSlot
+                    const appointment = selectedDateAppointments.find(
+                      (a) => formatTimeForDisplay(a.time_from) === timeSlot
                     );
 
                     return (
@@ -240,32 +240,37 @@ export default function ServiceProDashboard() {
                         </div>
                         <div className="flex-1 ml-4">
                           {appointment ? (
-                            <div className="p-3 rounded-lg border border-gray-200 bg-white">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <Avatar className="w-8 h-8">
-                                    <AvatarImage
-                                      src={
-                                        appointment.clientImageUrl?.startsWith('/uploads')
-                                          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
-                                          : appointment.clientImageUrl
-                                      }
-                                      alt={appointment.clientName}
-                                      className="w-full h-full object-cover"
-                                    />
-
-                                    <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
-                                  </Avatar>
-                                  <div className="ml-3">
-                                    <p className="text-sm font-medium text-gray-900">{appointment.clientName}</p>
-                                    <p className="text-xs text-gray-500">{appointment.serviceName}</p>
-                                    {appointment.Note && (
-                                      <p className="text-xs text-gray-400 mt-1">{appointment.Note}</p>
-                                    )}
+                            appointment.client_email ? (
+                              <div className="p-3 rounded-lg border border-gray-200 bg-white">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <Avatar className="w-8 h-8">
+                                      <AvatarImage
+                                        src={
+                                          appointment.clientImageUrl?.startsWith('/uploads')
+                                            ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
+                                            : appointment.clientImageUrl
+                                        }
+                                        alt={appointment.clientName}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="ml-3">
+                                      <p className="text-sm font-medium text-gray-900">{appointment.clientName}</p>
+                                      <p className="text-xs text-gray-500">{appointment.serviceName}</p>
+                                      {appointment.Note && (
+                                        <p className="text-xs text-gray-400 mt-1">{appointment.Note}</p>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
+                            ) : (
+                              <div className="h-12 border border-dashed border-red-300 rounded-lg bg-red-50 flex items-center justify-center">
+                                <span className="text-xs text-red-500">Blocked</span>
+                              </div>
+                            )
                           ) : (
                             <div className="h-12 border border-dashed border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors cursor-pointer flex items-center justify-center">
                               <span className="text-xs text-gray-400 hover:text-indigo-600">Available</span>
@@ -275,6 +280,8 @@ export default function ServiceProDashboard() {
                       </div>
                     );
                   })}
+
+
                 </div>
               </CardContent>
             </Card>
@@ -340,7 +347,7 @@ export default function ServiceProDashboard() {
                             placeholder="Enter reason for blocking this time slot"
                           />
                         </div>
-                       
+
                         <div className="flex justify-end space-x-3">
                           <Button type="button" variant="outline" onClick={() => setIsBlockTimeModalOpen(false)}>
                             Cancel
@@ -356,37 +363,57 @@ export default function ServiceProDashboard() {
                 <div className="space-y-4">
                   {selectedDateAppointments
                     .sort((a, b) => a.time_from.localeCompare(b.time_from))
-                    .map(appointment => (
-                      <div key={appointment.appointment_id} className="p-3 rounded-lg border-l-4">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium text-gray-800">
+                    .map((appointment) => (
+                      <div
+                        key={appointment.appointment_id}
+                        className={`p-3 rounded-lg border-l-4 ${appointment.client_email ? 'border-blue-500 bg-white' : 'border-red-400 bg-red-50'
+                          }`}
+                      >
+                        {appointment.client_email ? (
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
+                              </p>
+                              <p className="text-sm text-gray-600">{appointment.serviceName}</p>
+                              {appointment.Note && (
+                                <p className="text-xs text-gray-500 mt-1">{appointment.Note}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center">
+                              <Avatar className="w-8 h-8 mr-2">
+                                <AvatarImage
+                                  src={
+                                    appointment.clientImageUrl?.startsWith('/uploads')
+                                      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
+                                      : appointment.clientImageUrl
+                                  }
+                                  alt={appointment.clientName}
+                                  className="w-full h-full object-cover"
+                                />
+                                <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">{appointment.clientName}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center">
+                            <div className="text-sm text-red-600 font-medium">
                               {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
-                            </p>
-                            <p className="text-sm text-gray-600">{appointment.serviceName}</p>
-                            {appointment.Note && (
-                              <p className="text-xs text-gray-500 mt-1">{appointment.Note}</p>
-                            )}
+                              <span className="ml-2">Blocked</span>
+                            </div>
+                            <button
+                              onClick={() => handleAppointmentCancel(appointment.appointment_id)}
+                              className="text-xs text-red-500 border border-red-300 rounded px-2 py-1 hover:bg-red-100 transition"
+                            >
+                              Cancel Block
+                            </button>
                           </div>
-                          <div className="flex items-center">
-                            <Avatar className="w-8 h-8 mr-2">
-                              <AvatarImage
-                                src={
-                                  appointment.clientImageUrl?.startsWith('/uploads')
-                                    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
-                                    : appointment.clientImageUrl
-                                }
-                                alt={appointment.clientName}
-                                className="w-full h-full object-cover"
-                              />
-
-                              <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium">{appointment.clientName}</span>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     ))}
+
+
                   {selectedDateAppointments.length === 0 && (
                     <div className="text-center py-6 text-gray-500">
                       <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-300" />
@@ -447,53 +474,59 @@ export default function ServiceProDashboard() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredAppointments.map((appointment) => (
-                            <tr key={appointment.appointment_id}>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <Avatar className="w-10 h-10">
-                                    <AvatarImage
-                                      src={
-                                        appointment.clientImageUrl?.startsWith('/uploads')
-                                          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
-                                          : appointment.clientImageUrl
-                                      }
-                                      alt={appointment.clientName}
-                                      className="w-full h-full object-cover"
-                                    />
-
-                                    <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
-                                  </Avatar>
-                                  <div className="ml-4">
-                                    <div className="text-sm font-medium text-gray-900">{appointment.clientName}</div>
-                                    <div className="text-sm text-gray-500">{appointment.client_email}</div>
+                          {filteredAppointments
+                            .filter((appointment) => !!appointment.client_email)
+                            .map((appointment) => (
+                              <tr key={appointment.appointment_id}>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <Avatar className="w-10 h-10">
+                                      <AvatarImage
+                                        src={
+                                          appointment.clientImageUrl?.startsWith('/uploads')
+                                            ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.clientImageUrl}`
+                                            : appointment.clientImageUrl
+                                        }
+                                        alt={appointment.clientName}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <AvatarFallback>{appointment.clientName?.charAt(0) || 'C'}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="ml-4">
+                                      <div className="text-sm font-medium text-gray-900">{appointment.clientName}</div>
+                                      <div className="text-sm text-gray-500">{appointment.client_email}</div>
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{appointment.serviceName}</div>
-                                {appointment.Note && (
-                                  <div className="text-xs text-gray-500 mt-1">{appointment.Note}</div>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{appointment.date}</div>
-                                <div className="text-sm text-gray-500">
-                                  {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{appointment.servicePrice}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex space-x-2">
-                                  <Button size="sm" variant="outline" onClick={() => { handleAppointmentCancel(appointment.appointment_id) }}>
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">{appointment.serviceName}</div>
+                                  {appointment.Note && (
+                                    <div className="text-xs text-gray-500 mt-1">{appointment.Note}</div>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">{appointment.date}</div>
+                                  <div className="text-sm text-gray-500">
+                                    {formatTimeForDisplay(appointment.time_from)} - {formatTimeForDisplay(appointment.time_to)}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">{appointment.servicePrice}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleAppointmentCancel(appointment.appointment_id)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+
                         </tbody>
                       </table>
                     </div>

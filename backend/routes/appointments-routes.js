@@ -148,13 +148,14 @@ router.delete('/:appointment_id', /*authenticateToken*/ async (req, res) => {
     }
 
     await prisma.appointments.delete({ where: { appointment_id } });
-
-    sendAppointmentCancelation(
-      appointment.client_email,
-      appointment.date,
-      appointment.time_from,
-      sprovider.name
-    );
+    if(appointment.client_email){
+      sendAppointmentCancelation(
+        appointment.client_email,
+        appointment.date,
+        appointment.time_from,
+        sprovider.name
+      );
+    }
     
     res.json({ message: 'Appointment deleted' });
   } catch (err) {
