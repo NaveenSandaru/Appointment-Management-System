@@ -69,7 +69,7 @@ const AdminSidebar = () => {
       if(response.status == 200){
         setUser(null);
         setAccessToken("");
-        router.push("/");
+        router.push("/admin");
       }
       else{
         throw new Error("Error logging out");
