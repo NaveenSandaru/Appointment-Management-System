@@ -15,17 +15,9 @@ export default function AdminLoginPage() {
   const {accessToken, user, setUser, setAccessToken } = useContext(AuthContext);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleAdminLogin = async () => {
     if (!id || !password) {
@@ -83,14 +75,6 @@ export default function AdminLoginPage() {
       handleAutoLogin();
     }
   },[user])
-
-  if (isPageLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
