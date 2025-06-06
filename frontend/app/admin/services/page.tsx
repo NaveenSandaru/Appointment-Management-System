@@ -162,7 +162,7 @@ export default function ServicesPage() {
         }
       }
 
-      window.alert(pictureUrl);
+      
       // Create the service with the image URL
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`,
