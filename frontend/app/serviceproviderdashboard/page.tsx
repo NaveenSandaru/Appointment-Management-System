@@ -52,9 +52,17 @@ interface Appointment {
 }
 
 export default function ServiceProDashboard() {
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('today');
-  const [selectedDate, setSelectedDate] = useState('2025-06-03');
+  const [selectedDate, setSelectedDate] = useState(formattedDate);
   const [searchQuery, setSearchQuery] = useState('');
   const [isBlockTimeModalOpen, setIsBlockTimeModalOpen] = useState(false);
   const [startTime, setStartTime] = useState('09:00');

@@ -42,6 +42,21 @@ const ServiceproviderHeader = () => {
 
     }
   }
+   const getUserInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const getUserName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`
+    }
+    return user?.name || user?.email || "User"
+  }
 
   const handleProfileClick = () => {
     router.push('/serviceproviderdashboard/providerprofile');
@@ -94,13 +109,12 @@ const ServiceproviderHeader = () => {
         <div className="flex items-center space-x-4 flex-shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" className="h-9 w-9 p-0 rounded-full">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={pictureURL} alt="Profile" />
-                  <AvatarFallback>
-                    {(name?.split(" ")[0]?.[0] || '').toUpperCase()}
-                    {(name?.split(" ")[1]?.[0] || '').toUpperCase()}
-                  </AvatarFallback>
+                  <AvatarImage src={pictureURL} alt="Profile" className="w-full h-full object-cover" />
+           
+                   <AvatarFallback className="text-xs">{getUserInitials(getUserName())}</AvatarFallback>
+               
 
                 </Avatar>
               </Button>
