@@ -14,6 +14,7 @@ type AuthContextType = {
   user: any;
   accessToken: string;
   isLoggedIn: boolean;
+  isLoadingAuth: boolean;
   setUser: Dispatch<SetStateAction<any>>;
   setAccessToken: Dispatch<SetStateAction<string>>;
 };
@@ -22,6 +23,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   accessToken: "",
   isLoggedIn: false,
+  isLoadingAuth: true,
   setUser: () => {},
   setAccessToken: () => {},
 });
@@ -33,6 +35,7 @@ type AuthProviderProps = {
 export const AuthContextProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string>("");
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const isLoggedIn = !!user && !!accessToken;
 
@@ -48,6 +51,7 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
             },
           }
         );
+
         setUser(response.data.user);
         if (response.data.accessToken) {
           setAccessToken(response.data.accessToken);
@@ -55,6 +59,8 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
       } catch (error) {
         setUser(null);
         setAccessToken("");
+      } finally {
+        setIsLoadingAuth(false);
       }
     };
 
@@ -63,7 +69,7 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, isLoggedIn, setUser, setAccessToken }}
+      value={{ user, accessToken, isLoggedIn, isLoadingAuth, setUser, setAccessToken }}
     >
       {children}
     </AuthContext.Provider>

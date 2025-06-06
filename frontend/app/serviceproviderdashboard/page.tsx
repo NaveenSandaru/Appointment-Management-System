@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
+import { useRouter } from "next/navigation";
 
 interface Appointment {
   appointment_id: string;
@@ -52,7 +53,7 @@ interface Appointment {
 }
 
 export default function ServiceProDashboard() {
-  const { user } = useContext(AuthContext);
+  const { user, isLoadingAuth } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('today');
   const [selectedDate, setSelectedDate] = useState('2025-06-03');
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,6 +69,8 @@ export default function ServiceProDashboard() {
 
   const [fetchedAppointments, setFetchedAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
 
   const fetchAppointments = async () => {
     setIsLoading(true);
@@ -231,11 +234,16 @@ export default function ServiceProDashboard() {
   };
 
   useEffect(() => {
+    if (isLoadingAuth) return;
+  
     if (user) {
       fetchAppointments();
       fetchServiceProvider();
+    } else {
+      router.push('/');
     }
-  }, [user])
+  }, [user, isLoadingAuth]);
+  
 
   return (
     <div className="min-h-screen bg-gray-50">

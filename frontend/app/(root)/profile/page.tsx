@@ -16,7 +16,7 @@ interface ClientData {
 }
 
 const ProfilePage = () => {
-  const { user } = useContext(AuthContext);
+  const { user, isLoadingAuth } = useContext(AuthContext);
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -31,21 +31,19 @@ const ProfilePage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    fetchClientData();
-  }, [user?.email]);
-
-  const fetchClientData = async () => {
-    if (!user?.email) {
-      toast.error("User not found");
-      router.push("/");
-      return;
+    if (!isLoadingAuth && user?.email) {
+      fetchClientData();
     }
-
+  }, [isLoadingAuth, user?.email]);
+  
+  const fetchClientData = async () => {
     try {
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user.email}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user?.email}`
       );
+  
       setClientData(response.data);
+  
       const [firstName, ...lastNameParts] = response.data.name.split(" ");
       setEditedData({
         firstName,
@@ -62,6 +60,7 @@ const ProfilePage = () => {
       setIsLoading(false);
     }
   };
+  
 
   const handleEdit = () => {
     setIsEditing(true);

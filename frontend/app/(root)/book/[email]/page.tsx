@@ -50,7 +50,7 @@ interface Appointment {
 }
 
 export default function BookingPage() {
-  const { user } = useContext(AuthContext);
+  const { user, isLoadingAuth } = useContext(AuthContext);
   const { email } = useParams();
   const decodedEmail = decodeURIComponent(email as string);
   const [provider, setProvider] = useState<Provider | null>(null);
@@ -448,14 +448,17 @@ export default function BookingPage() {
   }, [provider]);
 
   useEffect(() => {
-    if (user === null) {
-      toast.error("Please log in to book an appointment",{
-        description: "You must be logged in to book an appointment."
+    if (isLoadingAuth) return;
+  
+    if (user == null) {
+      toast.error("Please log in to book an appointment", {
+        description: "You must be logged in to book an appointment.",
       });
-      
+  
       router.push("/auth/login");
     }
-  }, [user]);
+  }, [user, isLoadingAuth]);
+  
 
   if (!provider || !service) {
     return <p className="p-4 text-gray-500">Loading provider details...</p>;

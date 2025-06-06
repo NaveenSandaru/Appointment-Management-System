@@ -30,28 +30,26 @@ const AppointmentsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const { isLoggedIn, user } = useContext(AuthContext);
+  const { isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
 
   const router = useRouter();
 
   useEffect(() => {
-    // Only run this when user is not undefined/null
-    if (user !== undefined && user !== null) {
-      if (!isLoggedIn) {
-       toast.info("Please log in",{
-        description: "You are not logged in"
-       });
-        
-        router.push("/admin");
-
-      } else if (user.role !== "admin") {
-        toast.error("Unauthorized Access", {
-          description: "You are not authorized to view this page"
-        });
-        router.push("/");
-      }
+    if (isLoadingAuth) return; // Wait for auth status to be determined
+  
+    if (!isLoggedIn) {
+      toast.info("Please log in", {
+        description: "You are not logged in",
+      });
+      router.push("/admin");
+    } else if (user?.role !== "admin") {
+      toast.error("Unauthorized Access", {
+        description: "You are not authorized to view this page",
+      });
+      router.push("/");
     }
-  }, [user, isLoggedIn]);
+  }, [isLoadingAuth, isLoggedIn, user]);
+  
 
 
   useEffect(() => {

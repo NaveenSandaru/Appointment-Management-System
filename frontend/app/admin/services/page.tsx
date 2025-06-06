@@ -38,24 +38,25 @@ export default function ServicesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
-  const { isLoggedIn, user } = useContext(AuthContext);
+  const { isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
 
   // Check if user is admin
   useEffect(() => {
-    if (user !== undefined && user !== null) {
-      if (!isLoggedIn) {
-        toast.info("Please log in", {
-          description: "You are not logged in"
-        });
-        router.push("/admin");
-      } else if (user.role !== "admin") {
-        toast.error("Unauthorized Access", {
-          description: "You are not authorized to view this page"
-        });
-        router.push("/");
-      }
+    if (isLoadingAuth) return; // Wait for auth status to be determined
+  
+    if (!isLoggedIn) {
+      toast.info("Please log in", {
+        description: "You are not logged in",
+      });
+      router.push("/admin");
+    } else if (user?.role !== "admin") {
+      toast.error("Unauthorized Access", {
+        description: "You are not authorized to view this page",
+      });
+      router.push("/");
     }
-  }, [user, isLoggedIn, router]);
+  }, [isLoadingAuth, isLoggedIn, user]);
+  
 
   // Fetch services
   const fetchServices = async () => {

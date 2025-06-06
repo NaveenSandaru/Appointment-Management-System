@@ -35,7 +35,7 @@ interface Service {
 }
 
 const ProviderProfilePage = () => {
-  const { user } = useContext(AuthContext);
+  const { user, isLoadingAuth } = useContext(AuthContext);
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [serviceData, setServiceData] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,8 +61,13 @@ const ProviderProfilePage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    fetchClientData();
-  }, [user?.email]);
+    if (!isLoadingAuth && user?.email) {
+      fetchClientData();
+    } else if (!isLoadingAuth && !user?.email) {
+      toast.error("User not found");
+      router.push("/");
+    }
+  }, [user?.email, isLoadingAuth]);
 
   useEffect(() => {
     if (clientData?.service_type) {
@@ -71,8 +76,12 @@ const ProviderProfilePage = () => {
   }, [clientData?.service_type]);
 
   const fetchClientData = async () => {
+    if(isLoadingAuth){
+      return;
+    }
     if (!user?.email) {
       toast.error("User not found");
+      router.push("/");
       return;
     }
 
