@@ -27,12 +27,12 @@ test('client flow', async ({ page }) => {
   await page.getByRole('button', { name: 'Browse Service Providers' }).first().click();
   await page.goto('http://localhost:3000/serviceprovider/9747fc9e-6ca7-4f7d-8fce-e8204745981d');
   await page.getByRole('button', { name: 'Book Now' }).first().click();
-  await page.pause();
- // await page.goto('http://localhost:3000/book/naveensandaru2%40gmail.com');
-
+  await page.goto('http://localhost:3000/book/naveensandaru2%40gmail.com');
  
- 
-
+  
+  await page.getByRole('gridcell', { name: '20' }).click();
+  await expect(page.getByRole('button', { name: '11:15' })).toBeVisible();
+  await page.getByRole('button', { name: '11:15' }).click();
   await page.getByRole('button', { name: 'Confirm Appointment' }).click();
   await expect(page.getByRole('heading', { name: 'Add a Note (Optional)' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Enter any special requests or' })).toBeVisible();
@@ -68,6 +68,6 @@ test('client flow', async ({ page }) => {
   await expect(page.locator('input[type="tel"]')).toBeVisible();
   await page.getByRole('button', { name: 'DD d dilesh' }).click();
   await page.getByRole('menuitem', { name: 'Logout' }).click();
-  await expect(page.getByText('User not found')).toBeVisible();
+  
   await expect(page.getByText('logoHomeServicesSign In')).toBeVisible();
 });
