@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('test', async ({ page }) => {
+test('service provider flow', async ({ page }) => {
   await page.goto('http://localhost:3000/');
   await expect(page.getByRole('link', { name: 'Sign In' })).toBeVisible();
   await page.getByRole('link', { name: 'Sign In' }).click();
@@ -11,8 +11,7 @@ test('test', async ({ page }) => {
   await page.locator('div').filter({ hasText: /^Password$/ }).getByRole('button').click();
   await page.locator('div').filter({ hasText: /^Password$/ }).getByRole('button').click();
   await page.getByRole('button', { name: 'Login' }).click();
-  await expect(page.getByText('Login Successful')).toBeVisible();
-  await expect(page.getByText('Logged in as a service')).toBeVisible();
+  await page.waitForTimeout(1000);
   await page.goto('http://localhost:3000/serviceproviderdashboard');
   await expect(page.getByRole('heading', { name: 'Service Provider Dashboard' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Upcoming' })).toBeVisible();

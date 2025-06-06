@@ -53,9 +53,10 @@ interface Appointment {
 }
 
 export default function ServiceProDashboard() {
+
   const { user, isLoadingAuth } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('today');
-  const [selectedDate, setSelectedDate] = useState('2025-06-03');
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
   const [isBlockTimeModalOpen, setIsBlockTimeModalOpen] = useState(false);
   const [startTime, setStartTime] = useState('09:00');
@@ -262,7 +263,7 @@ export default function ServiceProDashboard() {
                   <CardTitle>Daily Schedule</CardTitle>
                   <Input
                     type="date"
-                    value={selectedDate}
+                    value= {selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className="w-auto"
                   />
