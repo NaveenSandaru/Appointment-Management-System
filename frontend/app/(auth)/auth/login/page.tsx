@@ -10,11 +10,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Loading } from "@/components/ui/loading"
 import Link from "next/link"
+import Image from 'next/image';
 import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
 import { Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 import { signIn } from "next-auth/react";
+import logo from "./../../../../public/simplyBookedLogo.png"
 
 export default function LoginPage() {
   const router = useRouter();
@@ -112,7 +114,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center pb-6">
-          <div className="text-2xl font-bold text-[#059669] mb-2">logo</div>
+        <div className="w-full flex justify-center mb-2">
+            <Image
+              src={logo}
+              alt="Simply Booked Logo"
+              width={110}
+              height={110}
+              className="object-contain"
+            />
+          </div>
           <p className="text-gray-600 text-sm">Welcome back! Please login to your account.</p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -170,8 +180,8 @@ export default function LoginPage() {
                 Remember me
               </Label>
             </div>
-            <Link 
-              href={`/auth/forgotpassword?email=${encodeURIComponent(email)}`} 
+            <Link
+              href={`/auth/forgotpassword?email=${encodeURIComponent(email)}`}
               className="text-sm text-[#12D598] hover:text-[#0eb882]"
               onClick={handleForgotPassword}
             >

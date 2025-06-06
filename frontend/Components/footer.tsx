@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Facebook, Instagram, Twitter } from "lucide-react"
+import logo from "./../public/simplyBookedLogo.png"
 
 export default function Footer() {
   const pathname = usePathname()
@@ -17,8 +19,14 @@ export default function Footer() {
     <footer className="bg-white">
       {/* Name and separator line */}
       <div className="max-w-7xl mx-auto px-4 pt-8">
-        <div className="flex items-center mb-8">
-          <h3 className="text-lg font-semibold text-[#059669] mr-4">Name</h3>
+        <div className="flex items-center mb-8 space-x-4">
+          <Image
+            src={logo}
+            alt="Simply Booked Logo"
+            width={110}
+            height={110}
+            className="object-contain"
+          />
           <hr className="flex-1 border-gray-200" />
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image";
 import { usePathname } from "next/navigation"
 import { Menu, User, LogOut } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/hooks/use-auth"
 import axios from "axios"
+import logo from "./../public/simplyBookedLogo.png";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -32,11 +34,11 @@ export function Navbar() {
 
   const deleteToken = async () => {
     const response = await axios.delete(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`,{
-        withCredentials:true
-      }
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`, {
+      withCredentials: true
+    }
     );
-    if(response.status == 200){
+    if (response.status == 200) {
       setUser(null);
       setAccessToken("");
       setIsMobileProfileOpen(false)
@@ -44,7 +46,7 @@ export function Navbar() {
   }
 
   const getUserPic = async () => {
-    try{
+    try {
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user.email}`,
         {
@@ -56,7 +58,7 @@ export function Navbar() {
       );
       setProfilePath(response.data.profile_picture);
     }
-    catch(error: any){
+    catch (error: any) {
       console.log(error.message)
     }
   }
@@ -77,9 +79,9 @@ export function Navbar() {
     return user?.name || user?.email || "User"
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     getUserPic();
-  },[isLoggedIn]);
+  }, [isLoggedIn]);
 
   return (
     <header className="w-full border-b border-gray-100">
@@ -102,18 +104,16 @@ export function Navbar() {
                   <nav className="flex flex-col space-y-3 p-4">
                     <Link
                       href="/"
-                      className={`py-1 ${
-                        isActive("/") ? "text-emerald-600 font-semibold" : "text-gray-600 hover:text-gray-900"
-                      }`}
+                      className={`py-1 ${isActive("/") ? "text-emerald-600 font-semibold" : "text-gray-600 hover:text-gray-900"
+                        }`}
                       onClick={() => setIsOpen(false)}
                     >
                       Home
                     </Link>
                     <Link
                       href="/services"
-                      className={`py-1 ${
-                        isActive("/services") ? "text-emerald-600 font-semibold" : "text-gray-600 hover:text-gray-900"
-                      }`}
+                      className={`py-1 ${isActive("/services") ? "text-emerald-600 font-semibold" : "text-gray-600 hover:text-gray-900"
+                        }`}
                       onClick={() => setIsOpen(false)}
                     >
                       Services
@@ -135,10 +135,15 @@ export function Navbar() {
             </Sheet>
           </div>
 
-          {/* Center: Logo */}
           <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-emerald-500">
-              logo
+            <Link href="/">
+              <Image
+                src={logo}
+                alt="Simply Booked Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+              />
             </Link>
           </div>
 
@@ -188,8 +193,14 @@ export function Navbar() {
         <div className="hidden md:flex h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-emerald-500">
-              logo
+            <Link href="/">
+              <Image
+                src={logo}
+                alt="Simply Booked Logo"
+                width={110} // You can adjust size as needed
+                height={110}
+                className="object-contain"
+              />
             </Link>
           </div>
 
@@ -197,21 +208,19 @@ export function Navbar() {
           <nav className="flex justify-center space-x-6">
             <Link
               href="/"
-              className={`transition-colors py-1 ${
-                isActive("/")
-                  ? "text-emerald-600 hover:text-emerald-500 font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              className={`transition-colors py-1 ${isActive("/")
+                ? "text-emerald-600 hover:text-emerald-500 font-semibold"
+                : "text-gray-600 hover:text-gray-900"
+                }`}
             >
               Home
             </Link>
             <Link
               href="/services"
-              className={`transition-colors py-1 ${
-                isActive("/services")
-                  ? "text-emerald-600 hover:text-emerald-500 font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              className={`transition-colors py-1 ${isActive("/services")
+                ? "text-emerald-600 hover:text-emerald-500 font-semibold"
+                : "text-gray-600 hover:text-gray-900"
+                }`}
             >
               Services
             </Link>
@@ -229,7 +238,7 @@ export function Navbar() {
                           profilePath?.startsWith("/uploads")
                             ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${profilePath}`
                             : profilePath
-                        }                        
+                        }
                         alt={getUserName()}
                         className="w-full h-full object-cover"
                       />

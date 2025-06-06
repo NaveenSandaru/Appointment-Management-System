@@ -60,7 +60,7 @@ export default function ServiceProviderPage({ params }: ServiceProviderPageProps
       const filtered = providers.filter((provider) =>
         provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         provider.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        provider.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        provider.specialty?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         provider.company_address.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredProviders(filtered);
