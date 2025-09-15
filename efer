@@ -1,0 +1,8 @@
+Diagram dentax - the databse design
+Flowchart - the proposed flow the system the tenent id filtering and tennet isolation.
+Show the current system - dentax
+POC
+Primsa - the issues we can face with caching
+pacs server - a docker conatainor(seperate) - unique user id (otherwise the same patient is visibe for the other ones opening the dicom viwer)?
+what can we do with kubernets in this case?  
+Q and A

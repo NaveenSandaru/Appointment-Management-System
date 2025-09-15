@@ -160,7 +160,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           {isLoggedIn ?
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome back, {user.name.split(" ")[0]}
+              Welcome back, {user.name.split(" ")[0] ||"User"}
             </h1>
             :
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
