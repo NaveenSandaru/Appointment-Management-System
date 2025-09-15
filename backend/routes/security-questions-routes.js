@@ -1,85 +1,98 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import {authenticateToken} from './../middleware/authentication.js'
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all security questions
-router.get('/', /*authenticateToken*/ async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const questions = await prisma.security_questions.findMany();
-    res.json(questions);
+    const questions = await prisma.security_questions.findMany({
+      orderBy: { question_id: 'asc' }
+    });
+    res.json({ successful: true, data: questions });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ successful: false, error: err.message });
   }
 });
 
-// Get a specific question by ID
-router.get('/:question_id', /*authenticateToken*/ async (req, res) => {
+// Get a specific security question
+router.get('/:question_id', async (req, res) => {
   const { question_id } = req.params;
   try {
     const question = await prisma.security_questions.findUnique({
-      where: { question_id },
+      where: { question_id }
     });
-    if (!question) return res.status(404).json({ error: 'Question not found' });
-    res.json(question);
+    if (!question) {
+      return res.status(404).json({ successful: false, error: 'Security question not found' });
+    }
+    res.json({ successful: true, data: question });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ successful: false, error: err.message });
   }
 });
 
-// Create a new question
-router.post('/', /*authenticateToken*/ async (req, res) => {
+// Create a new security question (admin only)
+router.post('/', authenticateToken, async (req, res) => {
   const { question_id, question } = req.body;
 
   if (!question_id || !question) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ successful: false, error: 'Question ID and question text are required' });
   }
 
   try {
-    const created = await prisma.security_questions.create({
-      data: { question_id, question },
+    const newQuestion = await prisma.security_questions.create({
+      data: { question_id, question }
     });
-    res.status(201).json(created);
+    res.status(201).json({ successful: true, data: newQuestion });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Update an existing question
-router.put('/:question_id', /*authenticateToken*/ async (req, res) => {
-  const { question_id } = req.params;
-  const { question } = req.body;
-
-  try {
-    const updated = await prisma.security_questions.update({
-      where: { question_id },
-      data: { question },
-    });
-    res.json(updated);
-  } catch (err) {
-    if (err.code === 'P2025') {
-      res.status(404).json({ error: 'Question not found' });
+    if (err.code === 'P2002') {
+      res.status(409).json({ successful: false, error: 'Question ID already exists' });
     } else {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ successful: false, error: err.message });
     }
   }
 });
 
-// Delete a question
-router.delete('/:question_id', /*authenticateToken*/ async (req, res) => {
+// Update a security question (admin only)
+router.put('/:question_id', authenticateToken, async (req, res) => {
   const { question_id } = req.params;
+  const { question } = req.body;
+
+  if (!question) {
+    return res.status(400).json({ successful: false, error: 'Question text is required' });
+  }
+
   try {
-    await prisma.security_questions.delete({
+    const updatedQuestion = await prisma.security_questions.update({
       where: { question_id },
+      data: { question }
     });
-    res.json({ message: 'Question deleted' });
+    res.json({ successful: true, data: updatedQuestion });
   } catch (err) {
     if (err.code === 'P2025') {
-      res.status(404).json({ error: 'Question not found' });
+      res.status(404).json({ successful: false, error: 'Security question not found' });
     } else {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ successful: false, error: err.message });
+    }
+  }
+});
+
+// Delete a security question (admin only)
+router.delete('/:question_id', authenticateToken, async (req, res) => {
+  const { question_id } = req.params;
+
+  try {
+    await prisma.security_questions.delete({
+      where: { question_id }
+    });
+    res.json({ successful: true, message: 'Security question deleted successfully' });
+  } catch (err) {
+    if (err.code === 'P2025') {
+      res.status(404).json({ successful: false, error: 'Security question not found' });
+    } else {
+      res.status(500).json({ successful: false, error: err.message });
     }
   }
 });

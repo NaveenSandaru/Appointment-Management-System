@@ -28,18 +28,24 @@ router.get('/appointment', /*authenticateToken*/ async (req, res) => {
   }
 });
 
-// Get appointments by service provider email with client info
-router.get('/sprovider/:service_provider_email', async (req, res) => {
-  const { service_provider_email } = req.params;
+// Get appointments by service ID with client info
+router.get('/service/:service_id', async (req, res) => {
+  const { service_id } = req.params;
 
   try {
     const appointments = await prisma.appointments.findMany({
-      where: { service_provider_email },
+      where: { service_id },
       include: {
         clients: {
           select: {
             name: true,
             profile_picture: true,
+          },
+        },
+        services: {
+          select: {
+            service_name: true,
+            service_type: true,
           },
         },
       },
@@ -54,6 +60,8 @@ router.get('/sprovider/:service_provider_email', async (req, res) => {
       ...appt,
       clientName: appt.clients?.name,
       clientImageUrl: appt.clients?.profile_picture,
+      serviceName: appt.services?.service_name,
+      serviceType: appt.services?.service_type,
     }));
 
     res.json(enriched);
@@ -79,14 +87,14 @@ router.get('/client/:client_email', /*authenticateToken*/ async (req, res) => {
 router.post('/', /*authenticateToken*/ async (req, res) => {
   const {
     client_email,
-    service_provider_email,
+    service_id,
     date,
     time_from,
     time_to,
     note
   } = req.body;
 
-  if (!service_provider_email || !date || !time_from || !time_to) {
+  if (!service_id || !date || !time_from || !time_to) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -94,7 +102,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
     const appointment = await prisma.appointments.create({
       data: {
         client_email,
-        service_provider_email,
+        service_id,
         date,
         time_from,
         time_to,
@@ -137,23 +145,29 @@ router.delete('/:appointment_id', /*authenticateToken*/ async (req, res) => {
   const { appointment_id } = req.params;
 
   try {
-    const appointment = await prisma.appointments.findUnique({where: { appointment_id }});
-    const spEmail = appointment.service_provider_email;
-    const sprovider = await prisma.service_providers.findUnique({where:{email: spEmail}})
+    const appointment = await prisma.appointments.findUnique({
+      where: { appointment_id },
+      include: {
+        services: {
+          select: {
+            service_name: true,
+          },
+        },
+      },
+    });
+    
     if (!appointment) {
       return res.status(404).json({ error: 'Appointment not found' });
     }
-    if(!sprovider){
-      return res.status(404).json({error:"Service provider not found"});
-    }
 
     await prisma.appointments.delete({ where: { appointment_id } });
-    if(appointment.client_email){
+    
+    if(appointment.client_email && appointment.services) {
       sendAppointmentCancelation(
         appointment.client_email,
         appointment.date,
         appointment.time_from,
-        sprovider.name
+        appointment.services.service_name
       );
     }
     

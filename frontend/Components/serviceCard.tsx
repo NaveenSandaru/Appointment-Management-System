@@ -57,8 +57,8 @@ export function ServiceCard({
 
   // Handle button click
   const handleBookNow = () => {
-    const encodedService = encodeURIComponent(serviceId); // handle spaces
-    router.push(`/serviceprovider/${encodedService}`);
+    const encodedServiceId = encodeURIComponent(serviceId);
+    router.push(`/book/${encodedServiceId}`);
   }
 
   return (
@@ -81,7 +81,7 @@ export function ServiceCard({
           onClick={handleBookNow}
           className="w-full bg-emerald-600 hover:bg-emerald-500 text-white mt-auto h-9 text-sm transition-all duration-300 hover:-translate-y-0.5"
         >
-          Browse Service Providers
+          Book Now
         </Button>
       </CardContent>
     </Card>

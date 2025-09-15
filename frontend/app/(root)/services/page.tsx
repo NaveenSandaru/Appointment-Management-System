@@ -6,16 +6,33 @@ import axios from 'axios'
 import { Loader2 } from 'lucide-react' // Optional: any spinner icon
 import { toast } from 'sonner'
 
+interface Service {
+  service_id: string;
+  service_name: string;
+  picture: string | null;
+  description: string | null;
+  service_type: string;
+  specialization: string | null;
+  work_days_from: string;
+  work_days_to: string;
+  work_hours_from: string;
+  work_hours_to: string;
+  appointment_duration: string;
+  appointment_fee: number;
+  language: string;
+  is_active: boolean;
+}
+
 export default function Page() {
 
-  const [fetchedServices, setFetchedServices] = useState([]);
+  const [fetchedServices, setFetchedServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchServices = async () => {
     setIsLoading(true);
     try {
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services?active_only=true`
       );
       if (response.data.successful) {
         setFetchedServices(response.data.data);
@@ -57,14 +74,14 @@ export default function Page() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {fetchedServices.map((service) => (
-                <div key={service.serviceId} className="flex">
+                <div key={service.service_id} className="flex">
                   <ServiceCard 
                     serviceId={service.service_id}
-                    service={service.service}
-                    description={service.description}
+                    service={service.service_name}
+                    description={service.description || undefined}
                     image={service.picture?.includes('/uploads')
                       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${service.picture}`
-                      : service.picture}
+                      : service.picture || undefined}
                   />
                 </div>
               ))}

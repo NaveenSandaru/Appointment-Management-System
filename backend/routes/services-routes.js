@@ -24,14 +24,39 @@ const upload = multer({ storage });
 
 // CREATE a new service with optional picture
 router.post('/', upload.single('picture'), async (req, res) => {
-  const { service, picture, description } = req.body;
+  const { 
+    service_name, 
+    description, 
+    service_type, 
+    specialization, 
+    work_days_from, 
+    work_days_to, 
+    work_hours_from, 
+    work_hours_to, 
+    appointment_duration, 
+    appointment_fee, 
+    language,
+    is_active = true 
+  } = req.body;
 
   try {
+    const picture = req.file ? req.file.filename : null;
+    
     const created = await prisma.services.create({
       data: {
-        service,
+        service_name,
         picture,
-        description
+        description,
+        service_type,
+        specialization,
+        work_days_from,
+        work_days_to,
+        work_hours_from,
+        work_hours_to,
+        appointment_duration,
+        appointment_fee: parseInt(appointment_fee),
+        language,
+        is_active: Boolean(is_active)
       }
     });
     res.status(201).json({ successful: true, data: created });
@@ -41,9 +66,15 @@ router.post('/', upload.single('picture'), async (req, res) => {
 });
 
 // READ all services
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const services = await prisma.services.findMany();
+    const { active_only } = req.query;
+    const whereClause = active_only === 'true' ? { is_active: true } : {};
+    
+    const services = await prisma.services.findMany({
+      where: whereClause,
+      orderBy: { service_name: 'asc' }
+    });
     res.json({ successful: true, data: services });
   } catch (error) {
     res.status(500).json({ successful: false, message: error.message });
@@ -69,7 +100,20 @@ router.get('/:id', async (req, res) => {
 
 // UPDATE a service (including optional new picture)
 router.put('/:id', upload.single('picture'), async (req, res) => {
-  const { service, description } = req.body;
+  const { 
+    service_name, 
+    description, 
+    service_type, 
+    specialization, 
+    work_days_from, 
+    work_days_to, 
+    work_hours_from, 
+    work_hours_to, 
+    appointment_duration, 
+    appointment_fee, 
+    language,
+    is_active 
+  } = req.body;
   const picture = req.file ? req.file.filename : undefined;
 
   try {
@@ -87,13 +131,26 @@ router.put('/:id', upload.single('picture'), async (req, res) => {
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
+    const updateData = {
+      service_name,
+      description,
+      service_type,
+      specialization,
+      work_days_from,
+      work_days_to,
+      work_hours_from,
+      work_hours_to,
+      appointment_duration,
+      language
+    };
+
+    if (appointment_fee !== undefined) updateData.appointment_fee = parseInt(appointment_fee);
+    if (is_active !== undefined) updateData.is_active = Boolean(is_active);
+    if (picture) updateData.picture = picture;
+
     const updated = await prisma.services.update({
       where: { service_id: req.params.id },
-      data: {
-        service,
-        description,
-        ...(picture ? { picture } : {})
-      }
+      data: updateData
     });
 
     res.json({ successful: true, data: updated });

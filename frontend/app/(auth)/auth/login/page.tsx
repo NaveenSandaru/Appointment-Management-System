@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useContext, useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button"
 import { LoadingButton } from "@/components/ui/loading-button"
@@ -20,6 +20,8 @@ import logo from "./../../../../public/simplyBookedLogo.png"
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isAdminLogin = searchParams.get('type') === 'admin';
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [remember, setRemember] = useState(false);
@@ -46,8 +48,9 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
+      const endpoint = isAdminLogin ? 'admin_login' : 'login';
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/${endpoint}`,
         {
           email: email,
           password: password,
@@ -68,13 +71,13 @@ export default function LoginPage() {
         });
         router.push("/");
       }
-      if (response.data.successful && response.data.user.role == "sp") {
+      else if (response.data.successful && response.data.user.role == "admin") {
         setUser(response.data.user);
         setAccessToken(response.data.accessToken);
         toast.success("Login Successful", {
-          description: "Logged in as a service provider"
+          description: "Logged in as an administrator"
         });
-        router.push("/serviceproviderdashboard");
+        router.push("/admin/dashboard");
       }
       else {
         console.log(response.data.error)
@@ -123,7 +126,15 @@ export default function LoginPage() {
               className="object-contain"
             />
           </div>
-          <p className="text-gray-600 text-sm">Welcome back! Please login to your account.</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isAdminLogin ? 'Admin Login' : 'Client Login'}
+          </h1>
+          <p className="text-gray-600 text-sm">
+            {isAdminLogin 
+              ? 'Administrator access to manage services and appointments.' 
+              : 'Welcome back! Please login to your account.'
+            }
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -198,25 +209,31 @@ export default function LoginPage() {
             Login
           </LoadingButton>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Or continue with</span>
-            </div>
-          </div>
+          {!isAdminLogin && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                </div>
+              </div>
 
-          <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={isLoading}>
-            Google
-          </Button>
+              <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={isLoading}>
+                Google
+              </Button>
+            </>
+          )}
 
-          <p className="text-center text-sm text-gray-600">
-            {"Don't have an account? "}
-            <Link href="/auth/account-selection" className="text-[#12D598] hover:text-green-700">
-              Sign up
-            </Link>
-          </p>
+          {!isAdminLogin && (
+            <p className="text-center text-sm text-gray-600">
+              {"Don't have an account? "}
+              <Link href="/auth/account-selection" className="text-[#12D598] hover:text-green-700">
+                Sign up
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

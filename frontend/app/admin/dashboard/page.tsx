@@ -13,36 +13,15 @@ import { useRouter } from "next/navigation";
 interface Appointment {
   appointment_id: string;
   client_email: string;
-  service_provider_email: string;
+  service_id: string;
   date: string;
   time_from: string;
   time_to: string;
   note: string | null;
   clientName?: string;
   clientImageUrl?: string;
-  providerName?: string;
-  providerImageUrl?: string;
   serviceName?: string;
   servicePrice?: string;
-}
-
-interface ServiceProvider {
-  email: string;
-  name: string;
-  phone_number: string;
-  profile_picture: string | null;
-  company_name: string;
-  company_address: string;
-  company_phone_number: string;
-  language: string;
-  service_type: string;
-  specialization: string | null;
-  work_days_from: string;
-  work_days_to: string;
-  work_hours_from: string;
-  work_hours_to: string;
-  appointment_duration: string;
-  appointment_fee: number;
 }
 
 interface Client {
@@ -55,11 +34,18 @@ interface Client {
   address?: string;
 }
 
+interface Service {
+  service_id: string;
+  service_name: string;
+  description: string | null;
+  picture: string | null;
+}
+
 const Dashboard = () => {
   const { isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [providers, setProviders] = useState<ServiceProvider[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
 
   const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -67,7 +53,7 @@ const Dashboard = () => {
   const router = useRouter();
 
   const [stats, setStats] = useState({
-    totalProviders: 0,
+    totalServices: 0,
     totalClients: 0,
     totalAppointments: 0,
     pendingAppointments: 0,
@@ -101,9 +87,9 @@ const Dashboard = () => {
         try {
           setIsLoading(true);
 
-          const [appointmentsRes, providersRes, clientsRes] = await Promise.all([
+          const [appointmentsRes, servicesRes, clientsRes] = await Promise.all([
             axios.get(`${baseURL}/appointments`),
-            axios.get(`${baseURL}/service-providers`),
+            axios.get(`${baseURL}/services`),
             axios.get(`${baseURL}/clients`),
           ]);
 
@@ -112,7 +98,7 @@ const Dashboard = () => {
           );
 
           setAppointments(validAppointments);
-          setProviders(providersRes.data);
+          setServices(servicesRes.data.successful ? servicesRes.data.data : []);
           setClients(clientsRes.data);
 
           const totalRevenue = validAppointments.reduce((sum, appt) => {
@@ -123,7 +109,7 @@ const Dashboard = () => {
           const completedAppointments = validAppointments.length - pendingAppointments;
 
           setStats({
-            totalProviders: providersRes.data.length,
+            totalServices: services.length,
             totalClients: clientsRes.data.length,
             totalAppointments: validAppointments.length,
             pendingAppointments,
@@ -158,12 +144,12 @@ const Dashboard = () => {
             });
           }
 
-          const latestProvider = providersRes.data[providersRes.data.length - 1];
-          if (latestProvider) {
+          const latestService = services.length > 0 ? services[services.length - 1] : null;
+          if (latestService) {
             recent.push({
               id: 3,
-              type: "provider",
-              message: `${latestProvider.name} joined as provider`,
+              type: "service",
+              message: `New service ${latestService.service_name} added`,
               time: "Recently",
               status: "info",
             });
@@ -229,8 +215,8 @@ const Dashboard = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 mb-8">
         <StatCard
-          title="Total Service Providers"
-          value={stats.totalProviders}
+          title="Total Services"
+          value={stats.totalServices}
           icon={UserCheck}
           color="text-blue-600"
         />

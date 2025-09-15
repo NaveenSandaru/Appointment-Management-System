@@ -17,12 +17,8 @@ router.post('/login', async (req, res) => {
         user = await prisma.clients.findUnique({ where: { email } });
         role = "client";
         if (!user) {
-            user = await prisma.service_providers.findUnique({ where: { email } });
-            if (!user) {
-                role = null;
-                return res.json({ successful: false, message: 'User not found' });
-            }
-            role = "sp";
+            role = null;
+            return res.json({ successful: false, message: 'User not found' });
         }
         if(!user.password){
             return res.json({ successful: false, message: 'Invalid password' });
@@ -89,14 +85,12 @@ router.post('/google_login', async (req, res) => {
         }
 
         if (!user) {
-            let user = await prisma.service_providers.findUnique({ where: { email } });
-            if(user){
-                return res.status(500).json({ message: 'Account Already Exists as a Service Provider' });
-            }
             user = await prisma.clients.create({
                 data: {
                     email,
                     name,
+                    phone_number: '',
+                    password: null,
                     ...rest
                 }
             });
@@ -141,9 +135,9 @@ router.post('/google_login', async (req, res) => {
 });
 
 router.post('/admin_login', async (req, res) => {
-    const { id, password, checked } = req.body;
+    const { email, password, checked } = req.body;
     try {
-      const admin = await prisma.admins.findUnique({ where: { id } });
+      const admin = await prisma.admins.findUnique({ where: { email } });
   
       if (!admin || !admin.password) {
         return res.status(401).json({ successful: false, message: 'Invalid credentials' });
@@ -154,7 +148,7 @@ router.post('/admin_login', async (req, res) => {
         return res.status(401).json({ successful: false, message: 'Invalid credentials' });
       }
   
-      const tokens = jwTokens(admin.id, admin.name, "admin");
+      const tokens = jwTokens(admin.email, admin.name, "admin");
   
       res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
@@ -168,7 +162,7 @@ router.post('/admin_login', async (req, res) => {
         message: 'Login successful',
         accessToken: tokens.accessToken,
         user: {
-          email: admin.id,
+          email: admin.email,
           name: admin.name,
           role: 'admin',
         }

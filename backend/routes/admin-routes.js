@@ -10,8 +10,8 @@ const router = express.Router();
 
 // Create admin
 router.post('/', async (req, res) => {
-  const { id, name, password } = req.body;
-  if (!id || !name || !password) {
+  const { email, name, password } = req.body;
+  if (!email || !name || !password) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
@@ -19,7 +19,7 @@ router.post('/', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const newAdmin = await prisma.admins.create({
       data: {
-        id,
+        email,
         name,
         password: hashedPassword,
       },
@@ -34,7 +34,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const admins = await prisma.admins.findMany({
-      select: { id: true, name: true }, // hide password
+      select: { email: true, name: true }, // hide password
     });
     res.json(admins);
   } catch (err) {
@@ -43,11 +43,11 @@ router.get('/', async (req, res) => {
 });
 
 // Get a specific admin
-router.get('/:id', async (req, res) => {
+router.get('/:email', async (req, res) => {
   try {
     const admin = await prisma.admins.findUnique({
-      where: { id: req.params.id },
-      select: { id: true, name: true }, // hide password
+      where: { email: req.params.email },
+      select: { email: true, name: true }, // hide password
     });
     if (!admin) return res.status(404).json({ error: 'Admin not found' });
     res.json(admin);
@@ -57,7 +57,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update an admin
-router.put('/:id', async (req, res) => {
+router.put('/:email', async (req, res) => {
   const { name, password } = req.body;
   if (!name && !password) {
     return res.status(400).json({ error: 'At least one field is required to update' });
@@ -69,20 +69,20 @@ router.put('/:id', async (req, res) => {
     if (password) data.password = await bcrypt.hash(password, 10);
 
     const updated = await prisma.admins.update({
-      where: { id: req.params.id },
+      where: { email: req.params.email },
       data,
     });
-    res.json({ id: updated.id, name: updated.name });
+    res.json({ email: updated.email, name: updated.name });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // Delete an admin
-router.delete('/:id', async (req, res) => {
+router.delete('/:email', async (req, res) => {
   try {
     await prisma.admins.delete({
-      where: { id: req.params.id },
+      where: { email: req.params.email },
     });
     res.json({ message: 'Admin deleted' });
   } catch (err) {

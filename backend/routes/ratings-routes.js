@@ -16,14 +16,14 @@ router.get('/', /*authenticateToken*/ async (req, res) => {
 });
 
 // Get a specific rating
-router.get('/:client_email/:service_provider_email/:history_id', /*authenticateToken*/ async (req, res) => {
-  const { client_email, service_provider_email, history_id } = req.params;
+router.get('/:client_email/:service_id/:history_id', /*authenticateToken*/ async (req, res) => {
+  const { client_email, service_id, history_id } = req.params;
   try {
     const rating = await prisma.ratings.findUnique({
       where: {
-        client_email_service_provider_email_history_id: {
+        client_email_service_id_history_id: {
           client_email,
-          service_provider_email,
+          service_id,
           history_id,
         },
       },
@@ -37,25 +37,25 @@ router.get('/:client_email/:service_provider_email/:history_id', /*authenticateT
 
 // Create or update a rating
 router.post('/', /*authenticateToken*/ async (req, res) => {
-  const { client_email, service_provider_email, history_id, rating } = req.body;
+  const { client_email, service_id, history_id, rating } = req.body;
 
-  if (!client_email || !service_provider_email || !history_id || rating === undefined) {
+  if (!client_email || !service_id || !history_id || rating === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
     const upserted = await prisma.ratings.upsert({
       where: {
-        client_email_service_provider_email_history_id: {
+        client_email_service_id_history_id: {
           client_email,
-          service_provider_email,
+          service_id,
           history_id,
         },
       },
       update: { rating },
       create: {
         client_email,
-        service_provider_email,
+        service_id,
         history_id,
         rating,
       },
@@ -67,14 +67,14 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
 });
 
 // Delete a rating
-router.delete('/:client_email/:service_provider_email/:history_id', /*authenticateToken*/ async (req, res) => {
-  const { client_email, service_provider_email, history_id } = req.params;
+router.delete('/:client_email/:service_id/:history_id', /*authenticateToken*/ async (req, res) => {
+  const { client_email, service_id, history_id } = req.params;
   try {
     await prisma.ratings.delete({
       where: {
-        client_email_service_provider_email_history_id: {
+        client_email_service_id_history_id: {
           client_email,
-          service_provider_email,
+          service_id,
           history_id,
         },
       },

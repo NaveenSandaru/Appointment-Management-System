@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Plus, Pencil, Trash, Loader2, Upload, X } from 'lucide-react';
+import { Search, Plus, Pencil, Trash, Loader2, Upload, X } from 'lucide-react';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
 import { toast } from 'sonner';
@@ -11,12 +11,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/Components/ui/dialog";
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
-import { Label } from '@/Components/ui/label';
-import { Textarea } from '@/Components/ui/textarea';
+import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
+import { Textarea } from "@/Components/ui/textarea";
 
 interface Service {
   service_id: string;
@@ -29,6 +29,7 @@ export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
   const [newService, setNewService] = useState({
     service: '',
     description: '',
@@ -42,22 +43,17 @@ export default function ServicesPage() {
 
   // Check if user is admin
   useEffect(() => {
-    if (isLoadingAuth) return; // Wait for auth status to be determined
-  
+    if (isLoadingAuth) return;
+    
     if (!isLoggedIn) {
-      toast.info("Please log in", {
-        description: "You are not logged in",
-      });
-      router.push("/admin");
+      toast.info("Please log in");
+      router.push("/auth/login");
     } else if (user?.role !== "admin") {
-      toast.error("Unauthorized Access", {
-        description: "You are not authorized to view this page",
-      });
+      toast.error("Unauthorized Access");
       router.push("/");
     }
   }, [isLoadingAuth, isLoggedIn, user]);
   
-
   // Fetch services
   const fetchServices = async () => {
     try {
@@ -69,9 +65,7 @@ export default function ServicesPage() {
         setServices(response.data.data);
       }
     } catch (error: any) {
-      toast.error("Error", {
-        description: error.message || "Failed to fetch services"
-      });
+      toast.error("Failed to fetch services");
     } finally {
       setIsLoading(false);
     }
@@ -84,23 +78,16 @@ export default function ServicesPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("File is too large", {
-          description: "Please select an image under 5MB"
-        });
+        toast.error("File is too large");
         return;
       }
 
-      // Check file type
       if (!file.type.startsWith('image/')) {
-        toast.error("Invalid file type", {
-          description: "Please select an image file"
-        });
+        toast.error("Invalid file type");
         return;
       }
 
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewService(prev => ({
@@ -121,7 +108,16 @@ export default function ServicesPage() {
     }));
   };
 
-  // Handle form submission
+  const resetForm = () => {
+    setNewService({ 
+      service: '', 
+      description: '', 
+      picture: null, 
+      picturePreview: '' 
+    });
+    setEditingService(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -133,9 +129,8 @@ export default function ServicesPage() {
     try {
       setIsSubmitting(true);
 
-      let pictureUrl = null;
+      let pictureUrl = editingService?.picture || null;
 
-      // If there's an image, upload it first
       if (newService.picture) {
         const formData = new FormData();
         formData.append('image', newService.picture);
@@ -155,41 +150,65 @@ export default function ServicesPage() {
             pictureUrl = uploadResponse.data.url;
           }
         } catch (error: any) {
-          toast.error("Error uploading image", {
-            description: error.message || "Failed to upload image"
-          });
+          toast.error("Error uploading image");
           return;
         }
       }
-
       
-      // Create the service with the image URL
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`,
-        {
-          service: newService.service,
-          description: newService.description || null,
-          picture: pictureUrl
-        }
-      );
+      const serviceData = {
+        service: newService.service,
+        description: newService.description || null,
+        picture: pictureUrl
+      };
+
+      let response;
+      if (editingService) {
+        response = await axios.put(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${editingService.service_id}`,
+          serviceData
+        );
+      } else {
+        response = await axios.post(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`,
+          serviceData
+        );
+      }
 
       if (response.data.successful) {
-        toast.success("Service added successfully");
-        setNewService({ 
-          service: '', 
-          description: '', 
-          picture: null, 
-          picturePreview: '' 
-        });
+        toast.success(editingService ? "Service updated successfully" : "Service added successfully");
+        resetForm();
         setIsDialogOpen(false);
-        fetchServices(); // Refresh the services list
+        fetchServices();
       }
     } catch (error: any) {
-      toast.error("Error adding service", {
-        description: error.response?.data?.message || error.message || "Something went wrong"
-      });
+      toast.error(`Error ${editingService ? 'updating' : 'adding'} service`);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (service: Service) => {
+    setEditingService(service);
+    setNewService({
+      service: service.service,
+      description: service.description || '',
+      picture: null,
+      picturePreview: service.picture?.startsWith('/uploads') 
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${service.picture}`
+        : service.picture || ''
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (serviceId: string) => {
+    if (!confirm('Are you sure you want to delete this service?')) return;
+    
+    try {
+      await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${serviceId}`);
+      toast.success("Service deleted successfully");
+      fetchServices();
+    } catch (error: any) {
+      toast.error("Error deleting service");
     }
   };
 
@@ -205,8 +224,11 @@ export default function ServicesPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Services</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <h1 className="text-2xl font-semibold text-gray-900">Services Management</h1>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="h-4 w-4 mr-2" />
@@ -215,7 +237,7 @@ export default function ServicesPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Service</DialogTitle>
+                <DialogTitle>{editingService ? 'Edit Service' : 'Add New Service'}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                 <div className="space-y-2">
@@ -289,19 +311,17 @@ export default function ServicesPage() {
                     Cancel
                   </Button>
                   <Button
-                    
                     type="submit"
                     className="bg-blue-600 hover:bg-blue-700"
                     disabled={isSubmitting}
-                    
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Adding...
+                        {editingService ? 'Updating...' : 'Adding...'}
                       </>
                     ) : (
-                      'Add Service'
+                      editingService ? 'Update Service' : 'Add Service'
                     )}
                   </Button>
                 </div>
@@ -310,7 +330,6 @@ export default function ServicesPage() {
           </Dialog>
         </div>
 
-        {/* Services Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service) => (
             <div
@@ -338,6 +357,7 @@ export default function ServicesPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => handleEdit(service)}
                   className="text-blue-600 hover:text-blue-700"
                 >
                   <Pencil className="h-4 w-4" />
@@ -345,6 +365,7 @@ export default function ServicesPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => handleDelete(service.service_id)}
                   className="text-red-600 hover:text-red-700"
                 >
                   <Trash className="h-4 w-4" />
@@ -353,6 +374,12 @@ export default function ServicesPage() {
             </div>
           ))}
         </div>
+
+        {services.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No services available. Add your first service to get started.</p>
+          </div>
+        )}
       </div>
     </div>
   );

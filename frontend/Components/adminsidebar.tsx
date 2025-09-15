@@ -36,11 +36,6 @@ const items = [
     icon: Calendar,
   },
   {
-    title: "Service Providers",
-    url: "/admin/service-providers",
-    icon: UserCheck,
-  },
-  {
     title: "Clients",
     url: "/admin/clients", 
     icon: Users,

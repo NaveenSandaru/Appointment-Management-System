@@ -18,7 +18,7 @@ export default function AccountSelection() {
 
   const handleProviderClick = () => {
     setIsLoadingProvider(true)
-    router.push("/auth/provider-register")
+    router.push("/auth/login?type=admin")
   }
 
   return (
@@ -72,9 +72,9 @@ export default function AccountSelection() {
                 ) : (
                   <Building className="w-16 h-16 mx-auto mb-6 text-[#059669]" />
                 )}
-                <h3 className="text-2xl font-semibold mb-4 text-gray-900">Service Provider</h3>
+                <h3 className="text-2xl font-semibold mb-4 text-gray-900">Admin Access</h3>
                 <p className="text-gray-600 mb-6 flex-grow">
-                  Want to offer services? Create a provider account to showcase your services and manage bookings.
+                  Administrator access to manage services, appointments, and clients for the organization.
                 </p>
                 <div className="bg-[#059669] text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center">
                   {isLoadingProvider ? (
@@ -83,7 +83,7 @@ export default function AccountSelection() {
                       Redirecting...
                     </>
                   ) : (
-                    "Register as Provider"
+                    "Admin Login"
                   )}
                 </div>
               </CardContent>

@@ -29,9 +29,9 @@ router.get('/:history_id', /*authenticateToken*/ async (req, res) => {
 
 // Create a new appointment history record
 router.post('/', /*authenticateToken*/ async (req, res) => {
-  const { history_id, client_email, service_provider_email, date_and_time, status } = req.body;
+  const { history_id, client_email, service_id, date_and_time, status } = req.body;
 
-  if (!history_id || !client_email || !service_provider_email || !date_and_time || !status) {
+  if (!history_id || !client_email || !service_id || !date_and_time || !status) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -40,7 +40,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
       data: {
         history_id,
         client_email,
-        service_provider_email,
+        service_id,
         date_and_time,
         status
       }

@@ -3,8 +3,8 @@
 import React, { use, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { ServiceCard } from '@/Components/serviceCard'
-import { BookingCard } from '@/Components/BookingCard'
+import { ServiceCard } from '@/components/serviceCard'
+import { BookingCard } from '@/components/BookingCard'
 import { AuthContext } from '@/context/auth-context';
 import { useContext, useEffect } from 'react';
 import Link from 'next/link'
@@ -57,40 +57,31 @@ export default function Home() {
 
       const enrichedAppointments = await Promise.all(
         response.data.map(async (appointment: Appointment) => {
-          let providerName = '';
-          let providerAvatar = '';
           let serviceName = '';
+          let serviceImage = '';
 
           try {
-            const providerRes = await axios.get(
-              `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${appointment.service_provider_email}`
-            );
-            const provider = providerRes.data;
-            providerName = provider.name;
-            providerAvatar = provider.profile_picture?.startsWith("/uploads")
-              ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${provider.profile_picture}`
-              : provider.profile_picture || "";
-
-
             const serviceRes = await axios.get(
-              `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${provider.service_type}`
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${appointment.service_id}`
             );
-            serviceName = serviceRes.data.data.service;
+            const service = serviceRes.data.data;
+            serviceName = service.service_name;
+            serviceImage = service.picture?.startsWith("/uploads")
+              ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${service.picture}`
+              : service.picture || "";
           } catch (err) {
             console.error("Failed to enrich appointment", err);
           }
 
           return {
             ...appointment,
-            providerName,
-            providerAvatar,
             serviceName,
+            serviceImage,
           };
         })
       );
 
       setRetrievedAppointments(enrichedAppointments);
-      console.log(enrichedAppointments);
     }
     catch (error: any) {
       toast.error("Error", {
@@ -105,10 +96,7 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       getAppointments();
-      if(user.role=="sp"){
-        router.push("/serviceproviderdashboard");
-      }
-      else if(user.role == "admin"){
+      if(user.role == "admin"){
         router.push("/admin/dashboard");
       }
       else if(user.role == "client"){
@@ -126,7 +114,7 @@ export default function Home() {
 
   type Service = {
     service_id: string;
-    service: string;
+    service_name: string;
     description: string;
     picture: string
   };
@@ -134,14 +122,13 @@ export default function Home() {
   type Appointment = {
     appointment_id: string;
     client_email: string;
-    service_provider_email: string;
+    service_id: string;
     date: string;
     time_from: string;
     time_to: string;
     note: string;
-    providerName: string;
-    providerAvatar: string;
-    serviceName: string
+    serviceName: string;
+    serviceImage: string;
   };
 
   const handleAppointmentCancel = (appointmentId: string) => {
@@ -201,7 +188,7 @@ export default function Home() {
                 <div key={retrievedService.service_id} className="flex">
                   <ServiceCard
                     serviceId={retrievedService.service_id}
-                    service={retrievedService.service}
+                    service={retrievedService.service_name}
                     description={retrievedService.description}
                     image={retrievedService.picture?.includes('/uploads')
                       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${retrievedService.picture}`
@@ -235,14 +222,13 @@ export default function Home() {
                   <BookingCard
                     key={appointment.appointment_id}
                     appointmentId={appointment.appointment_id}
-                    serviceProviderEmail={appointment.service_provider_email}
+                    serviceId={appointment.service_id}
                     date={appointment.date}
                     timeFrom={appointment.time_from}
                     timeTo={appointment.time_to}
                     note={appointment.note}
-                    providerName={appointment.providerName || "Unknown"}
-                    providerAvatar={appointment.providerAvatar || ""}
                     serviceName={appointment.serviceName || "Unknown"}
+                    serviceImage={appointment.serviceImage || ""}
                     onCancel={handleAppointmentCancel}
                   />
                 ))
