@@ -40,6 +40,18 @@ model services {
   appointment_fee      Int
   language             String
   is_active            Boolean @default(true)
+  location             String?
+  phone_number         String?
+  email_contact        String?
+  website_url          String?
+  max_advance_booking  Int @default(30) // days
+  min_advance_booking  Int @default(0)  // hours
+  cancellation_policy  String?
+  tags                 String[]
+  capacity             Int @default(1)
+  requires_preparation Boolean @default(false)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
 
   appointments        appointments[]
   appointment_history appointment_history[]

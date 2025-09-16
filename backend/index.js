@@ -59,6 +59,15 @@ app.use(json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use('/uploads', express.static('uploads'));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Server is running', 
+    timestamp: new Date().toISOString() 
+  });
+});
+
 //configure routers to redirect to endpoints
 app.use('/auth', authRouter);
 app.use('/clients', clientRouter);

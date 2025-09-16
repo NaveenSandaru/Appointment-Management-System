@@ -17,7 +17,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
-} from "@/Components/ui/sidebar";
+} from "@/components/ui/sidebar";
 
 import Image from "next/image";
 import { LayoutGrid, KanbanSquare, Ticket, ClipboardList, BookText, Users, UserCheck, Calendar } from "lucide-react";

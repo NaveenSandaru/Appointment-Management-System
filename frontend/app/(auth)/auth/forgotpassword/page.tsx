@@ -117,9 +117,7 @@ const ForgotPasswordSystem = () => {
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
       
       // First, fetch the stored questions and answers for the user
-      const endpoint = userType === 'client' 
-        ? `/client-user-questions/${encodeURIComponent(email)}`
-        : `/service-provider-questions/${encodeURIComponent(email)}`;
+      const endpoint = `/client-user-questions/${encodeURIComponent(email)}`;
 
       console.log('Fetching from endpoint:', `${baseUrl}${endpoint}`);
 
@@ -225,29 +223,6 @@ const ForgotPasswordSystem = () => {
           throw new Error("Error resetting password");
         }
       }
-      else if(userType == 'provider'){
-        const response = await axios.put(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/`,
-          {
-            email:email,
-            password: newPassword
-          },
-          {
-            headers:{
-              "Content-type":"application/json"
-            }
-          }
-        );
-        if(response.data){
-          toast.success("Password Reset Successful", {
-            description: "Your password has been reset successfully. You can now login with your new password."
-          });
-          setCurrentStep('success');
-        }
-        else{
-          throw new Error("Error resetting password");
-        }
-      }
       
     } catch (err: any) {
       console.error('Error resetting password:', err);
@@ -288,14 +263,6 @@ const ForgotPasswordSystem = () => {
           >
             <User className="w-6 h-6 text-emerald-600" />
             <span className="text-lg font-medium text-gray-700">Client</span>
-          </button>
-          
-          <button
-            onClick={() => handleUserTypeSelect('provider')}
-            className="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 flex items-center justify-center space-x-3"
-          >
-            <Briefcase className="w-6 h-6 text-emerald-600" />
-            <span className="text-lg font-medium text-gray-700">Service Provider</span>
           </button>
         </div>
         

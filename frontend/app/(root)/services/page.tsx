@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { ServiceCard } from '@/Components/serviceCard'
+import { ServiceCard } from '@/components/serviceCard'
 import axios from 'axios'
 import { Loader2 } from 'lucide-react' // Optional: any spinner icon
 import { toast } from 'sonner'

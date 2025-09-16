@@ -1,7 +1,7 @@
 "use client";
 import React, { use, useContext, useEffect, useState } from 'react'
-import { Button } from '@/Components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bell, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '@/context/auth-context';

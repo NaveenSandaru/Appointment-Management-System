@@ -71,7 +71,7 @@ const ClientsPage = () => {
       setIsSubmitting(true);
       await axios.post(`${baseURL}/admins/sendEmail`, {
         email: providerEmail.trim(),
-        role: "Service Provider",
+        role: "Client",
         link: "http://localhost:3000/auth/client-register"
       });
       setShowModal(false);

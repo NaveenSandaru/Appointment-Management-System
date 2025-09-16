@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 interface Appointment {
   appointment_id: string;
   client_email: string;
-  service_provider_email: string;
+  service_id: string;
   date: string;
   time_from: string;
   time_to: string;
@@ -18,10 +18,8 @@ interface Appointment {
   // Additional fields from joins
   clientName?: string;
   clientImageUrl?: string;
-  providerName?: string;
-  providerImageUrl?: string;
   serviceName?: string;
-  servicePrice?: string;
+  serviceImage?: string;
 }
 
 const AppointmentsPage = () => {
@@ -76,10 +74,9 @@ const AppointmentsPage = () => {
     const searchString = searchTerm.toLowerCase();
     return (
       (appointment.clientName?.toLowerCase() || '').includes(searchString) ||
-      (appointment.providerName?.toLowerCase() || '').includes(searchString) ||
       (appointment.serviceName?.toLowerCase() || '').includes(searchString) ||
       (appointment.client_email?.toLowerCase() || '').includes(searchString) ||
-      (appointment.service_provider_email?.toLowerCase() || '').includes(searchString)
+      (appointment.service_id?.toLowerCase() || '').includes(searchString)
     );
   });
 
@@ -124,9 +121,9 @@ const AppointmentsPage = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="text-left p-4 font-medium">Client</th>
-                    <th className="text-left p-4 font-medium">Service Provider</th>
                     <th className="text-left p-4 font-medium">Service</th>
                     <th className="text-left p-4 font-medium">Date & Time</th>
+                    <th className="text-left p-4 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -154,10 +151,10 @@ const AppointmentsPage = () => {
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                            {appointment.providerImageUrl ? (
+                            {appointment.serviceImage ? (
                               <img
-                                src={appointment.providerImageUrl}
-                                alt={appointment.providerName}
+                                src={appointment.serviceImage}
+                                alt={appointment.serviceName}
                                 className="w-8 h-8 rounded-full object-cover"
                               />
                             ) : (
@@ -165,20 +162,21 @@ const AppointmentsPage = () => {
                             )}
                           </div>
                           <div>
-                            <div className="font-medium">{appointment.providerName}</div>
-                            <div className="text-sm text-gray-600">{appointment.service_provider_email}</div>
+                            <div className="font-medium">{appointment.serviceName}</div>
+                            <div className="text-sm text-gray-600">Service ID: {appointment.service_id}</div>
                           </div>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">{appointment.serviceName}</div>
-                        <div className="text-sm text-gray-600">{appointment.servicePrice}</div>
                       </td>
                       <td className="p-4">
                         <div className="font-medium">{appointment.date}</div>
                         <div className="text-sm text-gray-600">
                           {formatTime(appointment.time_from)} - {formatTime(appointment.time_to)}
                         </div>
+                      </td>
+                      <td className="p-4">
+                        <button className="text-red-600 hover:text-red-800 text-sm">
+                          Cancel
+                        </button>
                       </td>
                     </tr>
                   ))}
