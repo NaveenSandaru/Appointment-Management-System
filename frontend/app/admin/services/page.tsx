@@ -111,8 +111,23 @@ export default function ServicesPage() {
     picturePreview: ''
   });
 
-  const { isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const { isLoggedIn, isLoadingAuth, user, accessToken } = useContext(AuthContext);
   const router = useRouter();
+
+  // Helper function to get authorization headers
+  const getAuthHeaders = () => ({
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  // Helper function to get auth headers for form data
+  const getAuthHeadersForFormData = () => ({
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 
   useEffect(() => {
     if (isLoadingAuth) return;
@@ -123,29 +138,37 @@ export default function ServicesPage() {
     } else if (user?.role !== "admin") {
       toast.error("Unauthorized Access");
       router.push("/");
+    } else if (accessToken) {
+      // Only fetch services if user is authenticated admin with token
+      fetchServices();
     }
-  }, [isLoadingAuth, isLoggedIn, user]);
+  }, [isLoadingAuth, isLoggedIn, user, accessToken]);
   
   // Fetch services
   const fetchServices = async () => {
     try {
       setIsLoading(true);
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`,
+        getAuthHeaders()
       );
       if (response.data.successful) {
         setServices(response.data.data);
       }
     } catch (error: any) {
-      toast.error("Failed to fetch services");
+      console.error('Services fetch error:', error);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        toast.error("Unauthorized access - please login again");
+        router.push("/auth/login");
+      } else {
+        toast.error("Failed to fetch services");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
+
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -198,12 +221,14 @@ export default function ServicesPage() {
       if (editingService) {
         response = await axios.put(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${editingService.service_id}`,
-          formData
+          formData,
+          getAuthHeadersForFormData()
         );
       } else {
         response = await axios.post(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`,
-          formData
+          formData,
+          getAuthHeadersForFormData()
         );
       }
 
@@ -284,7 +309,7 @@ export default function ServicesPage() {
   const handleDelete = async (serviceId: string) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
       try {
-        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${serviceId}`);
+        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${serviceId}`, getAuthHeaders());
         toast.success("Service deleted!");
         fetchServices();
       } catch (error) {
@@ -296,7 +321,9 @@ export default function ServicesPage() {
   const toggleServiceStatus = async (serviceId: string) => {
     try {
       const response = await axios.patch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${serviceId}/toggle-status`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${serviceId}/toggle-status`,
+        {},
+        getAuthHeaders()
       );
       if (response.data.successful) {
         toast.success(response.data.message);

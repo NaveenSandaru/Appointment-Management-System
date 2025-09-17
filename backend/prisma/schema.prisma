@@ -7,6 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model tenants {
+  tenant_id     String @id @default(uuid())
+  name          String
+  display_name  String
+  domain        String? @unique
+  logo_url      String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  is_active     Boolean @default(true)
+
+  clients                 clients[]
+  services                services[]
+  email_verification     email_verification[]
+  security_questions     security_questions[]
+  client_user_questions  client_user_questions[]
+  admins                 admins[]
+  appointments           appointments[]
+  appointment_history    appointment_history[]
+  ratings                ratings[]
+  reviews                reviews[]
+}
+
 model clients {
   email           String  @id
   name            String
@@ -16,13 +38,17 @@ model clients {
   gender          String? @db.Char(1)
   address         String?
   password        String
+  tenant_id       String
 
+  tenant                  tenants           @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   appointments            appointments[]
   appointment_history     appointment_history[]
   client_user_questions   client_user_questions[]
   email_verification     email_verification?
   ratings                 ratings[]
   reviews                 reviews[]
+
+  @@index([tenant_id])
 }
 
 model services {
@@ -52,44 +78,64 @@ model services {
   requires_preparation Boolean @default(false)
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
+  tenant_id            String
 
+  tenant              tenants      @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   appointments        appointments[]
   appointment_history appointment_history[]
   ratings             ratings[]
   reviews             reviews[]
+
+  @@index([tenant_id])
 }
 
 
 
 model email_verification {
-  email String @id
-  code  String?
+  email     String @id
+  code      String?
+  tenant_id String
 
+  tenant  tenants @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   clients clients @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([tenant_id])
 }
 
 model security_questions {
   question_id String @id
   question    String
+  tenant_id   String
 
+  tenant                tenants                 @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   client_user_questions client_user_questions[]
+
+  @@index([tenant_id])
 }
 
 model client_user_questions {
   email       String
   question_id String
   answer      String
+  tenant_id   String
 
+  tenant            tenants           @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   clients           clients           @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
   security_questions security_questions @relation(fields: [question_id], references: [question_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([email, question_id])
+  @@index([tenant_id])
 }
 
 model admins {
-  email    String @id
-  password String
-  name     String
+  email     String @id
+  password  String
+  name      String
+  tenant_id String
+
+  tenant tenants @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
+
+  @@index([tenant_id])
 }
 
 model appointments {
@@ -100,9 +146,13 @@ model appointments {
   time_from      String
   time_to        String
   note           String?
+  tenant_id      String
 
+  tenant   tenants   @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   clients  clients? @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
   services services @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([tenant_id])
 }
 
 model appointment_history {
@@ -111,11 +161,15 @@ model appointment_history {
   service_id     String
   date_and_time  String
   status         String
+  tenant_id      String
 
+  tenant   tenants  @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   clients  clients  @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
   services services @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
   ratings  ratings[]
   reviews  reviews[]
+
+  @@index([tenant_id])
 }
 
 model ratings {
@@ -123,12 +177,15 @@ model ratings {
   service_id   String
   history_id   String
   rating       Float
+  tenant_id    String
 
+  tenant              tenants             @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   clients             clients             @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
   services            services            @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
   appointment_history appointment_history @relation(fields: [history_id], references: [history_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([client_email, service_id, history_id])
+  @@index([tenant_id])
 }
 
 model reviews {
@@ -136,10 +193,13 @@ model reviews {
   service_id   String
   history_id   String
   review       String
+  tenant_id    String
 
+  tenant              tenants             @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
   clients             clients             @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
   services            services            @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
   appointment_history appointment_history @relation(fields: [history_id], references: [history_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([client_email, service_id, history_id])
+  @@index([tenant_id])
 }

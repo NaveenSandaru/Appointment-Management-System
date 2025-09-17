@@ -1,11 +1,12 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prismaClient.js';
 import { jwTokens } from '../utils/jwt-helper.js';
 import jwt from 'jsonwebtoken';
 import {sendAccountCreationInvite} from './../utils/mailer.js';
+import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js';
 
-const prisma = new PrismaClient();
+
 const router = express.Router();
 
 // Create admin
@@ -31,10 +32,15 @@ router.post('/', async (req, res) => {
 });
 
 // Get all admins
-router.get('/', async (req, res) => {
+router.get('/', authenticateWithAutoTenant, async (req, res) => {
   try {
+    // Only allow admin access
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin access required.' });
+    }
+    
     const admins = await prisma.admins.findMany({
-      select: { email: true, name: true }, // hide password
+      select: { email: true, name: true, tenant_id: true }, // hide password
     });
     res.json(admins);
   } catch (err) {
@@ -43,11 +49,16 @@ router.get('/', async (req, res) => {
 });
 
 // Get a specific admin
-router.get('/:email', async (req, res) => {
+router.get('/:email', authenticateWithAutoTenant, async (req, res) => {
   try {
+    // Only allow admin access
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin access required.' });
+    }
+    
     const admin = await prisma.admins.findUnique({
       where: { email: req.params.email },
-      select: { email: true, name: true }, // hide password
+      select: { email: true, name: true, tenant_id: true }, // hide password
     });
     if (!admin) return res.status(404).json({ error: 'Admin not found' });
     res.json(admin);

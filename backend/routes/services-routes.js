@@ -1,10 +1,10 @@
 import express from 'express';
 import multer from 'multer';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prismaClient.js';
+import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
 import path from 'path';
 import fs from 'fs';
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 // Setup multer storage
@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // CREATE a new service with optional picture
-router.post('/', upload.single('picture'), async (req, res) => {
+router.post('/', authenticateWithAutoTenant, upload.single('picture'), async (req, res) => {
   const { 
     service_name, 
     description, 
@@ -95,7 +95,8 @@ router.post('/', upload.single('picture'), async (req, res) => {
         tags: parsedTags,
         capacity: capacity ? parseInt(capacity) : 1,
         requires_preparation: Boolean(requires_preparation),
-        is_active: Boolean(is_active)
+        is_active: Boolean(is_active),
+        tenant_id: req.tenantId
       }
     });
     res.status(201).json({ successful: true, data: created });
@@ -106,10 +107,14 @@ router.post('/', upload.single('picture'), async (req, res) => {
 });
 
 // READ all services
-router.get('/', async (req, res) => {
+router.get('/', authenticateWithAutoTenant, async (req, res) => {
   try {
     const { active_only } = req.query;
-    const whereClause = active_only === 'true' ? { is_active: true } : {};
+    let whereClause = { tenant_id: req.tenantId };
+    
+    if (active_only === 'true') {
+      whereClause.is_active = true;
+    }
     
     const services = await prisma.services.findMany({
       where: whereClause,
@@ -117,6 +122,7 @@ router.get('/', async (req, res) => {
     });
     res.json({ successful: true, data: services });
   } catch (error) {
+    console.error('Services fetch error:', error);
     res.status(500).json({ successful: false, message: error.message });
   }
 });

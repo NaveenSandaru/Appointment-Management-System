@@ -1,12 +1,11 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prismaClient.js';
 import bcrypt from 'bcrypt';
-import { authenticateToken } from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,45 +35,42 @@ router.get('/client/:email', /*authenticateToken*/ async (req, res) => {
 
 // Create a new client
 router.post('/', async (req, res) => {
-  let { email, name, phone_number, profile_picture, age, gender, address, password } = req.body.datatosendtoclient;
+  let { email, name, phone_number, profile_picture, age, gender, address, password, tenant_id } = req.body.datatosendtoclient;
 
-  if (!email || !name || !phone_number || !password) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!email || !name || !phone_number || !password || !tenant_id) {
+    return res.status(400).json({ error: 'Missing required fields: email, name, phone_number, password, and tenant_id are required' });
   }
 
   try {
-    // Check if user exists in clients
-    const existingClient = await prisma.clients.findUnique({
-      where: { email }
+    // Verify that the tenant exists and is active
+    const tenant = await prisma.tenants.findUnique({
+      where: { tenant_id, is_active: true }
     });
+    
+    if (!tenant) {
+      return res.status(400).json({ error: 'Invalid or inactive tenant' });
+    }
 
-    // Check if user exists in service_providers
-    const existingProvider = await prisma.service_providers.findUnique({
-      where: { email }
-    });
+    // Check if user exists in clients (use raw query to bypass tenant middleware)
+    const existingClient = await prisma.$queryRaw`
+      SELECT email FROM clients WHERE email = ${email}
+    `;
 
-    if (existingClient || existingProvider) {
+    if (existingClient && existingClient.length > 0) {
       return res.status(409).json({ error: 'Email already in use by another account' });
     }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new client
-    const newClient = await prisma.clients.create({
-      data: {
-        email,
-        name,
-        phone_number,
-        profile_picture,
-        age,
-        gender,
-        address,
-        password: hashedPassword
-      }
-    });
+    // Create new client with tenant_id using raw query to bypass middleware during registration
+    const result = await prisma.$queryRaw`
+      INSERT INTO clients (email, name, phone_number, profile_picture, age, gender, address, password, tenant_id)
+      VALUES (${email}, ${name}, ${phone_number}, ${profile_picture}, ${age}, ${gender}, ${address}, ${hashedPassword}, ${tenant_id})
+      RETURNING email, name, phone_number, profile_picture, age, gender, address, tenant_id
+    `;
 
-    return res.status(201).json(newClient);
+    return res.status(201).json(result[0]);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Internal server error' });

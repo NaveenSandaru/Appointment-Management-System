@@ -2,9 +2,8 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { jwTokens } from '../utils/jwt-helper.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prismaClient.js';
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
 router.post('/login', async (req, res) => {
@@ -12,29 +11,47 @@ router.post('/login', async (req, res) => {
         let user = null;
         let role = '';
         const { email, password, checked } = req.body;
-        console.log(req.body);
-        console.log(email, password, checked);
-        user = await prisma.clients.findUnique({ where: { email } });
-        role = "client";
+        
+        // Use raw query to bypass tenant middleware during login
+        const clientResults = await prisma.$queryRaw`
+            SELECT email, name, password, tenant_id FROM clients WHERE email = ${email}
+        `;
+        
+        if (clientResults && clientResults.length > 0) {
+            user = clientResults[0];
+            role = "client";
+        } else {
+            // Check admin table
+            const adminResults = await prisma.$queryRaw`
+                SELECT email, name, password, tenant_id FROM admins WHERE email = ${email}
+            `;
+            
+            if (adminResults && adminResults.length > 0) {
+                user = adminResults[0];
+                role = "admin";
+            }
+        }
+        
         if (!user) {
-            role = null;
             return res.json({ successful: false, message: 'User not found' });
         }
+        
         if(!user.password){
             return res.json({ successful: false, message: 'Invalid password' });
         }
+        
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
             return res.json({ successful: false, message: 'Invalid password' });
         }
 
         // Check if email is verified by checking if a verification record exists
-        const verificationRecord = await prisma.email_verification.findUnique({
-            where: { email: user.email }
-        });
+        const verificationRecord = await prisma.$queryRaw`
+            SELECT email FROM email_verification WHERE email = ${user.email}
+        `;
 
         // If a verification record exists, the email is not verified yet
-        if (verificationRecord) {
+        if (verificationRecord && verificationRecord.length > 0) {
             return res.json({
                 successful: false,
                 message: 'Please verify your email before logging in',
@@ -43,7 +60,7 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        const tokens = jwTokens(user.email, user.name, role);
+        const tokens = jwTokens(user.email, user.name, role, user.tenant_id);
 
         res.cookie('refreshToken', tokens.refreshToken, {
             httpOnly: true,
@@ -60,7 +77,8 @@ router.post('/login', async (req, res) => {
             user: {
                 email: user.email,
                 name: user.name,
-                role: role
+                role: role,
+                tenant_id: user.tenant_id
             }
         });
     } catch (err) {
@@ -135,42 +153,69 @@ router.post('/google_login', async (req, res) => {
 });
 
 router.post('/admin_login', async (req, res) => {
-    const { email, password, checked } = req.body;
     try {
-      const admin = await prisma.admins.findUnique({ where: { email } });
-  
-      if (!admin || !admin.password) {
-        return res.status(401).json({ successful: false, message: 'Invalid credentials' });
-      }
-  
-      const validPassword = await bcrypt.compare(password, admin.password);
-      if (!validPassword) {
-        return res.status(401).json({ successful: false, message: 'Invalid credentials' });
-      }
-  
-      const tokens = jwTokens(admin.email, admin.name, "admin");
-  
-      res.cookie('refreshToken', tokens.refreshToken, {
-        httpOnly: true,
-        sameSite: 'None',
-        secure: true,
-        maxAge: checked ? 14 * 24 * 60 * 60 * 1000 : undefined,
-      });
-  
-      return res.json({
-        successful: true,
-        message: 'Login successful',
-        accessToken: tokens.accessToken,
-        user: {
-          email: admin.email,
-          name: admin.name,
-          role: 'admin',
+        const { email, password, checked } = req.body;
+        
+        // Use raw query to bypass tenant middleware during login
+        const adminResults = await prisma.$queryRaw`
+            SELECT email, name, password, tenant_id FROM admins WHERE email = ${email}
+        `;
+        
+        if (!adminResults || adminResults.length === 0) {
+            return res.json({ successful: false, message: 'Invalid credentials' });
         }
-      });
+        
+        const admin = adminResults[0];
+        
+        if (!admin.password) {
+            return res.json({ successful: false, message: 'Invalid credentials' });
+        }
+        
+        const validPassword = await bcrypt.compare(password, admin.password);
+        if (!validPassword) {
+            return res.json({ successful: false, message: 'Invalid credentials' });
+        }
+
+        // Check if email is verified by checking if a verification record exists
+        const verificationRecord = await prisma.$queryRaw`
+            SELECT email FROM email_verification WHERE email = ${admin.email}
+        `;
+
+        // If a verification record exists, the email is not verified yet
+        if (verificationRecord && verificationRecord.length > 0) {
+            return res.json({
+                successful: false,
+                message: 'Please verify your email before logging in',
+                needsVerification: true,
+                email: admin.email
+            });
+        }
+
+        const tokens = jwTokens(admin.email, admin.name, "admin", admin.tenant_id);
+
+        res.cookie('refreshToken', tokens.refreshToken, {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true,
+            maxAge: checked ? 14 * 24 * 60 * 60 * 1000 : undefined,
+        });
+
+        return res.json({
+            successful: true,
+            message: 'Login successful',
+            accessToken: tokens.accessToken,
+            user: {
+                email: admin.email,
+                name: admin.name,
+                role: 'admin',
+                tenant_id: admin.tenant_id
+            }
+        });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+        console.error('Admin login error:', err);
+        res.status(500).json({ error: err.message });
     }
-  });
+});
   
 
 
@@ -184,12 +229,20 @@ router.get('/refresh_token', (req, res) => {
         jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY, (error, user) => {
             if (error) return res.status(403).json({ error: error.message });
 
-            const { email, name, role } = user;
-            const accessToken = jwt.sign({ email, name, role }, process.env.ACCESS_TOKEN_KEY, {
+            const { email, name, role, tenant_id } = user;
+            const accessToken = jwt.sign({ email, name, role, tenant_id }, process.env.ACCESS_TOKEN_KEY, {
                 expiresIn: '15m',
             });
 
-            res.json({ accessToken, user: {email: user.email, name: user.name, role: user.role} });
+            res.json({ 
+                accessToken, 
+                user: {
+                    email: user.email, 
+                    name: user.name, 
+                    role: user.role,
+                    tenant_id: user.tenant_id
+                } 
+            });
         });
     } catch (err) {
         console.error(err.message);

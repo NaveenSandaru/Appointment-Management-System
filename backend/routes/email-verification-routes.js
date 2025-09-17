@@ -1,13 +1,13 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prismaClient.js';
 import { sendVerificationCode } from '../utils/mailer.js';
-import {authenticateToken} from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
 
-const prisma = new PrismaClient();
+
 const router = express.Router();
 
 // Get verification code by email
-router.get('/:email', /*authenticateToken*/ async (req, res) => {
+router.get('/:email', authenticateWithAutoTenant, async (req, res) => {
   const { email } = req.params;
   try {
     const verification = await prisma.email_verification.findUnique({ where: { email } });
@@ -19,7 +19,7 @@ router.get('/:email', /*authenticateToken*/ async (req, res) => {
 });
 
 // Create or update verification
-router.post('/', /*authenticateToken*/ async (req, res) => {
+router.post('/', authenticateWithAutoTenant, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
@@ -40,7 +40,7 @@ router.post('/', /*authenticateToken*/ async (req, res) => {
 });
 
 // Verify code
-router.post('/verify', /*authenticateToken*/ async (req, res) => {
+router.post('/verify', authenticateWithAutoTenant, async (req, res) => {
   const { email, code } = req.body;
   try {
     const record = await prisma.email_verification.findUnique({ where: { email } });
@@ -57,7 +57,7 @@ router.post('/verify', /*authenticateToken*/ async (req, res) => {
 });
 
 // Delete verification
-router.delete('/:email', /*authenticateToken*/ async (req, res) => {
+router.delete('/:email', authenticateWithAutoTenant, async (req, res) => {
   const { email } = req.params;
   try {
     await prisma.email_verification.delete({ where: { email } });
