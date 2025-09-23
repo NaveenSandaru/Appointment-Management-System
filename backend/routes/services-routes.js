@@ -59,7 +59,8 @@ router.post('/', authenticateWithAutoTenant, upload.single('picture'), async (re
   }
 
   try {
-    const picture = req.file ? req.file.filename : null;
+    // Handle picture - provide default if none is uploaded
+    const picture = req.file ? req.file.filename : 'default-service.png';
     
     // Parse tags if provided
     let parsedTags = [];
@@ -107,10 +108,12 @@ router.post('/', authenticateWithAutoTenant, upload.single('picture'), async (re
 });
 
 // READ all services
-router.get('/', authenticateWithAutoTenant, async (req, res) => {
+// PUBLIC: Get services for public browsing (shows default-tenant services only)
+router.get('/public', async (req, res) => {
   try {
     const { active_only } = req.query;
-    let whereClause = { tenant_id: req.tenantId };
+    
+    let whereClause = { tenant_id: 'default-tenant' };
     
     if (active_only === 'true') {
       whereClause.is_active = true;
@@ -118,8 +121,46 @@ router.get('/', authenticateWithAutoTenant, async (req, res) => {
     
     const services = await prisma.services.findMany({
       where: whereClause,
-      orderBy: { service_name: 'asc' }
+      orderBy: { service_name: 'asc' },
+      skipTenantEnforcement: true
     });
+    
+    console.log(`Public services (default-tenant):`, services.length);
+    res.json({ successful: true, data: services });
+  } catch (error) {
+    console.error('Public services fetch error:', error);
+    res.status(500).json({ successful: false, message: error.message });
+  }
+});
+
+// AUTHENTICATED: Get services for authenticated users (tenant-specific)
+router.get('/', authenticateWithAutoTenant, async (req, res) => {
+  try {
+    const { active_only } = req.query;
+    
+    // Use tenant_id from authenticated user
+    const finalTenantId = req.tenantId;
+    
+    if (!finalTenantId) {
+      return res.status(400).json({ 
+        successful: false, 
+        message: 'Tenant ID not found. Please log in again.' 
+      });
+    }
+    
+    let whereClause = { tenant_id: finalTenantId };
+    
+    if (active_only === 'true') {
+      whereClause.is_active = true;
+    }
+    
+    const services = await prisma.services.findMany({
+      where: whereClause,
+      orderBy: { service_name: 'asc' },
+      skipTenantEnforcement: true
+    });
+    
+    console.log(`Services for tenant ${finalTenantId}:`, services.length);
     res.json({ successful: true, data: services });
   } catch (error) {
     console.error('Services fetch error:', error);
@@ -127,11 +168,48 @@ router.get('/', authenticateWithAutoTenant, async (req, res) => {
   }
 });
 
-// READ one service by ID
-router.get('/:id', async (req, res) => {
+// PUBLIC: Get one service by ID for public browsing
+router.get('/public/:id', async (req, res) => {
   try {
-    const service = await prisma.services.findUnique({
-      where: { service_id: req.params.id }
+    const service = await prisma.services.findFirst({
+      where: { 
+        service_id: req.params.id,
+        tenant_id: 'default-tenant'  // Only show default-tenant services publicly
+      },
+      skipTenantEnforcement: true
+    });
+
+    if (!service) {
+      return res.status(404).json({ successful: false, message: 'Service not found' });
+    }
+
+    // Check if service tenant matches requested tenant (security check)
+    res.json({ successful: true, data: service });
+  } catch (error) {
+    console.error('Public service fetch error:', error);
+    res.status(500).json({ successful: false, message: error.message });
+  }
+});
+
+// AUTHENTICATED: Get one service by ID for authenticated users
+router.get('/:id', authenticateWithAutoTenant, async (req, res) => {
+  try {
+    const finalTenantId = req.tenantId;
+    
+    if (!finalTenantId) {
+      return res.status(400).json({ 
+        successful: false, 
+        message: 'Tenant ID not found. Please log in again.' 
+      });
+    }
+    
+    // Strict tenant isolation: only allow viewing services from user's tenant
+    const service = await prisma.services.findFirst({
+      where: { 
+        service_id: req.params.id,
+        tenant_id: finalTenantId
+      },
+      skipTenantEnforcement: true
     });
 
     if (!service) {
@@ -140,12 +218,13 @@ router.get('/:id', async (req, res) => {
 
     res.json({ successful: true, data: service });
   } catch (error) {
+    console.error('Service fetch error:', error);
     res.status(500).json({ successful: false, message: error.message });
   }
 });
 
 // UPDATE a service (including optional new picture)
-router.put('/:id', upload.single('picture'), async (req, res) => {
+router.put('/:id', authenticateWithAutoTenant, upload.single('picture'), async (req, res) => {
   const { 
     service_name, 
     description, 
@@ -170,11 +249,26 @@ router.put('/:id', upload.single('picture'), async (req, res) => {
     requires_preparation,
     is_active 
   } = req.body;
+  
   const picture = req.file ? req.file.filename : undefined;
 
   try {
-    const existing = await prisma.services.findUnique({
-      where: { service_id: req.params.id }
+    const finalTenantId = req.tenantId;
+    
+    if (!finalTenantId) {
+      return res.status(400).json({ 
+        successful: false, 
+        message: 'Tenant ID not found. Please log in again.' 
+      });
+    }
+
+    // Check if service exists and belongs to user's tenant
+    const existing = await prisma.services.findFirst({
+      where: { 
+        service_id: req.params.id,
+        tenant_id: finalTenantId  // Ensure tenant isolation
+      },
+      skipTenantEnforcement: true
     });
 
     if (!existing) {
@@ -226,12 +320,22 @@ router.put('/:id', upload.single('picture'), async (req, res) => {
     if (is_active !== undefined) updateData.is_active = Boolean(is_active);
     if (requires_preparation !== undefined) updateData.requires_preparation = Boolean(requires_preparation);
     
-    // Handle picture
-    if (picture) updateData.picture = picture;
+    // Handle picture - provide default if none provided and none exists
+    if (picture) {
+      updateData.picture = picture;
+    } else if (!existing.picture) {
+      // If no new picture is provided and no existing picture, set a default
+      updateData.picture = 'default-service.png'; // You can customize this default image name
+    }
+    // If no new picture but existing picture exists, keep the existing one (don't change updateData.picture)
 
     const updated = await prisma.services.update({
-      where: { service_id: req.params.id },
-      data: updateData
+      where: { 
+        service_id: req.params.id,
+        tenant_id: finalTenantId  // Ensure tenant isolation
+      },
+      data: updateData,
+      skipTenantEnforcement: true
     });
 
     res.json({ successful: true, data: updated });
@@ -242,39 +346,68 @@ router.put('/:id', upload.single('picture'), async (req, res) => {
 });
 
 // DELETE a service (and its picture)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateWithAutoTenant, async (req, res) => {
   try {
-    const existing = await prisma.services.findUnique({
-      where: { service_id: req.params.id }
+    const finalTenantId = req.tenantId;
+    
+    if (!finalTenantId) {
+      return res.status(400).json({ 
+        successful: false, 
+        message: 'Tenant ID not found. Please log in again.' 
+      });
+    }
+
+    // Check if service exists and belongs to user's tenant
+    const existing = await prisma.services.findFirst({
+      where: { 
+        service_id: req.params.id,
+        tenant_id: finalTenantId  // Ensure tenant isolation
+      },
+      skipTenantEnforcement: true
     });
 
     if (!existing) {
       return res.status(404).json({ successful: false, message: 'Service not found' });
     }
 
-    // Delete picture file
-    if (existing.picture) {
+    // Delete picture file if it exists and it's not the default
+    if (existing.picture && existing.picture !== 'default-service.png') {
       const filePath = `uploads/services/${existing.picture}`;
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
     await prisma.services.delete({
-      where: { service_id: req.params.id }
+      where: { 
+        service_id: req.params.id,
+        tenant_id: finalTenantId  // Ensure tenant isolation
+      },
+      skipTenantEnforcement: true
     });
 
     res.json({ successful: true, message: 'Service deleted successfully' });
   } catch (error) {
+    console.error('Service delete error:', error);
     res.status(400).json({ successful: false, message: error.message });
   }
 });
 
 // Search services by multiple criteria
-router.get('/search/:query', async (req, res) => {
+router.get('/search/:query', authenticateWithAutoTenant, async (req, res) => {
   try {
     const { query } = req.params;
     const { service_type, location, min_fee, max_fee } = req.query;
     
+    const finalTenantId = req.tenantId;
+    
+    if (!finalTenantId) {
+      return res.status(400).json({ 
+        successful: false, 
+        message: 'Tenant ID not found. Please log in again.' 
+      });
+    }
+    
     const whereClause = {
+      tenant_id: finalTenantId,  // Enforce tenant isolation
       is_active: true,
       OR: [
         { service_name: { contains: query, mode: 'insensitive' } },
@@ -292,30 +425,56 @@ router.get('/search/:query', async (req, res) => {
 
     const services = await prisma.services.findMany({
       where: whereClause,
-      orderBy: { service_name: 'asc' }
+      orderBy: { service_name: 'asc' },
+      skipTenantEnforcement: true
     });
 
+    console.log(`Search results for tenant ${finalTenantId}:`, services.length);
     res.json({ successful: true, data: services });
   } catch (error) {
+    console.error('Service search error:', error);
     res.status(500).json({ successful: false, message: error.message });
   }
 });
 
 // Get service statistics
-router.get('/stats/overview', async (req, res) => {
+router.get('/stats/overview', authenticateWithAutoTenant, async (req, res) => {
   try {
-    const totalServices = await prisma.services.count();
-    const activeServices = await prisma.services.count({ where: { is_active: true } });
+    const finalTenantId = req.tenantId;
+    
+    if (!finalTenantId) {
+      return res.status(400).json({ 
+        successful: false, 
+        message: 'Tenant ID not found. Please log in again.' 
+      });
+    }
+    
+    const tenantFilter = { tenant_id: finalTenantId };
+    
+    const totalServices = await prisma.services.count({ 
+      where: tenantFilter,
+      skipTenantEnforcement: true 
+    });
+    
+    const activeServices = await prisma.services.count({ 
+      where: { ...tenantFilter, is_active: true },
+      skipTenantEnforcement: true 
+    });
+    
     const serviceTypes = await prisma.services.groupBy({
       by: ['service_type'],
-      _count: { service_type: true }
+      where: tenantFilter,
+      _count: { service_type: true },
+      skipTenantEnforcement: true
     });
 
     const avgFee = await prisma.services.aggregate({
       _avg: { appointment_fee: true },
-      where: { is_active: true }
+      where: { ...tenantFilter, is_active: true },
+      skipTenantEnforcement: true
     });
 
+    console.log(`Stats for tenant ${finalTenantId}: ${totalServices} total services`);
     res.json({
       successful: true,
       data: {
@@ -335,10 +494,25 @@ router.get('/stats/overview', async (req, res) => {
 });
 
 // Toggle service active status
-router.patch('/:id/toggle-status', async (req, res) => {
+// Toggle service active status
+router.patch('/:id/toggle-status', authenticateWithAutoTenant, async (req, res) => {
   try {
-    const existing = await prisma.services.findUnique({
-      where: { service_id: req.params.id }
+    const finalTenantId = req.tenantId;
+    
+    if (!finalTenantId) {
+      return res.status(400).json({ 
+        successful: false, 
+        message: 'Tenant ID not found. Please log in again.' 
+      });
+    }
+
+    // Check if service exists and belongs to user's tenant
+    const existing = await prisma.services.findFirst({
+      where: { 
+        service_id: req.params.id,
+        tenant_id: finalTenantId  // Ensure tenant isolation
+      },
+      skipTenantEnforcement: true
     });
 
     if (!existing) {
@@ -346,8 +520,12 @@ router.patch('/:id/toggle-status', async (req, res) => {
     }
 
     const updated = await prisma.services.update({
-      where: { service_id: req.params.id },
-      data: { is_active: !existing.is_active }
+      where: { 
+        service_id: req.params.id,
+        tenant_id: finalTenantId  // Ensure tenant isolation
+      },
+      data: { is_active: !existing.is_active },
+      skipTenantEnforcement: true
     });
 
     res.json({ 
@@ -356,6 +534,7 @@ router.patch('/:id/toggle-status', async (req, res) => {
       message: `Service ${updated.is_active ? 'activated' : 'deactivated'} successfully`
     });
   } catch (error) {
+    console.error('Service toggle status error:', error);
     res.status(400).json({ successful: false, message: error.message });
   }
 });

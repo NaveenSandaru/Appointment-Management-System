@@ -35,7 +35,12 @@ export function Navbar() {
   const deleteToken = async () => {
     const response = await axios.delete(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`, {
-      withCredentials: true
+      withCredentials: true,
+      headers: {
+        'X-Tenant-ID': user?.tenantId || 'default-tenant',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
     }
     );
     if (response.status == 200) {
@@ -52,7 +57,9 @@ export function Navbar() {
         {
           withCredentials: true,
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            'X-Tenant-ID': user?.tenantId || 'default-tenant',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
           },
         }
       );

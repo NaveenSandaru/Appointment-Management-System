@@ -28,7 +28,7 @@ const ClientsPage = () => {
 
   const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const { isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
+  const { isLoggedIn, user, accessToken, isLoadingAuth } = useContext(AuthContext);
 
   useEffect(() => {
     if (isLoadingAuth) return; // Wait for auth status to be determined
@@ -49,16 +49,33 @@ const ClientsPage = () => {
 
 
   useEffect(() => {
-    fetchClients();
-  }, []);
+    // Only fetch clients when authentication is complete and user is logged in
+    if (!isLoadingAuth && isLoggedIn && accessToken && user?.role === "admin") {
+      fetchClients();
+    }
+  }, [isLoadingAuth, isLoggedIn, accessToken, user]);
 
   const fetchClients = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${baseURL}/clients`);
+      
+      if (!accessToken) {
+        console.error('No access token available');
+        return;
+      }
+
+      const response = await axios.get(`${baseURL}/clients`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
       setClients(response.data);
     } catch (error) {
       console.error('Error fetching clients:', error);
+      toast.error("Error", {
+        description: "Failed to fetch clients"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -73,11 +90,22 @@ const ClientsPage = () => {
         email: providerEmail.trim(),
         role: "Client",
         link: "http://localhost:3000/auth/client-register"
+      }, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
       });
       setShowModal(false);
       setProviderEmail('');
+      toast.success("Success", {
+        description: "Invite sent successfully"
+      });
     } catch (error) {
       console.error('Error sending invite:', error);
+      toast.error("Error", {
+        description: "Failed to send invite"
+      });
     } finally {
       setIsSubmitting(false);
     }

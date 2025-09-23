@@ -8,8 +8,13 @@ const router = express.Router();
 // Get all security questions
 router.get('/', async (req, res) => {
   try {
+    const { tenant_id } = req.query;
+    const finalTenantId = tenant_id || req.tenantId || 'default-tenant';
+    
     const questions = await prisma.security_questions.findMany({
-      orderBy: { question_id: 'asc' }
+      where: { tenant_id: finalTenantId },
+      orderBy: { question_id: 'asc' },
+      skipTenantEnforcement: true
     });
     res.json({ successful: true, data: questions });
   } catch (err) {
@@ -20,13 +25,19 @@ router.get('/', async (req, res) => {
 // Get a specific security question
 router.get('/:question_id', async (req, res) => {
   const { question_id } = req.params;
+  const { tenant_id } = req.query;
+  const finalTenantId = tenant_id || req.tenantId || 'default-tenant';
+  
   try {
     const question = await prisma.security_questions.findUnique({
-      where: { question_id }
+      where: { question_id },
+      skipTenantEnforcement: true
     });
-    if (!question) {
+    
+    if (!question || question.tenant_id !== finalTenantId) {
       return res.status(404).json({ successful: false, error: 'Security question not found' });
     }
+    
     res.json({ successful: true, data: question });
   } catch (err) {
     res.status(500).json({ successful: false, error: err.message });

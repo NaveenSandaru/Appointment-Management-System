@@ -44,7 +44,6 @@ model clients {
   appointments            appointments[]
   appointment_history     appointment_history[]
   client_user_questions   client_user_questions[]
-  email_verification     email_verification?
   ratings                 ratings[]
   reviews                 reviews[]
 
@@ -97,7 +96,6 @@ model email_verification {
   tenant_id String
 
   tenant  tenants @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  clients clients @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([tenant_id])
 }

@@ -16,13 +16,12 @@ const TENANT_SCOPED_MODELS = [
   'reviews'
 ];
 
-// Middleware to enforce tenant scoping
 prisma.$use(async (params, next) => {
-  // Only apply to models that are tenant-scoped
+  // Only apply to tenant-scoped 
   if (TENANT_SCOPED_MODELS.includes(params.model)) {
     const tenantId = params.args?.tenantId || (params.args?.data && params.args.data.tenantId);
 
-    // Skip tenant enforcement for specific operations (like during registration/login)
+    // Skip tenant enforcement for some like registration/login
     const skipTenantEnforcement = params.args?.skipTenantEnforcement;
     
     if (skipTenantEnforcement) {

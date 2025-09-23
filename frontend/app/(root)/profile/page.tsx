@@ -16,7 +16,7 @@ interface ClientData {
 }
 
 const ProfilePage = () => {
-  const { user, isLoadingAuth } = useContext(AuthContext);
+  const { user, isLoadingAuth, accessToken } = useContext(AuthContext);
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -31,15 +31,24 @@ const ProfilePage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoadingAuth && user?.email) {
+    if (!isLoadingAuth && user?.email && accessToken) {
       fetchClientData();
     }
-  }, [isLoadingAuth, user?.email]);
+  }, [isLoadingAuth, user?.email, accessToken]);
   
   const fetchClientData = async () => {
+    if (!accessToken) return;
+    
     try {
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user?.email}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/clients/client/${user?.email}`,
+        {
+          headers: {
+            'X-Tenant-ID': user?.tenantId || 'default-tenant',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
       );
   
       setClientData(response.data);
@@ -135,7 +144,9 @@ const ProfilePage = () => {
           formData,
           {
             headers: {
+              'X-Tenant-ID': user?.tenantId || 'default-tenant',
               'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${accessToken}`,
             },
           }
         );
@@ -151,6 +162,12 @@ const ProfilePage = () => {
         name: `${editedData.firstName} ${editedData.lastName}`.trim(),
         phone_number: editedData.phone_number,
         profile_picture: profilePicturePath
+      }, {
+        headers: {
+          'X-Tenant-ID': user?.tenantId || 'default-tenant',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
       });
 
       setClientData(response.data);

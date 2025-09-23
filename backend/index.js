@@ -1,4 +1,3 @@
-//import libraries
 import express, {json} from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -7,7 +6,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
-//import endpoint routers
+
 import authRouter from './auth-routes/user-auth-route.js';
 import appointmentHistoryRouter from './routes/appointment-history-routes.js';
 import appointmentsRouter from './routes/appointments-routes.js';
@@ -39,15 +38,15 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// Rate limiting
+// Rate limiter
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, 
+  message: 'Rate limit hit, please try again later.'
 });
 app.use('/api', limiter);
 
-// CORS configuration
+// CORS
 const corsOptions = {
   credentials: true, 
   origin: process.env.NODE_ENV === 'production' 
@@ -60,16 +59,6 @@ app.use(json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use('/uploads', express.static('uploads'));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    message: 'Server is running', 
-    timestamp: new Date().toISOString() 
-  });
-});
-
-//configure routers to redirect to endpoints
 app.use('/auth', authRouter);
 app.use('/clients', clientRouter);
 app.use('/email-verification', emailVerificationRouter);
@@ -84,7 +73,6 @@ app.use('/photos', photoRouter);
 app.use('/admins', adminRouter);
 app.use('/tenants', tenantRouter);
 
-// Global error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ 
@@ -94,7 +82,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });

@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 
 export default function Home() {
 
-  const { isLoggedIn, user } = useContext(AuthContext);
+  const { isLoggedIn, user, accessToken, isLoadingAuth } = useContext(AuthContext);
 
   const [retrievedServices, setRetrievedServices] = useState<Service[] | null>(null);
   const [retrievedAppointments, setRetrievedAppointments] = useState<Appointment[] | null>(null);
@@ -27,11 +27,30 @@ export default function Home() {
   const getFeaturedServices = async () => {
     try {
       setIsLoadingServices(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`
-      );
+      
+      let response;
+      // Check if user is logged in AND has a valid access token
+      if (isLoggedIn && accessToken && accessToken.trim() !== '') {
+        console.log('🔐 Fetching authenticated services for logged-in user...');
+        // For logged-in users, get their tenant's services
+        response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      } else {
+        console.log('🌐 Fetching public services for non-authenticated user...');
+        // For non-logged-in users, show public services
+        response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/public`
+        );
+      }
 
-      if (response.data) {
+      if (response.data && response.data.successful) {
         setRetrievedServices(response.data.data);
       }
       else {
@@ -39,6 +58,7 @@ export default function Home() {
       }
     }
     catch (error: any) {
+      console.error('Services fetch error:', error.response?.status, error.response?.data);
       toast.error("Error", {
         description: error.message || "Failed to fetch services"
       });
@@ -52,7 +72,12 @@ export default function Home() {
     try {
       setIsLoadingAppointments(true);
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/client/${user.email}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/client/${user.email}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
       );
 
       const enrichedAppointments = await Promise.all(
@@ -62,7 +87,14 @@ export default function Home() {
 
           try {
             const serviceRes = await axios.get(
-              `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${appointment.service_id}`
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${appointment.service_id}`,
+              {
+                headers: {
+                  'X-Tenant-ID': user?.tenantId || 'default-tenant',
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${accessToken}`,
+                },
+              }
             );
             const service = serviceRes.data.data;
             serviceName = service.service_name;
@@ -108,9 +140,12 @@ export default function Home() {
     }
   }, [user]);
 
-  useEffect(()=>{
-    getFeaturedServices();
-  },[])
+  useEffect(() => {
+    // Only fetch services after authentication loading is complete
+    if (!isLoadingAuth) {
+      getFeaturedServices();
+    }
+  }, [isLoggedIn, accessToken, isLoadingAuth]); // Re-run when authentication state changes
 
   type Service = {
     service_id: string;
@@ -230,6 +265,8 @@ export default function Home() {
                     serviceName={appointment.serviceName || "Unknown"}
                     serviceImage={appointment.serviceImage || ""}
                     onCancel={handleAppointmentCancel}
+                    accessToken={accessToken}
+                    userTenantId={user?.tenantId}
                   />
                 ))
               ) : (

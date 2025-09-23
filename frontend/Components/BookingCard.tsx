@@ -14,6 +14,8 @@ interface BookingCardProps {
   serviceName?: string
   serviceImage?: string
   onCancel?: (appointmentId: string) => void
+  accessToken?: string
+  userTenantId?: string
 }
 
 export function BookingCard({ 
@@ -25,7 +27,9 @@ export function BookingCard({
   note,
   serviceName,
   serviceImage,
-  onCancel
+  onCancel,
+  accessToken,
+  userTenantId
 }: BookingCardProps) {
 
   const formatDate = (dateString: string) => {
@@ -83,9 +87,18 @@ export function BookingCard({
   }
 
   const handleAppointmentCancellation = async (appointment_id: string) => {
+    if (!accessToken) return;
+    
     try {
       const response = await axios.delete(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`,
+        {
+          headers: {
+            'X-Tenant-ID': userTenantId || 'default-tenant',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
       );
       if(response.data.message == "Appointment deleted") {
         toast.success("Appointment cancelled", {

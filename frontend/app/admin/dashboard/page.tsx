@@ -42,7 +42,7 @@ interface Service {
 }
 
 const Dashboard = () => {
-  const { isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
+  const { isLoggedIn, user, isLoadingAuth, accessToken } = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -82,15 +82,21 @@ const Dashboard = () => {
   
 
   useEffect(() => {
-    if (user != null) {
+    if (user != null && accessToken) {
       const loadData = async () => {
         try {
           setIsLoading(true);
 
+          const headers = {
+            'X-Tenant-ID': user?.tenantId || 'default-tenant',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          };
+
           const [appointmentsRes, servicesRes, clientsRes] = await Promise.all([
-            axios.get(`${baseURL}/appointments`),
-            axios.get(`${baseURL}/services`),
-            axios.get(`${baseURL}/clients`),
+            axios.get(`${baseURL}/appointments`, { headers }),
+            axios.get(`${baseURL}/services`, { headers }),
+            axios.get(`${baseURL}/clients`, { headers }),
           ]);
 
           const validAppointments = appointmentsRes.data.filter(
@@ -165,7 +171,7 @@ const Dashboard = () => {
 
       loadData();
     }
-  }, [user]);
+  }, [user, accessToken]);
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
     <div className="bg-white p-6 rounded-lg shadow-sm border">

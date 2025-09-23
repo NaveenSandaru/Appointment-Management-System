@@ -28,7 +28,7 @@ const AppointmentsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const { isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
+  const { isLoggedIn, user, isLoadingAuth, accessToken } = useContext(AuthContext);
 
   const router = useRouter();
 
@@ -52,12 +52,20 @@ const AppointmentsPage = () => {
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+  }, [isLoggedIn, accessToken]);
 
   const fetchAppointments = async () => {
+    if (!isLoggedIn || !accessToken) return;
+    
     try {
       setIsLoading(true);
-      const response = await axios.get(`${baseURL}/appointments`);
+      const response = await axios.get(`${baseURL}/appointments`, {
+        headers: {
+          'X-Tenant-ID': user?.tenantId || 'default-tenant',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
       const validAppointments = response.data.filter(
         (appointment: Appointment) => appointment.client_email !== null
       );

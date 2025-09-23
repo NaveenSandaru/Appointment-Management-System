@@ -12,23 +12,47 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Get all clients
-router.get('/', /*authenticateToken*/ async (req, res) => {
+router.get('/', authenticateTokenWithTenant, async (req, res) => {
+  if (!req.tenantId) {
+    return res.status(400).json({ error: 'Tenant ID missing' });
+  }
+  
   try {
-    const clients = await prisma.clients.findMany();
+    const clients = await prisma.clients.findMany({
+      where: { tenant_id: req.tenantId },
+      skipTenantEnforcement: true
+    });
     res.json(clients);
   } catch (err) {
+    console.error('Clients fetch error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
 // Get client by email
-router.get('/client/:email', /*authenticateToken*/ async (req, res) => {
+router.get('/client/:email', authenticateTokenWithTenant, async (req, res) => {
   const { email } = req.params;
+  
+  if (!req.tenantId) {
+    return res.status(400).json({ error: 'Tenant ID missing' });
+  }
+  
   try {
-    const client = await prisma.clients.findUnique({ where: { email } });
-    if (!client) return res.status(404).json({ error: 'Client not found' });
+    const client = await prisma.clients.findFirst({ 
+      where: { 
+        email,
+        tenant_id: req.tenantId  // Ensure tenant isolation
+      },
+      skipTenantEnforcement: true
+    });
+    
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+    
     res.json(client);
   } catch (err) {
+    console.error('Client fetch error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -78,12 +102,22 @@ router.post('/', async (req, res) => {
 });
 
 // Update a client
-router.put('/', /*authenticateToken*/ async (req, res) => {
+router.put('/', authenticateTokenWithTenant, async (req, res) => {
   const { email, profile_picture: newProfilePicture, password: rawPassword, ...rest } = req.body;
 
+  if (!req.tenantId) {
+    return res.status(400).json({ error: 'Tenant ID missing' });
+  }
+
   try {
-    // Step 1: Get existing client
-    const existingClient = await prisma.clients.findUnique({ where: { email } });
+    // Step 1: Get existing client with tenant filtering
+    const existingClient = await prisma.clients.findFirst({ 
+      where: { 
+        email,
+        tenant_id: req.tenantId
+      },
+      skipTenantEnforcement: true
+    });
 
     if (!existingClient) {
       return res.status(404).json({ error: 'Client not found' });
@@ -115,10 +149,13 @@ router.put('/', /*authenticateToken*/ async (req, res) => {
       ...(rawPassword && { password: await bcrypt.hash(rawPassword, 10) }),
     };
 
-    // Step 4: Update the client
+    // Step 4: Update the client with tenant filtering
     const updatedClient = await prisma.clients.update({
-      where: { email },
+      where: { 
+        id: existingClient.id  // Use the client id we already fetched
+      },
       data: updateData,
+      skipTenantEnforcement: true
     });
 
     res.json(updatedClient);
@@ -132,12 +169,22 @@ router.put('/', /*authenticateToken*/ async (req, res) => {
 });
 
 // DELETE client and profile picture
-router.delete('/', /*authenticateToken*/ async (req, res) => {
+router.delete('/', authenticateTokenWithTenant, async (req, res) => {
   const { email } = req.body;
 
+  if (!req.tenantId) {
+    return res.status(400).json({ error: 'Tenant ID missing' });
+  }
+
   try {
-    // Step 1: Find the client
-    const client = await prisma.clients.findUnique({ where: { email } });
+    // Step 1: Find the client with tenant filtering
+    const client = await prisma.clients.findFirst({ 
+      where: { 
+        email,
+        tenant_id: req.tenantId
+      },
+      skipTenantEnforcement: true
+    });
 
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
@@ -158,8 +205,13 @@ router.delete('/', /*authenticateToken*/ async (req, res) => {
       });
     }
 
-    // Step 3: Delete the client record
-    await prisma.clients.delete({ where: { email } });
+    // Step 3: Delete the client record with tenant filtering
+    await prisma.clients.delete({ 
+      where: { 
+        id: client.id  // Use the client id we already fetched
+      },
+      skipTenantEnforcement: true
+    });
 
     res.json({ message: 'Client deleted' });
   } catch (err) {

@@ -37,9 +37,24 @@ router.get('/service/:service_id', authenticateTokenWithTenant, async (req, res)
   const { service_id } = req.params;
 
   try {
+    // First validate that the service belongs to the user's tenant
+    const service = await prisma.services.findFirst({
+      where: {
+        service_id: service_id,
+        tenant_id: req.tenantId
+      },
+      skipTenantEnforcement: true
+    });
+
+    if (!service) {
+      return res.status(404).json({ error: 'Service not found or access denied' });
+    }
+
     const appointments = await prisma.appointments.findMany({
-      where: { service_id },
-      tenantId: req.tenantId,
+      where: { 
+        service_id,
+        tenant_id: req.tenantId  // Explicit tenant filtering
+      },
       include: {
         clients: {
           select: {
@@ -54,6 +69,7 @@ router.get('/service/:service_id', authenticateTokenWithTenant, async (req, res)
           },
         },
       },
+      skipTenantEnforcement: true
     });
 
     if (!appointments || appointments.length === 0) {
@@ -69,9 +85,10 @@ router.get('/service/:service_id', authenticateTokenWithTenant, async (req, res)
       serviceType: appt.services?.service_type,
     }));
 
+    console.log(`Appointments for service ${service_id} in tenant ${req.tenantId}:`, enriched.length);
     res.json(enriched);
   } catch (err) {
-    console.error(err);
+    console.error('Service appointments error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -81,8 +98,11 @@ router.get('/client/:client_email', authenticateTokenWithTenant, async (req, res
   const { client_email } = req.params;
   try {
     const appointment = await prisma.appointments.findMany({ 
-      where: { client_email },
-      tenantId: req.tenantId
+      where: { 
+        client_email,
+        tenant_id: req.tenantId
+      },
+      skipTenantEnforcement: true
     });
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
     res.json(appointment);

@@ -15,15 +15,24 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 const ServiceproviderHeader = () => {
-  const { setUser, setAccessToken, user } = useContext(AuthContext);
+  const { setUser, setAccessToken, user, accessToken } = useContext(AuthContext);
   const router = useRouter();
   const [pictureURL, setPictureURL] = useState('');
   const [name, setName] = useState('');
 
   const getUserPicture = async () => {
+    if (!accessToken) return;
+    
     try {
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${user.email}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/service-providers/sprovider/${user.email}`,
+        {
+          headers: {
+            'X-Tenant-ID': user?.tenantId || 'default-tenant',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
       );
       if (response.data.profile_picture) {
         setPictureURL(`${process.env.NEXT_PUBLIC_BACKEND_URL}${response.data.profile_picture}`);
@@ -66,7 +75,12 @@ const ServiceproviderHeader = () => {
     try {
       const response = await axios.delete(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`, {
-        withCredentials: true
+        withCredentials: true,
+        headers: {
+          'X-Tenant-ID': user?.tenantId || 'default-tenant',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
       }
       );
       if (response.status == 200) {

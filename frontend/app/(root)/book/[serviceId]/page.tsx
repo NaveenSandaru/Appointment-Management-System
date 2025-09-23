@@ -45,7 +45,7 @@ interface Appointment {
 }
 
 export default function BookingPage() {
-  const { user, isLoadingAuth } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, accessToken } = useContext(AuthContext);
   const { serviceId } = useParams();
   const decodedServiceId = decodeURIComponent(serviceId as string);
   const [service, setService] = useState<Service | null>(null);
@@ -64,9 +64,25 @@ export default function BookingPage() {
   const fetchService = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${decodedServiceId}`
-      );
+      let response;
+      if (isLoggedIn && accessToken) {
+        // For logged-in users, get service details using authenticated endpoint
+        response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/${decodedServiceId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      } else {
+        // For non-logged-in users, use public endpoint
+        response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/public/${decodedServiceId}`
+        );
+      }
+      
       if (response.data.successful) {
         setService(response.data.data);
       }

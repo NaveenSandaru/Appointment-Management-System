@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { ServiceCard } from '@/components/serviceCard'
+import { AuthContext } from '@/context/auth-context'
 import axios from 'axios'
 import { Loader2 } from 'lucide-react' // Optional: any spinner icon
 import { toast } from 'sonner'
@@ -25,19 +26,40 @@ interface Service {
 
 export default function Page() {
 
+  const { isLoggedIn, accessToken, isLoadingAuth } = useContext(AuthContext);
   const [fetchedServices, setFetchedServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchServices = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/services?active_only=true`
-      );
+      let response;
+      // Check if user is logged in AND has a valid access token
+      if (isLoggedIn && accessToken && accessToken.trim() !== '') {
+        console.log('🔐 Fetching authenticated services for logged-in user...');
+        // For logged-in users, get their tenant's services
+        response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services?active_only=true`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      } else {
+        console.log('🌐 Fetching public services for non-authenticated user...');
+        // For non-logged-in users, show public services
+        response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/services/public?active_only=true`
+        );
+      }
+      
       if (response.data.successful) {
         setFetchedServices(response.data.data);
       }
     } catch (err: any) {
+      console.error('Services fetch error:', err.response?.status, err.response?.data);
       toast.error("Error", {
         description: err.message || "Failed to fetch services"
       });
@@ -47,8 +69,11 @@ export default function Page() {
   }
 
   useEffect(() => {
-    fetchServices();
-  }, []);
+    // Only fetch services after authentication loading is complete
+    if (!isLoadingAuth) {
+      fetchServices();
+    }
+  }, [isLoggedIn, accessToken, isLoadingAuth]);
 
   return (
     <div className="min-h-screen bg-gray-50">
