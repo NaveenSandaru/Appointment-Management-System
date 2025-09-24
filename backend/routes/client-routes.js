@@ -68,7 +68,7 @@ router.post('/', async (req, res) => {
   try {
     // Verify that the tenant exists and is active
     const tenant = await prisma.tenants.findUnique({
-      where: { tenant_id, is_active: true }
+      where: { tennat_id: tenant_id, is_active: true }
     });
     
     if (!tenant) {
@@ -152,7 +152,7 @@ router.put('/', authenticateTokenWithTenant, async (req, res) => {
     // Step 4: Update the client with tenant filtering
     const updatedClient = await prisma.clients.update({
       where: { 
-        id: existingClient.id  // Use the client id we already fetched
+        client_id: existingClient.client_id  // Use the client id we already fetched
       },
       data: updateData,
       skipTenantEnforcement: true
@@ -208,7 +208,7 @@ router.delete('/', authenticateTokenWithTenant, async (req, res) => {
     // Step 3: Delete the client record with tenant filtering
     await prisma.clients.delete({ 
       where: { 
-        id: client.id  // Use the client id we already fetched
+        client_id: client.client_id  // Use the client id we already fetched
       },
       skipTenantEnforcement: true
     });

@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
     const tenants = await prisma.tenants.findMany({
       where: { is_active: true },
       select: {
-        tenant_id: true,
+        tennat_id: true,
         name: true,
         display_name: true,
         domain: true,
@@ -27,9 +27,9 @@ router.get('/', async (req, res) => {
 router.get('/current', authenticateWithAutoTenant, async (req, res) => {
   try {
     const tenant = await prisma.tenants.findUnique({
-      where: { tenant_id: req.tenantId },
+      where: { tennat_id: req.tenantId },
       select: {
-        tenant_id: true,
+        tennat_id: true,
         name: true,
         display_name: true,
         domain: true,
@@ -87,7 +87,7 @@ router.put('/:tenant_id', authenticateWithAutoTenant, async (req, res) => {
   
   try {
     const tenant = await prisma.tenants.update({
-      where: { tenant_id },
+      where: { tennat_id: tenant_id },
       data: updateData
     });
     

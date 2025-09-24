@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', authenticateTokenWithTenant, async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
-      tenantId: req.tenantId
+      where: { tenant_id: req.tenantId }
     });
     res.json(appointments);
   } catch (err) {
@@ -22,8 +22,10 @@ router.get('/appointment', authenticateTokenWithTenant, async (req, res) => {
   const { appointment_id } = req.body;
   try {
     const appointment = await prisma.appointments.findUnique({ 
-      where: { appointment_id },
-      tenantId: req.tenantId
+      where: { 
+        appointment_id,
+        tenant_id: req.tenantId
+      }
     });
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
     res.json(appointment);
@@ -97,15 +99,29 @@ router.get('/service/:service_id', authenticateTokenWithTenant, async (req, res)
 router.get('/client/:client_email', authenticateTokenWithTenant, async (req, res) => {
   const { client_email } = req.params;
   try {
-    const appointment = await prisma.appointments.findMany({ 
+    // First find the client by email to get client_id
+    const client = await prisma.clients.findFirst({
       where: { 
-        client_email,
+        email: client_email,
+        tenant_id: req.tenantId
+      },
+      select: { client_id: true },
+      skipTenantEnforcement: true
+    });
+    
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    const appointments = await prisma.appointments.findMany({ 
+      where: { 
+        client_id: client.client_id,
         tenant_id: req.tenantId
       },
       skipTenantEnforcement: true
     });
-    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
-    res.json(appointment);
+    
+    res.json(appointments);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -127,16 +143,33 @@ router.post('/', authenticateTokenWithTenant, async (req, res) => {
   }
 
   try {
+    // First, find the client by email to get client_id
+    let client_id = null;
+    if (client_email) {
+      const client = await prisma.clients.findFirst({
+        where: { 
+          email: client_email,
+          tenant_id: req.tenantId
+        },
+        select: { client_id: true },
+        skipTenantEnforcement: true
+      });
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+      client_id = client.client_id;
+    }
+
     const appointment = await prisma.appointments.create({
       data: {
-        client_email,
+        client_id,
         service_id,
         date,
         time_from,
         time_to,
-        note
-      },
-      tenantId: req.tenantId
+        note,
+        tenant_id: req.tenantId
+      }
     });
    
     if(client_email){
@@ -156,9 +189,11 @@ router.put('/:appointment_id', authenticateTokenWithTenant, async (req, res) => 
 
   try {
     const updated = await prisma.appointments.update({
-      where: { appointment_id },
-      data: updateData,
-      tenantId: req.tenantId
+      where: { 
+        appointment_id,
+        tenant_id: req.tenantId
+      },
+      data: updateData
     });
     res.json(updated);
   } catch (err) {
@@ -176,9 +211,16 @@ router.delete('/:appointment_id', authenticateTokenWithTenant, async (req, res) 
 
   try {
     const appointment = await prisma.appointments.findUnique({
-      where: { appointment_id },
-      tenantId: req.tenantId,
+      where: { 
+        appointment_id,
+        tenant_id: req.tenantId
+      },
       include: {
+        clients: {
+          select: {
+            email: true,
+          },
+        },
         services: {
           select: {
             service_name: true,
@@ -192,13 +234,15 @@ router.delete('/:appointment_id', authenticateTokenWithTenant, async (req, res) 
     }
 
     await prisma.appointments.delete({ 
-      where: { appointment_id },
-      tenantId: req.tenantId
+      where: { 
+        appointment_id,
+        tenant_id: req.tenantId
+      }
     });
     
-    if(appointment.client_email && appointment.services) {
+    if(appointment.clients?.email && appointment.services) {
       sendAppointmentCancelation(
-        appointment.client_email,
+        appointment.clients.email,
         appointment.date,
         appointment.time_from,
         appointment.services.service_name

@@ -8,50 +8,45 @@ datasource db {
 }
 
 model tenants {
-  tenant_id     String @id @default(uuid())
-  name          String
-  display_name  String
-  domain        String? @unique
-  logo_url      String?
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  is_active     Boolean @default(true)
-
-  clients                 clients[]
-  services                services[]
-  email_verification     email_verification[]
-  security_questions     security_questions[]
-  client_user_questions  client_user_questions[]
-  admins                 admins[]
-  appointments           appointments[]
-  appointment_history    appointment_history[]
-  ratings                ratings[]
-  reviews                reviews[]
+  name                  String
+  display_name          String
+  domain                String?
+  logo_url              String?
+  created_at            DateTime                @default(now())
+  updated_at            DateTime                @updatedAt
+  is_active             Boolean                 @default(true)
+  tennat_id             String                  @id(map: "tennants_pk") @db.Uuid
+  admins                admins[]
+  appointment_history   appointment_history[]
+  appointments          appointments[]
+  client_user_questions client_user_questions[]
+  clients               clients[]
+  email_verification    email_verification[]
+  ratings               ratings[]
+  reviews               reviews[]
+  security_questions    security_questions[]
+  services              services[]
 }
 
 model clients {
-  email           String  @id
-  name            String
-  phone_number    String
-  profile_picture String?
-  age             Int?
-  gender          String? @db.Char(1)
-  address         String?
-  password        String
-  tenant_id       String
-
-  tenant                  tenants           @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  appointments            appointments[]
-  appointment_history     appointment_history[]
-  client_user_questions   client_user_questions[]
-  ratings                 ratings[]
-  reviews                 reviews[]
-
-  @@index([tenant_id])
+  email                 String
+  name                  String
+  phone_number          String
+  profile_picture       String?
+  age                   Int?
+  gender                String?                 @db.Char(1)
+  address               String?
+  password              String
+  client_id             String                  @id(map: "clients_pk") @db.Uuid
+  tenant_id             String?                 @db.Uuid
+  appointment_history   appointment_history[]
+  appointments          appointments[]
+  client_user_questions client_user_questions[]
+  tenant                tenants?                @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
+  ratings               ratings[]
 }
 
 model services {
-  service_id           String @id @default(uuid())
   service_name         String
   picture              String?
   description          String?
@@ -64,140 +59,117 @@ model services {
   appointment_duration String
   appointment_fee      Int
   language             String
-  is_active            Boolean @default(true)
+  is_active            Boolean               @default(true)
   location             String?
   phone_number         String?
   email_contact        String?
   website_url          String?
-  max_advance_booking  Int @default(30) // days
-  min_advance_booking  Int @default(0)  // hours
+  max_advance_booking  Int                   @default(30)
+  min_advance_booking  Int                   @default(0)
   cancellation_policy  String?
   tags                 String[]
-  capacity             Int @default(1)
-  requires_preparation Boolean @default(false)
-  created_at           DateTime @default(now())
-  updated_at           DateTime @updatedAt
-  tenant_id            String
-
-  tenant              tenants      @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  appointments        appointments[]
-  appointment_history appointment_history[]
-  ratings             ratings[]
-  reviews             reviews[]
-
-  @@index([tenant_id])
+  capacity             Int                   @default(1)
+  requires_preparation Boolean               @default(false)
+  created_at           DateTime              @default(now())
+  updated_at           DateTime              @updatedAt
+  service_id           String                @id(map: "services_pk") @default(uuid()) @db.Uuid
+  tenant_id            String?               @db.Uuid
+  appointment_history  appointment_history[]
+  appointments         appointments[]
+  ratings              ratings[]
+  reviews              reviews[]
+  tenant               tenants?              @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 }
 
-
-
 model email_verification {
-  email     String @id
+  email     String
   code      String?
-  tenant_id String
+  tenant_id String  @db.Uuid
+  tenant    tenants @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 
-  tenant  tenants @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-
-  @@index([tenant_id])
+  @@id([email, tenant_id])
 }
 
 model security_questions {
-  question_id String @id
-  question    String
-  tenant_id   String
-
-  tenant                tenants                 @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
+  question_id           String                  @id
+  question              String
+  tenant_id             String?                 @db.Uuid
   client_user_questions client_user_questions[]
-
-  @@index([tenant_id])
+  tenant                tenants?                @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 }
 
 model client_user_questions {
-  email       String
-  question_id String
-  answer      String
-  tenant_id   String
+  question_id        String             @db.VarChar(255)
+  answer             String
+  client_id          String             @db.Uuid
+  tenant_id          String             @db.Uuid
+  clients            clients            @relation(fields: [client_id], references: [client_id], onDelete: Cascade, onUpdate: NoAction, map: "client_user_questions_fk")
+  security_questions security_questions @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+  tenant             tenants            @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 
-  tenant            tenants           @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  clients           clients           @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
-  security_questions security_questions @relation(fields: [question_id], references: [question_id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@id([email, question_id])
-  @@index([tenant_id])
+  @@id([question_id, client_id, tenant_id], map: "client_user_q_pk")
 }
 
 model admins {
-  email     String @id
+  email     String
   password  String
   name      String
-  tenant_id String
-
-  tenant tenants @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-
-  @@index([tenant_id])
+  aid       String   @id(map: "admins_pk") @db.Uuid
+  tenant_id String?  @db.Uuid
+  tenant    tenants? @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 }
 
 model appointments {
-  appointment_id String   @id @default(cuid())
-  client_email   String?
-  service_id     String
   date           String
   time_from      String
   time_to        String
   note           String?
-  tenant_id      String
-
-  tenant   tenants   @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  clients  clients? @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
-  services services @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@index([tenant_id])
+  appointment_id String    @id @default(cuid()) @db.Uuid
+  client_id      String?   @db.Uuid
+  service_id     String?   @db.Uuid
+  tenant_id      String?   @db.Uuid
+  clients        clients?  @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "appointment_client_fk")
+  services       services? @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: NoAction, map: "appointments_service_fk")
+  tenant         tenants?  @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 }
 
 model appointment_history {
-  history_id     String @id
-  client_email   String
-  service_id     String
-  date_and_time  String
-  status         String
-  tenant_id      String
-
-  tenant   tenants  @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  clients  clients  @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
-  services services @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
-  ratings  ratings[]
-  reviews  reviews[]
-
-  @@index([tenant_id])
+  date_and_time String
+  status        String
+  history_id    String    @id @db.Uuid
+  client_id     String?   @db.Uuid
+  service_id    String?   @db.Uuid
+  tenant_id     String?   @db.Uuid
+  clients       clients?  @relation(fields: [client_id], references: [client_id], onDelete: Cascade, onUpdate: NoAction, map: "history_client_fk")
+  services      services? @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: NoAction, map: "service_fk")
+  tenant        tenants?  @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
+  ratings       ratings[]
+  reviews       reviews[]
 }
 
 model ratings {
-  client_email String
-  service_id   String
-  history_id   String
-  rating       Float
-  tenant_id    String
+  rating              Float
+  client_id           String              @db.Uuid
+  service_id          String              @db.Uuid
+  history_id          String              @db.Uuid
+  tenant_id           String              @db.Uuid
+  clients             clients             @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "cilent_id_fk")
+  appointment_history appointment_history @relation(fields: [history_id], references: [history_id], onDelete: Cascade, onUpdate: NoAction, map: "history_id_fk")
+  services            services            @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: NoAction, map: "service_id_fk")
+  tenant              tenants             @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 
-  tenant              tenants             @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  clients             clients             @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
-  services            services            @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
-  appointment_history appointment_history @relation(fields: [history_id], references: [history_id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@id([client_email, service_id, history_id])
-  @@index([tenant_id])
+  @@id([client_id, tenant_id, service_id, history_id], map: "constraint_1")
 }
 
 model reviews {
-  client_email String
-  service_id   String
-  history_id   String
-  review       String
-  tenant_id    String
+  review              String
+  client_id           String              @db.Uuid
+  service_id          String              @db.Uuid
+  history_id          String              @db.Uuid
+  tenant_id           String              @db.Uuid
+  services            services            @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction, map: "reviews_client_fk")
+  appointment_history appointment_history @relation(fields: [history_id], references: [history_id], onDelete: NoAction, onUpdate: NoAction, map: "reviews_history_fk")
+  tenant              tenants             @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 
-  tenant              tenants             @relation(fields: [tenant_id], references: [tenant_id], onDelete: Cascade)
-  clients             clients             @relation(fields: [client_email], references: [email], onDelete: Cascade, onUpdate: Cascade)
-  services            services            @relation(fields: [service_id], references: [service_id], onDelete: Cascade, onUpdate: Cascade)
-  appointment_history appointment_history @relation(fields: [history_id], references: [history_id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@id([client_email, service_id, history_id])
-  @@index([tenant_id])
+  @@id([client_id, history_id, service_id, tenant_id], map: "reviews_pk")
 }
