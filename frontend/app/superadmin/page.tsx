@@ -76,9 +76,6 @@ export default function SuperAdminLogin() {
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Super Admin Portal
             </CardTitle>
-            <CardDescription className="text-gray-600">
-              Sign in to manage tenants and administrators
-            </CardDescription>
           </div>
         </CardHeader>
 
@@ -157,7 +154,7 @@ export default function SuperAdminLogin() {
 
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="text-xs text-center text-gray-500">
-              Super Admin Portal • Secure Access Only
+              Super Admin Portal
             </div>
           </div>
         </CardContent>

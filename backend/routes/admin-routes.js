@@ -4,7 +4,8 @@ import prisma from '../prismaClient.js';
 import { jwTokens } from '../utils/jwt-helper.js';
 import jwt from 'jsonwebtoken';
 import {sendAccountCreationInvite} from './../utils/mailer.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js';
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js';
+import { randomUUID } from 'crypto';
 
 
 const router = express.Router();
@@ -17,9 +18,11 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    const aid = randomUUID();
     const hashedPassword = await bcrypt.hash(password, 10);
     const newAdmin = await prisma.admins.create({
       data: {
+        aid: aid,
         email,
         name,
         password: hashedPassword,
@@ -32,7 +35,7 @@ router.post('/', async (req, res) => {
 });
 
 // Get all admins
-router.get('/', authenticateWithAutoTenant, async (req, res) => {
+router.get('/', authenticateTokenWithTenant, async (req, res) => {
   try {
     // Only allow admin access
     if (req.user?.role !== 'admin') {
@@ -49,7 +52,7 @@ router.get('/', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Get a specific admin
-router.get('/:email', authenticateWithAutoTenant, async (req, res) => {
+router.get('/:email', authenticateTokenWithTenant, async (req, res) => {
   try {
     // Only allow admin access
     if (req.user?.role !== 'admin') {

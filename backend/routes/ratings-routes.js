@@ -1,12 +1,12 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
+import { authenticateToken,  authenticateTokenWithTenant } from './../middleware/authentication.js'
 
 
 const router = express.Router();
 
 // Get all ratings
-router.get('/', authenticateWithAutoTenant, async (req, res) => {
+router.get('/', authenticateTokenWithTenant, async (req, res) => {
   try {
     const ratings = await prisma.ratings.findMany();
     res.json(ratings);
@@ -16,7 +16,7 @@ router.get('/', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Get a specific rating
-router.get('/:client_email/:service_id/:history_id', authenticateWithAutoTenant, async (req, res) => {
+router.get('/:client_email/:service_id/:history_id', authenticateTokenWithTenant, async (req, res) => {
   const { client_email, service_id, history_id } = req.params;
   try {
     // First find the client by email to get client_id
@@ -51,7 +51,7 @@ router.get('/:client_email/:service_id/:history_id', authenticateWithAutoTenant,
 });
 
 // Create or update a rating
-router.post('/', authenticateWithAutoTenant, async (req, res) => {
+router.post('/', authenticateTokenWithTenant, async (req, res) => {
   const { client_email, service_id, history_id, rating } = req.body;
 
   if (!client_email || !service_id || !history_id || rating === undefined) {
@@ -98,7 +98,7 @@ router.post('/', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Delete a rating
-router.delete('/:client_email/:service_id/:history_id', authenticateWithAutoTenant, async (req, res) => {
+router.delete('/:client_email/:service_id/:history_id', authenticateTokenWithTenant, async (req, res) => {
   const { client_email, service_id, history_id } = req.params;
   try {
     // First find the client by email to get client_id

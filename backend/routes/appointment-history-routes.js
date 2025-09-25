@@ -1,12 +1,12 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js'
 
 
 const router = express.Router();
 
 // Get all appointment history records
-router.get('/', authenticateWithAutoTenant, async (req, res) => {
+router.get('/', authenticateTokenWithTenant, async (req, res) => {
   try {
     const histories = await prisma.appointment_history.findMany();
     res.json(histories);
@@ -16,7 +16,7 @@ router.get('/', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Get a specific history record by ID
-router.get('/:history_id', authenticateWithAutoTenant, async (req, res) => {
+router.get('/:history_id', authenticateTokenWithTenant, async (req, res) => {
   const { history_id } = req.params;
   try {
     const history = await prisma.appointment_history.findUnique({ where: { history_id } });
@@ -28,7 +28,7 @@ router.get('/:history_id', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Create a new appointment history record
-router.post('/', authenticateWithAutoTenant, async (req, res) => {
+router.post('/', authenticateTokenWithTenant, async (req, res) => {
   const { history_id, client_email, service_id, date_and_time, status } = req.body;
 
   if (!history_id || !client_email || !service_id || !date_and_time || !status) {
@@ -52,7 +52,7 @@ router.post('/', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Update an appointment history record
-router.put('/:history_id', authenticateWithAutoTenant, async (req, res) => {
+router.put('/:history_id', authenticateTokenWithTenant, async (req, res) => {
   const { history_id } = req.params;
   const updateData = req.body;
 
@@ -72,7 +72,7 @@ router.put('/:history_id', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Delete an appointment history record
-router.delete('/:history_id', authenticateWithAutoTenant, async (req, res) => {
+router.delete('/:history_id', authenticateTokenWithTenant, async (req, res) => {
   const { history_id } = req.params;
 
   try {

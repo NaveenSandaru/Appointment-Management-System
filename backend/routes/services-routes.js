@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import prisma from '../prismaClient.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js'
 import path from 'path';
 import fs from 'fs';
 
@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // CREATE a new service with optional picture
-router.post('/', authenticateWithAutoTenant, upload.single('picture'), async (req, res) => {
+router.post('/', authenticateTokenWithTenant, upload.single('picture'), async (req, res) => {
   const { 
     service_name, 
     description, 
@@ -135,7 +135,7 @@ router.get('/public', async (req, res) => {
 });
 
 // AUTHENTICATED: Get services for authenticated users (tenant-specific)
-router.get('/', authenticateWithAutoTenant, async (req, res) => {
+router.get('/', authenticateTokenWithTenant, async (req, res) => {
   try {
     const { active_only } = req.query;
     
@@ -193,7 +193,7 @@ router.get('/public/:id', async (req, res) => {
 });
 
 // AUTHENTICATED: Get one service by ID for authenticated users
-router.get('/:id', authenticateWithAutoTenant, async (req, res) => {
+router.get('/:id', authenticateTokenWithTenant, async (req, res) => {
   try {
     const finalTenantId = req.tenantId;
     
@@ -225,7 +225,7 @@ router.get('/:id', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // UPDATE a service (including optional new picture)
-router.put('/:id', authenticateWithAutoTenant, upload.single('picture'), async (req, res) => {
+router.put('/:id', authenticateTokenWithTenant, upload.single('picture'), async (req, res) => {
   const { 
     service_name, 
     description, 
@@ -347,7 +347,7 @@ router.put('/:id', authenticateWithAutoTenant, upload.single('picture'), async (
 });
 
 // DELETE a service (and its picture)
-router.delete('/:id', authenticateWithAutoTenant, async (req, res) => {
+router.delete('/:id', authenticateTokenWithTenant, async (req, res) => {
   try {
     const finalTenantId = req.tenantId;
     
@@ -393,7 +393,7 @@ router.delete('/:id', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Search services by multiple criteria
-router.get('/search/:query', authenticateWithAutoTenant, async (req, res) => {
+router.get('/search/:query', authenticateTokenWithTenant, async (req, res) => {
   try {
     const { query } = req.params;
     const { service_type, location, min_fee, max_fee } = req.query;
@@ -439,7 +439,7 @@ router.get('/search/:query', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Get service statistics
-router.get('/stats/overview', authenticateWithAutoTenant, async (req, res) => {
+router.get('/stats/overview', authenticateTokenWithTenant, async (req, res) => {
   try {
     const finalTenantId = req.tenantId;
     
@@ -496,7 +496,7 @@ router.get('/stats/overview', authenticateWithAutoTenant, async (req, res) => {
 
 // Toggle service active status
 // Toggle service active status
-router.patch('/:id/toggle-status', authenticateWithAutoTenant, async (req, res) => {
+router.patch('/:id/toggle-status', authenticateTokenWithTenant, async (req, res) => {
   try {
     const finalTenantId = req.tenantId;
     

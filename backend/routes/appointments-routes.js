@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js'
 import { sendAppointmentConfirmation, sendAppointmentCancelation } from '../utils/mailer.js';
 
 const router = express.Router();
@@ -128,7 +128,7 @@ router.get('/client/:client_email', authenticateTokenWithTenant, async (req, res
 });
 
 // Create new appointment
-router.post('/', authenticateWithAutoTenant, async (req, res) => {
+router.post('/', authenticateTokenWithTenant, async (req, res) => {
   const {
     client_email,
     service_id,

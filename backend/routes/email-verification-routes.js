@@ -1,12 +1,12 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
 import { sendVerificationCode } from '../utils/mailer.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js'
 
 
 const router = express.Router();
 
-router.get('/:email/:tenant_id?', /*authenticateWithAutoTenant,*/ async (req, res) => {
+router.get('/:email/:tenant_id?', /*authenticateTokenWithTenant,*/ async (req, res) => {
   const { email, tenant_id } = req.params;
   const finalTenantId = tenant_id || 'default-tenant';
   
@@ -24,7 +24,7 @@ router.get('/:email/:tenant_id?', /*authenticateWithAutoTenant,*/ async (req, re
   }
 });
 
-router.post('/', /*authenticateWithAutoTenant,*/ async (req, res) => {
+router.post('/', /*authenticateTokenWithTenant,*/ async (req, res) => {
   console.log('Email verification POST request body:', req.body);
   const { email, tenant_id } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
@@ -50,7 +50,7 @@ router.post('/', /*authenticateWithAutoTenant,*/ async (req, res) => {
   }
 });
 
-router.post('/verify', /*authenticateWithAutoTenant,*/ async (req, res) => {
+router.post('/verify', /*authenticateTokenWithTenant,*/ async (req, res) => {
   console.log('Email verification VERIFY request body:', req.body);
   const { email, code, tenant_id } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
@@ -82,7 +82,7 @@ router.post('/verify', /*authenticateWithAutoTenant,*/ async (req, res) => {
 });
 
 // Delete verification
-router.delete('/:email/:tenant_id?', /*authenticateWithAutoTenant,*/ async (req, res) => {
+router.delete('/:email/:tenant_id?', /*authenticateTokenWithTenant,*/ async (req, res) => {
   const { email, tenant_id } = req.params;
   const finalTenantId = tenant_id || 'default-tenant';
   

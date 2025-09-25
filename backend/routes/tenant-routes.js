@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
-import { authenticateWithAutoTenant, authenticateSuperAdmin } from '../middleware/authentication.js';
+import { authenticateTokenWithTenant, authenticateSuperAdmin } from '../middleware/authentication.js';
 
 const router = express.Router();
 
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get current user's tenant information
-router.get('/current', authenticateWithAutoTenant, async (req, res) => {
+router.get('/current', authenticateTokenWithTenant, async (req, res) => {
   try {
     const tenant = await prisma.tenants.findUnique({
       where: { tennat_id: req.tenantId },
@@ -51,7 +51,7 @@ router.get('/current', authenticateWithAutoTenant, async (req, res) => {
 // Only super admins can create tenants
 
 // Update tenant
-router.put('/:tenant_id', authenticateWithAutoTenant, async (req, res) => {
+router.put('/:tenant_id', authenticateTokenWithTenant, async (req, res) => {
   const { tenant_id } = req.params;
   const updateData = req.body;
   

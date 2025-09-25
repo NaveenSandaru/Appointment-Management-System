@@ -1,12 +1,12 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js'
 
 
 const router = express.Router();
 
 // Get all questions for all clients
-router.get('/', authenticateWithAutoTenant, async (req, res) => {
+router.get('/', authenticateTokenWithTenant, async (req, res) => {
   try {
     const answers = await prisma.client_user_questions.findMany();
     res.json(answers);
@@ -16,7 +16,7 @@ router.get('/', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Get all questions for a specific client
-router.get('/:email', authenticateWithAutoTenant, async (req, res) => {
+router.get('/:email', authenticateTokenWithTenant, async (req, res) => {
   const { email } = req.params;
   try {
     const answers = await prisma.client_user_questions.findMany({
@@ -60,7 +60,7 @@ router.post('/', async (req, res) => {
 
 
 // Delete a specific answer
-router.delete('/:email/:question_id', authenticateWithAutoTenant, async (req, res) => {
+router.delete('/:email/:question_id', authenticateTokenWithTenant, async (req, res) => {
   const { email, question_id } = req.params;
   try {
     await prisma.client_user_questions.delete({

@@ -50,7 +50,7 @@ router.post('/login', async (req, res) => {
         }
 
         // Check if email is verified
-        const verificationRecord = await prisma.email_verification.findUnique({
+        const verificationRecord = await prisma.email_verification.findFirst({
             where: { email: user.email },
             select: { email: true },
             skipTenantEnforcement: true
@@ -183,7 +183,7 @@ router.post('/admin_login', async (req, res) => {
         }
 
         // Check if email is verified
-        const verificationRecord = await prisma.email_verification.findUnique({
+        const verificationRecord = await prisma.email_verification.findFirst({
             where: { email: admin.email },
             select: { email: true },
             skipTenantEnforcement: true

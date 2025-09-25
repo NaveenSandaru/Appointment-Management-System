@@ -3,9 +3,21 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { authenticateSuperAdmin } from '../middleware/authentication.js';
+import multer from 'multer';
+import path from 'path';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// Configure multer for logo uploads
+const logoStorage = multer.diskStorage({
+  destination: 'uploads/photos/',
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const logoUpload = multer({ storage: logoStorage });
 
 // Super Admin Login
 router.post('/login', async (req, res) => {
@@ -58,8 +70,8 @@ router.post('/login', async (req, res) => {
 });
 
 // Create Tenant (Super Admin Only)
-router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
-    const { name, display_name, domain, logo_url } = req.body;
+router.post('/tenants', authenticateSuperAdmin, logoUpload.single('logo'), async (req, res) => {
+    const { name, display_name, domain } = req.body;
 
     if (!name || !display_name) {
         return res.status(400).json({ error: 'Name and display_name are required' });
@@ -75,13 +87,23 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
             return res.status(409).json({ error: 'Tenant name already exists' });
         }
 
+        // Generate UUID for tenant
+        const tenantId = randomUUID();
+        
+        // Handle logo upload
+        let logoUrl = null;
+        if (req.file) {
+            logoUrl = `/uploads/photos/${req.file.filename}`;
+        }
+
         // Create tenant
         const tenant = await prisma.tenants.create({
             data: {
+                tennat_id: tenantId,
                 name,
                 display_name,
                 domain,
-                logo_url,
+                logo_url: logoUrl,
                 is_active: true
             }
         });
@@ -156,9 +178,9 @@ router.get('/tenants', authenticateSuperAdmin, async (req, res) => {
 });
 
 // Update Tenant (Super Admin Only)
-router.put('/tenants/:tenantId', authenticateSuperAdmin, async (req, res) => {
+router.put('/tenants/:tenantId', authenticateSuperAdmin, logoUpload.single('logo'), async (req, res) => {
     const { tenantId } = req.params;
-    const { name, display_name, domain, logo_url, is_active } = req.body;
+    const { name, display_name, domain, is_active } = req.body;
 
     try {
         // Check if tenant exists
@@ -170,6 +192,12 @@ router.put('/tenants/:tenantId', authenticateSuperAdmin, async (req, res) => {
             return res.status(404).json({ error: 'Tenant not found' });
         }
 
+        // Handle logo upload
+        let logoUrl = undefined;
+        if (req.file) {
+            logoUrl = `/uploads/photos/${req.file.filename}`;
+        }
+
         // Update tenant
         const updatedTenant = await prisma.tenants.update({
             where: { tennat_id: tenantId },
@@ -177,7 +205,7 @@ router.put('/tenants/:tenantId', authenticateSuperAdmin, async (req, res) => {
                 ...(name && { name }),
                 ...(display_name && { display_name }),
                 ...(domain !== undefined && { domain }),
-                ...(logo_url !== undefined && { logo_url }),
+                ...(logoUrl !== undefined && { logo_url: logoUrl }),
                 ...(is_active !== undefined && { is_active })
             }
         });
@@ -235,9 +263,13 @@ router.post('/tenants/:tenantId/admins', authenticateSuperAdmin, async (req, res
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Generate UUID for admin
+        const adminId = randomUUID();
+
         // Create admin
         const admin = await prisma.admins.create({
             data: {
+                aid: adminId,
                 name,
                 email,
                 password: hashedPassword,

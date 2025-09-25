@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
-import { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant } from './../middleware/authentication.js'
+import { authenticateToken, authenticateTokenWithTenant } from './../middleware/authentication.js'
 
 
 const router = express.Router();
@@ -45,7 +45,7 @@ router.get('/:question_id', async (req, res) => {
 });
 
 // Create a new security question (admin only)
-router.post('/', authenticateWithAutoTenant, async (req, res) => {
+router.post('/', authenticateTokenWithTenant, async (req, res) => {
   const { question_id, question } = req.body;
 
   if (!question_id || !question) {
@@ -67,7 +67,7 @@ router.post('/', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Update a security question (admin only)
-router.put('/:question_id', authenticateWithAutoTenant, async (req, res) => {
+router.put('/:question_id', authenticateTokenWithTenant, async (req, res) => {
   const { question_id } = req.params;
   const { question } = req.body;
 
@@ -91,7 +91,7 @@ router.put('/:question_id', authenticateWithAutoTenant, async (req, res) => {
 });
 
 // Delete a security question (admin only)
-router.delete('/:question_id', authenticateWithAutoTenant, async (req, res) => {
+router.delete('/:question_id', authenticateTokenWithTenant, async (req, res) => {
   const { question_id } = req.params;
 
   try {

@@ -26,52 +26,12 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// Enhanced middleware that ensures tenant context is available
+// New middleware with automatic tenant detection
 function authenticateTokenWithTenant(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     
-    // Try to get tenant_id from multiple sources
-    const tenantId = req.headers['x-tenant-id'] || 
-                    req.query.tenant_id || 
-                    req.body.tenant_id;
-    
-    if (token == null) return res.status(401).json('Access denied');
-    
-    jwt.verify(token, process.env.ACCESS_TOKEN_KEY, (error, user) => {
-        if (error) return res.status(403).json('Invalid token');
-        
-        // Extract tenant_id from token payload or use other sources
-        const finalTenantId = user.tenant_id || tenantId;
-        
-        if (!finalTenantId) {
-            return res.status(400).json('Tenant ID missing');
-        }
-        
-        // Validate that user belongs to the requested tenant
-        if (user.tenant_id && user.tenant_id !== finalTenantId) {
-            return res.status(403).json('Access denied to this tenant');
-        }
-        
-        req.user = user;
-        req.tenantId = finalTenantId;
-        next();
-    });
-}
-
-// New middleware with automatic tenant detection
-function authenticateWithAutoTenant(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    // Debug logging
-    console.log('🔍 Auth Debug Info:');
-    console.log('Authorization header:', authHeader);
-    console.log('Extracted token:', token ? 'Token present' : 'No token');
-    console.log('All headers:', req.headers);
-    
     if (token == null) {
-        console.log('❌ No token found - returning 401');
         return res.status(401).json({ error: 'Access denied - No token provided' });
     }
     
@@ -136,4 +96,4 @@ function authenticateSuperAdmin(req, res, next) {
     });
 }
 
-export { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant, authenticateSuperAdmin };
+export { authenticateToken, authenticateTokenWithTenant, authenticateSuperAdmin };
