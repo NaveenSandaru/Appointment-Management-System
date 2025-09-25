@@ -43,14 +43,34 @@ router.get('/client/:email', authenticateTokenWithTenant, async (req, res) => {
         email,
         tenant_id: req.tenantId  // Ensure tenant isolation
       },
+      include: {
+        tenant: {
+          select: {
+            name: true,
+            display_name: true,
+            domain: true,
+            logo_url: true,
+            is_active: true
+          }
+        }
+      },
       skipTenantEnforcement: true
     });
     
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
     }
-    
-    res.json(client);
+
+    // Structure the response to include tenant information clearly
+    const profileData = {
+      ...client,
+      tenant_name: client.tenant?.display_name || client.tenant?.name || 'No tenant assigned',
+      tenant_domain: client.tenant?.domain,
+      tenant_logo: client.tenant?.logo_url,
+      tenant_is_active: client.tenant?.is_active
+    };
+
+    res.json(profileData);
   } catch (err) {
     console.error('Client fetch error:', err);
     res.status(500).json({ error: err.message });

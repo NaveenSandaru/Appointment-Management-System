@@ -12,10 +12,15 @@ router.get('/:email/:tenant_id?', /*authenticateTokenWithTenant,*/ async (req, r
   
   try {
     const verification = await prisma.email_verification.findUnique({ 
-      where: { email },
+      where: { 
+        email_tenant_id: {
+          email: email,
+          tenant_id: finalTenantId
+        }
+      },
       skipTenantEnforcement: true
     });
-    if (!verification || verification.tenant_id !== finalTenantId) {
+    if (!verification) {
       return res.status(404).json({ error: 'Verification not found' });
     }
     res.json(verification);
@@ -36,7 +41,12 @@ router.post('/', /*authenticateTokenWithTenant,*/ async (req, res) => {
   try {
     // Use skipTenantEnforcement to bypass middleware and handle tenant manually
     const upsert = await prisma.email_verification.upsert({
-      where: { email },
+      where: { 
+        email_tenant_id: {
+          email: email,
+          tenant_id: finalTenantId
+        }
+      },
       update: { code },
       create: { email, code, tenant_id: finalTenantId },
       skipTenantEnforcement: true
