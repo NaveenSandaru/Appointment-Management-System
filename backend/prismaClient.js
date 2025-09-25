@@ -25,7 +25,7 @@ prisma.$use(async (params, next) => {
     const skipTenantEnforcement = params.args?.skipTenantEnforcement;
     
     if (skipTenantEnforcement) {
-      // Remove the skipTenantEnforcement flag before proceeding
+      // Remove the skipTenantEnforcement flag
       delete params.args.skipTenantEnforcement;
       return next(params);
     }
