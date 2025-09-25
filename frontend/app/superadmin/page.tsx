@@ -2,12 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Shield, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LoadingButton } from '@/components/ui/loading-button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import Image from 'next/image'
+import { toast } from 'sonner'
+import logo from './../../public/simplyBookedLogo.png'
 
 export default function SuperAdminLogin() {
   const [formData, setFormData] = useState({
@@ -29,8 +33,7 @@ export default function SuperAdminLogin() {
     if (error) setError('')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     setIsLoading(true)
     setError('')
 
@@ -53,33 +56,47 @@ export default function SuperAdminLogin() {
       localStorage.setItem('superAdminToken', data.token)
       localStorage.setItem('superAdminUser', JSON.stringify(data.user))
       
+      // Show success message
+      toast.success('Login Successful', {
+        description: 'Welcome to Super Admin Portal'
+      })
+      
       // Redirect to dashboard
       router.push('/superadmin/dashboard')
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred'
+      setError(errorMessage)
+      toast.error('Login Failed', {
+        description: errorMessage
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/20"></div>
-      
-      <Card className="w-full max-w-md relative z-10 bg-white/95 backdrop-blur-sm shadow-2xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-            <Shield className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="text-center pb-6">
+          <div className="w-full flex justify-center mb-2">
+            <Image
+              src={logo}
+              alt="Simply Booked Logo"
+              width={110}
+              height={110}
+              className="object-contain"
+            />
           </div>
-          <div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Super Admin Portal
-            </CardTitle>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Super Admin Login
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Administrator access to manage tenants and system administration.
+          </p>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
@@ -87,76 +104,64 @@ export default function SuperAdminLogin() {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium">
-                Username
-              </Label>
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+              Username
+            </Label>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              required
+              value={formData.username}
+              onChange={handleInputChange}
+              placeholder="Enter your username"
+              className="w-full"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              Password
+            </Label>
+            <div className="relative">
               <Input
-                id="username"
-                name="username"
-                type="text"
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
                 required
-                value={formData.username}
+                value={formData.password}
                 onChange={handleInputChange}
-                placeholder="Enter your username"
-                className="w-full"
+                placeholder="Enter your password"
+                className="w-full pr-10"
                 disabled={isLoading}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Enter your password"
-                  className="w-full pr-10"
-                  disabled={isLoading}
-                />
+              {formData.password && (
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   disabled={isLoading}
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <Eye className="h-5 w-5" />
                   )}
                 </button>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Signing in...</span>
-                </div>
-              ) : (
-                'Sign In'
               )}
-            </Button>
-          </form>
-
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="text-xs text-center text-gray-500">
-              Super Admin Portal
             </div>
           </div>
+
+          <LoadingButton
+            className="w-full bg-[#059669] hover:bg-[#0eb882] text-white"
+            onClick={handleSubmit}
+            isLoading={isLoading}
+            loadingText="Signing in..."
+          >
+            Sign In
+          </LoadingButton>
         </CardContent>
       </Card>
     </div>
