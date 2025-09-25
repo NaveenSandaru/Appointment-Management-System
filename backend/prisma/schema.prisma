@@ -124,7 +124,7 @@ model appointments {
   time_from      String
   time_to        String
   note           String?
-  appointment_id String    @id @default(cuid()) @db.Uuid
+  appointment_id String    @id @default(uuid()) @db.Uuid
   client_id      String?   @db.Uuid
   service_id     String?   @db.Uuid
   tenant_id      String?   @db.Uuid
@@ -172,4 +172,10 @@ model reviews {
   tenant              tenants             @relation(fields: [tenant_id], references: [tennat_id], onDelete: Cascade, onUpdate: NoAction, map: "tennant_fk")
 
   @@id([client_id, history_id, service_id, tenant_id], map: "reviews_pk")
+}
+
+model super_admin {
+  said        String  @id @db.Uuid
+  super_admin String  @db.VarChar(255)
+  password    String? @db.VarChar(600)
 }

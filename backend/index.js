@@ -20,6 +20,7 @@ import photoRouter from './routes/photos-routes.js';
 import servicesRouter from './routes/services-routes.js';
 import adminRouter from './routes/admin-routes.js';
 import tenantRouter from './routes/tenant-routes.js';
+import superAdminRouter from './routes/super-admin-routes.js';
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use('/services', servicesRouter);
 app.use('/photos', photoRouter);
 app.use('/admins', adminRouter);
 app.use('/tenants', tenantRouter);
+app.use('/super-admin', superAdminRouter);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

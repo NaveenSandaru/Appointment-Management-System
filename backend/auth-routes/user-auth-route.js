@@ -12,22 +12,26 @@ router.post('/login', async (req, res) => {
         let role = '';
         const { email, password, checked } = req.body;
         
-        // Use raw query to bypass tenant middleware during login
-        const clientResults = await prisma.$queryRaw`
-            SELECT email, name, password, tenant_id FROM clients WHERE email = ${email}
-        `;
+        // Use Prisma with tenant bypass during login
+        const clientUser = await prisma.clients.findUnique({
+            where: { email },
+            select: { email: true, name: true, password: true, tenant_id: true },
+            skipTenantEnforcement: true
+        });
         
-        if (clientResults && clientResults.length > 0) {
-            user = clientResults[0];
+        if (clientUser) {
+            user = clientUser;
             role = "client";
         } else {
             // Check admin table
-            const adminResults = await prisma.$queryRaw`
-                SELECT email, name, password, tenant_id FROM admins WHERE email = ${email}
-            `;
+            const adminUser = await prisma.admins.findUnique({
+                where: { email },
+                select: { email: true, name: true, password: true, tenant_id: true },
+                skipTenantEnforcement: true
+            });
             
-            if (adminResults && adminResults.length > 0) {
-                user = adminResults[0];
+            if (adminUser) {
+                user = adminUser;
                 role = "admin";
             }
         }
@@ -45,13 +49,15 @@ router.post('/login', async (req, res) => {
             return res.json({ successful: false, message: 'Invalid password' });
         }
 
-        // Check if email is verified by checking if a verification record exists
-        const verificationRecord = await prisma.$queryRaw`
-            SELECT email FROM email_verification WHERE email = ${user.email}
-        `;
+        // Check if email is verified
+        const verificationRecord = await prisma.email_verification.findUnique({
+            where: { email: user.email },
+            select: { email: true },
+            skipTenantEnforcement: true
+        });
 
         // If a verification record exists, the email is not verified yet
-        if (verificationRecord && verificationRecord.length > 0) {
+        if (verificationRecord) {
             return res.json({
                 successful: false,
                 message: 'Please verify your email before logging in',
@@ -156,16 +162,16 @@ router.post('/admin_login', async (req, res) => {
     try {
         const { email, password, checked } = req.body;
         
-        // Use raw query to bypass tenant middleware during login
-        const adminResults = await prisma.$queryRaw`
-            SELECT email, name, password, tenant_id FROM admins WHERE email = ${email}
-        `;
+        // Use Prisma with tenant bypass during admin login
+        const admin = await prisma.admins.findUnique({
+            where: { email },
+            select: { email: true, name: true, password: true, tenant_id: true },
+            skipTenantEnforcement: true
+        });
         
-        if (!adminResults || adminResults.length === 0) {
+        if (!admin) {
             return res.json({ successful: false, message: 'Invalid credentials' });
         }
-        
-        const admin = adminResults[0];
         
         if (!admin.password) {
             return res.json({ successful: false, message: 'Invalid credentials' });
@@ -176,13 +182,15 @@ router.post('/admin_login', async (req, res) => {
             return res.json({ successful: false, message: 'Invalid credentials' });
         }
 
-        // Check if email is verified by checking if a verification record exists
-        const verificationRecord = await prisma.$queryRaw`
-            SELECT email FROM email_verification WHERE email = ${admin.email}
-        `;
+        // Check if email is verified
+        const verificationRecord = await prisma.email_verification.findUnique({
+            where: { email: admin.email },
+            select: { email: true },
+            skipTenantEnforcement: true
+        });
 
         // If a verification record exists, the email is not verified yet
-        if (verificationRecord && verificationRecord.length > 0) {
+        if (verificationRecord) {
             return res.json({
                 successful: false,
                 message: 'Please verify your email before logging in',

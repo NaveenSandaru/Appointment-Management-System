@@ -108,24 +108,25 @@ router.post('/', authenticateWithAutoTenant, upload.single('picture'), async (re
 });
 
 // READ all services
-// PUBLIC: Get services for public browsing (shows default-tenant services only)
+// PUBLIC: Get services for public browsing (shows services from all active tenants)
 router.get('/public', async (req, res) => {
   try {
     const { active_only } = req.query;
     
-    let whereClause = { tenant_id: 'default-tenant' };
+    let whereClause = { is_active: true }; // Show active services from all tenants
     
-    if (active_only === 'true') {
-      whereClause.is_active = true;
+    if (active_only !== 'true') {
+      // If not filtering by active only, remove the is_active filter
+      delete whereClause.is_active;
     }
-    
+
     const services = await prisma.services.findMany({
       where: whereClause,
       orderBy: { service_name: 'asc' },
       skipTenantEnforcement: true
     });
     
-    console.log(`Public services (default-tenant):`, services.length);
+    console.log(`Public services:`, services.length);
     res.json({ successful: true, data: services });
   } catch (error) {
     console.error('Public services fetch error:', error);
@@ -174,7 +175,7 @@ router.get('/public/:id', async (req, res) => {
     const service = await prisma.services.findFirst({
       where: { 
         service_id: req.params.id,
-        tenant_id: 'default-tenant'  // Only show default-tenant services publicly
+        is_active: true  // Only show active services publicly
       },
       skipTenantEnforcement: true
     });

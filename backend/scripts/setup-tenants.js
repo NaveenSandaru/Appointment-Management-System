@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // Script to setup initial tenants and migrate existing data
+import { Prisma } from '@prisma/client';
 import prisma from '../prismaClient.js';
 
 async function setupTenantsAndMigrateData() {
@@ -10,20 +11,28 @@ async function setupTenantsAndMigrateData() {
     // First, let's check what data exists
     console.log('📊 Checking existing data...');
     
-    const clientsCount = await prisma.$queryRaw`SELECT COUNT(*) FROM clients`;
-    const adminsCount = await prisma.$queryRaw`SELECT COUNT(*) FROM admins`;
+    const clientsCount = await prisma.clients.count({ skipTenantEnforcement: true });
+    const adminsCount = await prisma.admins.count({ skipTenantEnforcement: true });
     
-    console.log(`Found ${clientsCount[0].count} clients and ${adminsCount[0].count} admins`);
+    console.log(`Found ${clientsCount} clients and ${adminsCount} admins`);
 
     // Create default tenant if it doesn't exist
     console.log('\n🏢 Creating default tenant...');
     
+    const defaultTenantId = '00000000-0000-4000-8000-000000000001'; // Fixed UUID for default tenant
+    
     try {
-      await prisma.$queryRaw`
-        INSERT INTO tenants (tenant_id, name, display_name, domain, is_active, created_at, updated_at)
-        VALUES ('default-tenant', 'Default Organization', 'Default Organization', 'default.com', true, NOW(), NOW())
-        ON CONFLICT (tenant_id) DO NOTHING
-      `;
+      await prisma.tenants.upsert({
+        where: { tennat_id: defaultTenantId },
+        update: {},
+        create: {
+          tennat_id: defaultTenantId,
+          name: 'Default Organization',
+          display_name: 'Default Organization',
+          domain: 'default.com',
+          is_active: true
+        }
+      });
       console.log('✅ Default tenant created/exists');
     } catch (error) {
       console.log('⚠️ Tenant creation error:', error.message);
@@ -32,22 +41,22 @@ async function setupTenantsAndMigrateData() {
     // Update existing clients to have default tenant
     console.log('\n👥 Updating existing clients with default tenant...');
     
-    const updatedClientsResult = await prisma.$queryRaw`
+    const updatedClientsResult = await prisma.$executeRaw`
       UPDATE clients 
-      SET tenant_id = 'default-tenant' 
+      SET tenant_id = ${defaultTenantId}
       WHERE tenant_id IS NULL
     `;
-    console.log(`✅ Updated clients: ${updatedClientsResult.count || 0}`);
+    console.log(`✅ Updated clients: ${updatedClientsResult}`);
 
     // Update existing admins to have default tenant
     console.log('\n👨‍💼 Updating existing admins with default tenant...');
     
-    const updatedAdminsResult = await prisma.$queryRaw`
+    const updatedAdminsResult = await prisma.$executeRaw`
       UPDATE admins 
-      SET tenant_id = 'default-tenant' 
+      SET tenant_id = ${defaultTenantId}
       WHERE tenant_id IS NULL
     `;
-    console.log(`✅ Updated admins: ${updatedAdminsResult.count || 0}`);
+    console.log(`✅ Updated admins: ${updatedAdminsResult}`);
 
     // Update other tables as needed
     const tableUpdates = [
@@ -63,12 +72,12 @@ async function setupTenantsAndMigrateData() {
 
     for (const table of tableUpdates) {
       try {
-        const result = await prisma.$queryRaw`
-          UPDATE ${table} 
-          SET tenant_id = 'default-tenant' 
+        const result = await prisma.$executeRaw`
+          UPDATE ${Prisma.raw(table)} 
+          SET tenant_id = ${defaultTenantId}
           WHERE tenant_id IS NULL
         `;
-        console.log(`✅ Updated ${table}: ${result.count || 0} records`);
+        console.log(`✅ Updated ${table}: ${result} records`);
       } catch (error) {
         console.log(`⚠️ Error updating ${table}:`, error.message);
       }

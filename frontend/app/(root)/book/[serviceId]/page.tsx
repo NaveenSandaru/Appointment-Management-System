@@ -102,7 +102,13 @@ export default function BookingPage() {
     
     try {
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/service/${service.service_id}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/service/${service.service_id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       if (response.data && Array.isArray(response.data)) {
         setCurrentAppointments(response.data);
@@ -180,7 +186,13 @@ export default function BookingPage() {
 
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
-        bookingData
+        bookingData,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       if (response.data) {

@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../prismaClient.js';
-import { authenticateWithAutoTenant } from '../middleware/authentication.js';
+import { authenticateWithAutoTenant, authenticateSuperAdmin } from '../middleware/authentication.js';
 
 const router = express.Router();
 
@@ -47,33 +47,8 @@ router.get('/current', authenticateWithAutoTenant, async (req, res) => {
   }
 });
 
-// Create a new tenant (admin only)
-router.post('/', async (req, res) => {
-  const { name, display_name, domain, logo_url } = req.body;
-  
-  if (!name || !display_name) {
-    return res.status(400).json({ error: 'Name and display_name are required' });
-  }
-  
-  try {
-    const tenant = await prisma.tenants.create({
-      data: {
-        name,
-        display_name,
-        domain,
-        logo_url
-      }
-    });
-    
-    res.status(201).json(tenant);
-  } catch (err) {
-    if (err.code === 'P2002') {
-      res.status(409).json({ error: 'Domain already exists' });
-    } else {
-      res.status(500).json({ error: err.message });
-    }
-  }
-});
+// Note: Tenant creation has been moved to super-admin-routes.js
+// Only super admins can create tenants
 
 // Update tenant
 router.put('/:tenant_id', authenticateWithAutoTenant, async (req, res) => {

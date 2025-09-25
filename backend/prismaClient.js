@@ -21,7 +21,7 @@ prisma.$use(async (params, next) => {
   if (TENANT_SCOPED_MODELS.includes(params.model)) {
     const tenantId = params.args?.tenantId || (params.args?.data && params.args.data.tenantId);
 
-    // Skip tenant enforcement for some like registration/login
+    // Skip tenant enforcement
     const skipTenantEnforcement = params.args?.skipTenantEnforcement;
     
     if (skipTenantEnforcement) {
@@ -30,7 +30,7 @@ prisma.$use(async (params, next) => {
       return next(params);
     }
 
-    // For read operations (findMany, findUnique, etc.)
+    // For read operations
     if (['findMany', 'findUnique', 'findFirst', 'count', 'aggregate'].includes(params.action)) {
       if (!tenantId && !params.args?.where?.tenant_id) {
         throw new Error(`Tenant ID missing for ${params.model} ${params.action} operation`);

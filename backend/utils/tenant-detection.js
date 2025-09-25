@@ -1,7 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-// Create a separate Prisma client without middleware for tenant detection
-const prismaRaw = new PrismaClient();
+import prisma from '../prismaClient.js';
 
 /**
  * Automatically detect tenant_id for a user from the database
@@ -14,17 +11,21 @@ export async function detectTenantFromUser(email, role = 'client') {
   try {
     let tenantId = null;
     
-    // Use raw queries to bypass tenant middleware
+    // Use Prisma with tenant bypass to get tenant information
     if (role === 'client') {
-      const result = await prismaRaw.$queryRaw`
-        SELECT tenant_id FROM clients WHERE email = ${email}
-      `;
-      tenantId = result.length > 0 ? result[0].tenant_id : null;
+      const client = await prisma.clients.findUnique({
+        where: { email },
+        select: { tenant_id: true },
+        skipTenantEnforcement: true
+      });
+      tenantId = client?.tenant_id || null;
     } else if (role === 'admin') {
-      const result = await prismaRaw.$queryRaw`
-        SELECT tenant_id FROM admins WHERE email = ${email}
-      `;
-      tenantId = result.length > 0 ? result[0].tenant_id : null;
+      const admin = await prisma.admins.findUnique({
+        where: { email },
+        select: { tenant_id: true },
+        skipTenantEnforcement: true
+      });
+      tenantId = admin?.tenant_id || null;
     }
     
     return tenantId || 'default-tenant';

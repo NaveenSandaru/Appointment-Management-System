@@ -46,9 +46,7 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh_token`,
           {
             withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
+            // Remove the Authorization header - refresh_token endpoint uses cookies
           }
         );
 

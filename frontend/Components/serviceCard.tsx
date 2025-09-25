@@ -62,7 +62,7 @@ export function ServiceCard({
   }
 
   return (
-    <Card className="h-[350px] overflow-hidden flex flex-col p-0 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
+    <Card className="h-[350px] max-w-[100%] w-[100%] overflow-hidden flex flex-col p-0 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
       <div className="overflow-hidden">
         <img
           src={image || getDefaultImage(service)}

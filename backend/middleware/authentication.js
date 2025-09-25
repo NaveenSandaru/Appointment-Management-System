@@ -64,10 +64,24 @@ function authenticateWithAutoTenant(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     
-    if (token == null) return res.status(401).json('Access denied');
+    // Debug logging
+    console.log('🔍 Auth Debug Info:');
+    console.log('Authorization header:', authHeader);
+    console.log('Extracted token:', token ? 'Token present' : 'No token');
+    console.log('All headers:', req.headers);
+    
+    if (token == null) {
+        console.log('❌ No token found - returning 401');
+        return res.status(401).json({ error: 'Access denied - No token provided' });
+    }
     
     jwt.verify(token, process.env.ACCESS_TOKEN_KEY, async (error, user) => {
-        if (error) return res.status(403).json('Invalid token');
+        if (error) {
+            console.log('❌ JWT verification failed:', error.message);
+            return res.status(403).json({ error: 'Invalid token' });
+        }
+        
+        console.log('✅ JWT verified successfully for user:', user.email);
         
         try {
             // First try to get tenant_id from token or headers
@@ -76,17 +90,22 @@ function authenticateWithAutoTenant(req, res, next) {
                           req.query.tenant_id || 
                           req.body.tenant_id;
             
+            console.log('🏢 Tenant detection - user.tenant_id:', user.tenant_id);
+            
             // If no tenant_id found, auto-detect from user data
             if (!tenantId && user.email) {
+                console.log('🔍 Auto-detecting tenant for:', user.email);
                 tenantId = await detectTenantFromUser(user.email, user.role);
             }
             
             if (!tenantId) {
+                console.log('❌ No tenant found for user');
                 return res.status(400).json({ 
                     error: 'No tenant assigned to this user. Please contact administrator.' 
                 });
             }
             
+            console.log('✅ Authentication successful - tenantId:', tenantId);
             req.user = user;
             req.tenantId = tenantId;
             next();
@@ -97,4 +116,24 @@ function authenticateWithAutoTenant(req, res, next) {
     });
 }
 
-export { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant };
+// Super Admin Authentication Middleware
+function authenticateSuperAdmin(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token == null) return res.status(401).json('Access denied');
+    
+    jwt.verify(token, process.env.ACCESS_TOKEN_KEY, (error, user) => {
+        if (error) return res.status(403).json('Invalid token');
+        
+        // Check if user is a super admin
+        if (user.role !== 'super_admin') {
+            return res.status(403).json('Super admin access required');
+        }
+        
+        req.user = user;
+        next();
+    });
+}
+
+export { authenticateToken, authenticateTokenWithTenant, authenticateWithAutoTenant, authenticateSuperAdmin };

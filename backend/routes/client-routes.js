@@ -75,26 +75,47 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or inactive tenant' });
     }
 
-    // Check if user exists in clients (use raw query to bypass tenant middleware)
-    const existingClient = await prisma.$queryRaw`
-      SELECT email FROM clients WHERE email = ${email}
-    `;
+    // Check if user exists in clients (use Prisma with tenant bypass)
+    const existingClient = await prisma.clients.findUnique({
+      where: { email },
+      select: { email: true },
+      skipTenantEnforcement: true
+    });
 
-    if (existingClient && existingClient.length > 0) {
+    if (existingClient) {
       return res.status(409).json({ error: 'Email already in use by another account' });
     }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new client with tenant_id using raw query to bypass middleware during registration
-    const result = await prisma.$queryRaw`
-      INSERT INTO clients (email, name, phone_number, profile_picture, age, gender, address, password, tenant_id)
-      VALUES (${email}, ${name}, ${phone_number}, ${profile_picture}, ${age}, ${gender}, ${address}, ${hashedPassword}, ${tenant_id})
-      RETURNING email, name, phone_number, profile_picture, age, gender, address, tenant_id
-    `;
+    // Create new client with tenant_id using Prisma with tenant bypass during registration
+    const newClient = await prisma.clients.create({
+      data: {
+        email, 
+        name, 
+        phone_number, 
+        profile_picture, 
+        age, 
+        gender, 
+        address, 
+        password: hashedPassword, 
+        tenant_id
+      },
+      select: { 
+        email: true, 
+        name: true, 
+        phone_number: true, 
+        profile_picture: true, 
+        age: true, 
+        gender: true, 
+        address: true, 
+        tenant_id: true 
+      },
+      skipTenantEnforcement: true
+    });
 
-    return res.status(201).json(result[0]);
+    return res.status(201).json(newClient);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -115,8 +136,7 @@ router.put('/', authenticateTokenWithTenant, async (req, res) => {
       where: { 
         email,
         tenant_id: req.tenantId
-      },
-      skipTenantEnforcement: true
+      }
     });
 
     if (!existingClient) {
