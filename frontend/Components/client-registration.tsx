@@ -423,7 +423,8 @@ export default function ClientRegistration({ selectedTenant, onBackToTenantSelec
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification`,
         {
-          email: formData.email
+          email: formData.email,
+          tenant_id: selectedTenant?.tennat_id || null
         },
         {
           withCredentials: true,
@@ -481,7 +482,8 @@ export default function ClientRegistration({ selectedTenant, onBackToTenantSelec
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification/verify`,
         {
           email: formData.email,
-          code: enteredOtp
+          code: enteredOtp,
+          tenant_id: selectedTenant?.tennat_id || null
         },
         {
           withCredentials: true,
@@ -573,9 +575,10 @@ export default function ClientRegistration({ selectedTenant, onBackToTenantSelec
 
           // Update client with profile picture URL
           if (uploadResponse.data.url) {
-            await axios.put("http://localhost:5000/clients", {
+            await axios.put("http://localhost:5000/clients/profile-picture", {
               email: formData.email,
-              profile_picture: uploadResponse.data.url
+              profile_picture: uploadResponse.data.url,
+              tenant_id: selectedTenant?.tennat_id || null
             })
           }
         }

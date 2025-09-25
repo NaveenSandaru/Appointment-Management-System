@@ -217,10 +217,27 @@ router.put('/profile/:email', authenticateTokenWithTenant, async (req, res) => {
   }
 });
 
-router.post('/sendEmail', async (req, res) => {
+router.post('/sendEmail', authenticateTokenWithTenant, async (req, res) => {
   try{
     const {email, role, link} = req.body;
-    await sendAccountCreationInvite(email, role, link);
+    
+    // Get the admin's tenant information for client invitations
+    if (role === 'client' && req.tenantId) {
+      // Get tenant information
+      const tenant = await prisma.tenants.findUnique({
+        where: { tennat_id: req.tenantId },
+        select: { tennat_id: true, name: true, display_name: true }
+      });
+      
+      if (tenant) {
+        await sendAccountCreationInvite(email, role, link, tenant);
+      } else {
+        await sendAccountCreationInvite(email, role, link);
+      }
+    } else {
+      await sendAccountCreationInvite(email, role, link);
+    }
+    
     res.status(201).json({message:"Invitation sent"});
   }
   catch(err){

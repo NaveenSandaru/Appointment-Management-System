@@ -71,17 +71,27 @@ router.post('/verify', /*authenticateTokenWithTenant,*/ async (req, res) => {
   
   try {
     const record = await prisma.email_verification.findUnique({ 
-      where: { email },
+      where: { 
+        email_tenant_id: {
+          email: email,
+          tenant_id: finalTenantId
+        }
+      },
       skipTenantEnforcement: true
     });
     
-    // Manually check tenant_id and code since we bypassed middleware
-    if (!record || record.tenant_id !== finalTenantId || record.code !== code) {
+    // Check if record exists and code matches
+    if (!record || record.code !== code) {
       return res.status(400).json({ error: 'Invalid or expired code' });
     }
 
     await prisma.email_verification.delete({ 
-      where: { email },
+      where: { 
+        email_tenant_id: {
+          email: email,
+          tenant_id: finalTenantId
+        }
+      },
       skipTenantEnforcement: true
     });
     res.json({ message: 'Email verified successfully' });
@@ -97,23 +107,22 @@ router.delete('/:email/:tenant_id?', /*authenticateTokenWithTenant,*/ async (req
   const finalTenantId = tenant_id || 'default-tenant';
   
   try {
-    // First check if the record exists and belongs to the correct tenant
-    const record = await prisma.email_verification.findUnique({ 
-      where: { email },
-      skipTenantEnforcement: true
-    });
-    
-    if (!record || record.tenant_id !== finalTenantId) {
-      return res.status(404).json({ error: 'Verification not found' });
-    }
-    
     await prisma.email_verification.delete({ 
-      where: { email },
+      where: { 
+        email_tenant_id: {
+          email: email,
+          tenant_id: finalTenantId
+        }
+      },
       skipTenantEnforcement: true
     });
     res.json({ message: 'Verification deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err.code === 'P2025') {
+      res.status(404).json({ error: 'Verification not found' });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 

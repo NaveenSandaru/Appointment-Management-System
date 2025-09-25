@@ -4,7 +4,7 @@ import { link } from 'fs';
 
 dotenv.config();
 
-// Create a transporter object using SMTP transport
+// Create a transporter o          <p>You've been invited to join ${tenant ? `<strong>${tenant.display_name || tenant.name}</strong> on ` : ''}<strong>simplyBooked</strong> as a <strong>${role}</strong>.</p>ject using SMTP transport
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
@@ -123,24 +123,33 @@ const sendAppointmentCancelation = async (email, date, start_time, provider) => 
     }
   };
 
-  const sendAccountCreationInvite = async (email, role, link) => {
+  const sendAccountCreationInvite = async (email, role, link, tenant = null) => {
+    // If tenant is provided and role is client, modify the link to include tenant parameter
+    let finalLink = link;
+    if (tenant && role === 'client') {
+      // Add tenant parameter to the URL
+      const url = new URL(link);
+      url.searchParams.set('tenant', tenant.tennat_id);
+      finalLink = url.toString();
+    }
+    
     const mailOptions = {
       from: `"Global Pearl Ventures" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Your simplyBooked Account Invitation',
+      subject: `Your ${tenant ? tenant.display_name || tenant.name : 'simplyBooked'} Account Invitation`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
-          <h2 style="color: #43a047;">You're Invited to Join simplyBooked</h2>
+          <h2 style="color: #43a047;">You're Invited to Join${tenant ? ` ${tenant.display_name || tenant.name}` : ' simplyBooked'}</h2>
           <p>Dear user,</p>
           <p>You’ve been invited to join <strong>simplyBooked</strong> as a <strong>${role}</strong>.</p>
           <p>Please click the button below to create your account and get started:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${link}" style="background-color: #43a047; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Create Account</a>
+            <a href="${finalLink}" style="background-color: #43a047; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Create Account</a>
           </div>
           <p>If the button doesn't work, copy and paste the following link into your browser:</p>
-          <p style="word-break: break-all;">${link}</p>
+          <p style="word-break: break-all;">${finalLink}</p>
           <p>We're excited to have you on board. If you have any questions, feel free to reach out to our support team.</p>
-          <p>Best regards,<br><strong>simplyBooked Team</strong></p>
+          <p>Best regards,<br><strong>${tenant ? tenant.display_name || tenant.name : 'simplyBooked'} Team</strong></p>
           <hr style="margin-top: 40px;">
           <p style="font-size: 12px; color: #888;">Global Pearl Ventures | simplyBooked</p>
         </div>
