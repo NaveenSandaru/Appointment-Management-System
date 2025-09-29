@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, LogOut, Settings } from "lucide-react"; 
+import { BarChart3, LogOut, Settings, User } from "lucide-react"; 
 import { AuthContext } from "@/context/auth-context";
 import { toast } from "sonner";
 
@@ -44,6 +44,11 @@ const items = [
     title: "Services",
     url: "/admin/services",
     icon: KanbanSquare,
+  },
+  {
+    title: "Profile",
+    url: "/admin/profile",
+    icon: User,
   },
 ];
 

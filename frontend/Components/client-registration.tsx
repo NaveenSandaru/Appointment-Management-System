@@ -11,8 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { toast } from "sonner"
-import { Upload, User, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { Upload, User, Shield, CheckCircle, Mail, AlertCircle, Info, ArrowLeft, Eye, EyeOff, Building2 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { LoadingButton } from "@/components/ui/loading-button"
 
@@ -51,7 +52,20 @@ interface FormErrors {
   securityAnswer3?: string
 }
 
-export default function ClientRegistration() {
+interface Tenant {
+  tennat_id: string
+  name: string
+  display_name: string
+  domain?: string
+  logo_url?: string
+}
+
+interface ClientRegistrationProps {
+  selectedTenant?: Tenant
+  onBackToTenantSelection?: () => void
+}
+
+export default function ClientRegistration({ selectedTenant, onBackToTenantSelection }: ClientRegistrationProps) {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true)
   const [securityQuestions, setSecurityQuestions] = useState<any[]>([])
   const [currentStep, setCurrentStep] = useState<Step>(1)
@@ -356,6 +370,9 @@ export default function ClientRegistration() {
     if (currentStep > 1) {
       setCurrentStep((prev) => (prev - 1) as Step)
       setTouched({})
+    } else if (currentStep === 1 && onBackToTenantSelection) {
+      // Go back to tenant selection if on first step
+      onBackToTenantSelection()
     }
   }
 
@@ -406,7 +423,8 @@ export default function ClientRegistration() {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification`,
         {
-          email: formData.email
+          email: formData.email,
+          tenant_id: selectedTenant?.tennat_id || null
         },
         {
           withCredentials: true,
@@ -464,7 +482,8 @@ export default function ClientRegistration() {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/email-verification/verify`,
         {
           email: formData.email,
-          code: enteredOtp
+          code: enteredOtp,
+          tenant_id: selectedTenant?.tennat_id || null
         },
         {
           withCredentials: true,
@@ -531,7 +550,8 @@ export default function ClientRegistration() {
           gender: formData.gender.charAt(0).toUpperCase(),
           address: formData.address || "",
           password: formData.password,
-          profile_picture: null // Will be updated after upload
+          profile_picture: null, // Will be updated after upload
+          tenant_id: selectedTenant?.tennat_id || null
         }
       })
 
@@ -555,9 +575,10 @@ export default function ClientRegistration() {
 
           // Update client with profile picture URL
           if (uploadResponse.data.url) {
-            await axios.put("http://localhost:5000/clients", {
+            await axios.put("http://localhost:5000/clients/profile-picture", {
               email: formData.email,
-              profile_picture: uploadResponse.data.url
+              profile_picture: uploadResponse.data.url,
+              tenant_id: selectedTenant?.tennat_id || null
             })
           }
         }
@@ -1153,9 +1174,20 @@ export default function ClientRegistration() {
   const getAllQuestions = async () => {
     try {
       setIsLoadingQuestions(true)
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/security-questions/`)
+      let url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/security-questions/`
+      
+      // Add tenant_id as query parameter if selectedTenant is available
+      if (selectedTenant?.tennat_id) {
+        url += `?tenant_id=${selectedTenant.tennat_id}`
+      }
+      
+      const response = await axios.get(url)
 
-      if (response.data && Array.isArray(response.data)) {
+      if (response.data && response.data.successful && Array.isArray(response.data.data)) {
+        setSecurityQuestions(response.data.data)
+        console.log("Security questions loaded:", response.data.data)
+      } else if (response.data && Array.isArray(response.data)) {
+        // Fallback for old API format
         setSecurityQuestions(response.data)
         console.log("Security questions loaded:", response.data)
       } else {
@@ -1174,7 +1206,7 @@ export default function ClientRegistration() {
 
   useEffect(() => {
     getAllQuestions()
-  }, [])
+  }, [selectedTenant?.tennat_id])
 
   // Update the canProceed function to check for emailExists
   const canProceed = () => {
@@ -1214,11 +1246,49 @@ export default function ClientRegistration() {
       <Card className="w-full max-w-4xl shadow-lg">
         <CardHeader className="text-center pb-6">
           <div className="flex items-center justify-center mb-4">
-            <Link href="/auth/account-selection" className="flex items-center text-emerald-600 hover:text-emerald-700">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Account Selection
-            </Link>
+            {onBackToTenantSelection && currentStep === 1 ? (
+              <button 
+                onClick={onBackToTenantSelection}
+                className="flex items-center text-emerald-600 hover:text-emerald-700"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Organization Selection
+              </button>
+            ) : (
+              <Link href="/auth/account-selection" className="flex items-center text-emerald-600 hover:text-emerald-700">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Account Selection
+              </Link>
+            )}
           </div>
+          
+          {/* Display selected tenant if available */}
+          {selectedTenant && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-center space-x-3">
+                {selectedTenant.logo_url ? (
+                  <div className="w-8 h-8 relative rounded overflow-hidden">
+                    <Image
+                      src={selectedTenant.logo_url}
+                      alt={`${selectedTenant.display_name} logo`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-blue-600" />
+                  </div>
+                )}
+                <div className="text-center">
+                  <p className="text-sm font-medium text-blue-800">
+                    Registering for: {selectedTenant.display_name}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="text-2xl font-bold text-emerald-600 mb-2">Client Registration</div>
           <p className="text-gray-600 text-sm">Create your client account to browse and book services</p>
         </CardHeader>

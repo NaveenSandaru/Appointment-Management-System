@@ -1,5 +1,5 @@
-import ClientRegistration from "@/components/client-registration"
+import ClientRegistrationFlow from "@/components/client-registration-flow"
 
 export default function ClientRegistrationPage() {
-  return <ClientRegistration />
+  return <ClientRegistrationFlow />
 }

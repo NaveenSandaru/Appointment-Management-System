@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useState, useContext } from 'react';
-import { User, Mail, Phone, Lock, Shield, Camera, X } from 'lucide-react';
+import { User, Mail, Phone, Lock, Shield, Camera, X, Building } from 'lucide-react';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 
 interface ClientData {
@@ -13,6 +15,11 @@ interface ClientData {
   name: string;
   phone_number: string;
   profile_picture: string | null;
+  tenant_id: string;
+  tenant_name: string;
+  tenant_domain: string | null;
+  tenant_logo: string | null;
+  tenant_is_active: boolean;
 }
 
 const ProfilePage = () => {
@@ -390,6 +397,62 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
+
+          {/* Tenant Information Section */}
+          {clientData && (
+            <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
+              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Building className="h-5 w-5 mr-2" />
+                Service Provider Information
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Service Provider
+                  </label>
+                  <p className="text-gray-900 font-medium">{clientData.tenant_name}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <Badge variant={clientData.tenant_is_active ? "default" : "destructive"}>
+                    {clientData.tenant_is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                
+                {clientData.tenant_domain && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Domain
+                    </label>
+                    <p className="text-gray-600">{clientData.tenant_domain}</p>
+                  </div>
+                )}
+              </div>
+              
+              {clientData.tenant_logo && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Service Provider Logo
+                  </label>
+                  <img
+                    src={clientData.tenant_logo}
+                    alt="Service Provider Logo"
+                    className="h-12 w-12 object-cover rounded-lg"
+                  />
+                </div>
+              )}
+              
+              <div className="bg-blue-50 p-3 rounded-lg mt-4">
+                <p className="text-blue-700 text-sm">
+                  You are registered as a client under <strong>{clientData.tenant_name}</strong>.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Security Questions Section */}
           <div className="border-t border-gray-200 px-6 py-6 sm:px-8">

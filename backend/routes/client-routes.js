@@ -5,6 +5,7 @@ import { authenticateToken, authenticateTokenWithTenant } from './../middleware/
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 
 const router = express.Router();
 
@@ -43,14 +44,34 @@ router.get('/client/:email', authenticateTokenWithTenant, async (req, res) => {
         email,
         tenant_id: req.tenantId  // Ensure tenant isolation
       },
+      include: {
+        tenant: {
+          select: {
+            name: true,
+            display_name: true,
+            domain: true,
+            logo_url: true,
+            is_active: true
+          }
+        }
+      },
       skipTenantEnforcement: true
     });
     
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
     }
-    
-    res.json(client);
+
+    // Structure the response to include tenant information clearly
+    const profileData = {
+      ...client,
+      tenant_name: client.tenant?.display_name || client.tenant?.name || 'No tenant assigned',
+      tenant_domain: client.tenant?.domain,
+      tenant_logo: client.tenant?.logo_url,
+      tenant_is_active: client.tenant?.is_active
+    };
+
+    res.json(profileData);
   } catch (err) {
     console.error('Client fetch error:', err);
     res.status(500).json({ error: err.message });
@@ -89,9 +110,13 @@ router.post('/', async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate a unique client_id
+    const clientId = randomUUID();
+
     // Create new client with tenant_id using Prisma with tenant bypass during registration
     const newClient = await prisma.clients.create({
       data: {
+        client_id: clientId,
         email, 
         name, 
         phone_number, 
@@ -122,7 +147,45 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update a client
+// Update client profile picture during registration (no auth required)
+router.put('/profile-picture', async (req, res) => {
+  const { email, profile_picture, tenant_id } = req.body;
+
+  if (!email || !profile_picture) {
+    return res.status(400).json({ error: 'Email and profile_picture are required' });
+  }
+
+  // Use default-tenant if no tenant_id provided
+  const finalTenantId = tenant_id || 'default-tenant';
+
+  try {
+    // Find and update the client
+    const updatedClient = await prisma.clients.updateMany({
+      where: { 
+        email: email,
+        tenant_id: finalTenantId
+      },
+      data: { 
+        profile_picture: profile_picture 
+      },
+      skipTenantEnforcement: true
+    });
+
+    if (updatedClient.count === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json({ 
+      message: 'Profile picture updated successfully',
+      profile_picture: profile_picture 
+    });
+  } catch (err) {
+    console.error('Profile picture update error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update client (authenticated users only)
 router.put('/', authenticateTokenWithTenant, async (req, res) => {
   const { email, profile_picture: newProfilePicture, password: rawPassword, ...rest } = req.body;
 

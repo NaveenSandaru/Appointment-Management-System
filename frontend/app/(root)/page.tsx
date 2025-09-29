@@ -69,6 +69,11 @@ export default function Home() {
   }
 
   const getAppointments = async () => {
+    if (!user?.email) {
+      console.error('User email not available');
+      return;
+    }
+
     try {
       setIsLoadingAppointments(true);
       const response = await axios.get(
@@ -128,10 +133,10 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       getAppointments();
-      if(user.role == "admin"){
+      if(user?.role == "admin"){
         router.push("/admin/dashboard");
       }
-      else if(user.role == "client"){
+      else if(user?.role == "client"){
         return;
       }
       else{
@@ -182,7 +187,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           {isLoggedIn ?
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome back, {user.name.split(" ")[0] ||"User"}
+              Welcome back, {user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "User"}
             </h1>
             :
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
