@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { encryptionMiddleware } from './middleware/encryption.js';
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,8 @@ const TENANT_SCOPED_MODELS = [
   'ratings',
   'reviews'
 ];
+
+prisma.$use(encryptionMiddleware);
 
 prisma.$use(async (params, next) => {
   // Only apply to tenant-scoped 

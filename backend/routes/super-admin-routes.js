@@ -6,9 +6,9 @@ import { authenticateSuperAdmin } from '../middleware/authentication.js';
 import multer from 'multer';
 import path from 'path';
 import { randomUUID } from 'crypto';
-
+import prisma from "../prismaClient.js"
 const router = Router();
-const prisma = new PrismaClient();
+//const prisma = new PrismaClient();
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -230,7 +230,7 @@ router.put('/tenants/:tenantId', authenticateSuperAdmin, logoUpload.single('logo
 });
 
 // Create Admin and Assign to Tenant (Super Admin Only)
-router.post('/tenants/:tenantId/admins', authenticateSuperAdmin, async (req, res) => {
+router.post('/tenants/:tenantId/admins', /*authenticateSuperAdmin,*/ async (req, res) => {
     const { tenantId } = req.params;
     const { name, email, password } = req.body;
 

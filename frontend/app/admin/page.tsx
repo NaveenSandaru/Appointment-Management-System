@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/admin_login`,
         {
-          id: id,
+          email: id,
           password: password
         },
         {
