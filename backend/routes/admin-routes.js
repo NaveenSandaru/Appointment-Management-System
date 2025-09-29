@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 
 const router = express.Router();
 
-// Create admin
+// Create admin - unused(no tennant)
 router.post('/', async (req, res) => {
   const { email, name, password } = req.body;
   if (!email || !name || !password) {
