@@ -45,7 +45,7 @@ const limiter = rateLimit({
   max: 100, 
   message: 'Rate limit hit, please try again later.'
 });
-app.use('/api', limiter);
+app.use(limiter);
 
 // CORS
 const corsOptions = {

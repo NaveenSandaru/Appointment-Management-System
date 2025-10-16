@@ -54,7 +54,6 @@ function authenticateTokenWithTenant(req, res, next) {
             
             // If no tenant_id found, auto-detect from user data
             if (!tenantId && user.email) {
-                console.log('🔍 Auto-detecting tenant for:', user.email);
                 tenantId = await detectTenantFromUser(user.email, user.role);
             }
             
