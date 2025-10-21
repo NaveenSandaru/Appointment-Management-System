@@ -1,6 +1,9 @@
+import dotenv from 'dotenv';
+// Load environment variables FIRST before any other imports
+dotenv.config();
+
 import express, {json} from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -21,8 +24,6 @@ import servicesRouter from './routes/services-routes.js';
 import adminRouter from './routes/admin-routes.js';
 import tenantRouter from './routes/tenant-routes.js';
 import superAdminRouter from './routes/super-admin-routes.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

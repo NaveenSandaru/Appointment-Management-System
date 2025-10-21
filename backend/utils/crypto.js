@@ -1,6 +1,16 @@
 import crypto from "crypto";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const algorithm = "aes-256-cbc";
+
+// Validate ENCRYPTION_KEY exists
+if (!process.env.ENCRYPTION_KEY) {
+  throw new Error("ENCRYPTION_KEY environment variable is not set. Please add it to your .env file.");
+}
+
 const secretKey = Buffer.from(process.env.ENCRYPTION_KEY, "hex"); // must be 32 bytes
 const ivLength = 16;
 
